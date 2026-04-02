@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>EssilorLuxottica</title>
+    <title>EssilorLuxottica - B Side</title>
     
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
     <link rel="manifest" href="manifest.json">
     <script>
         if ('serviceWorker' in navigator) {
@@ -18,39 +21,18 @@
         :root { --bg: #ffffff; --card: #e5e5ea; --red: #ff3b30; --orange: #ff9500; --btn-gray: #f2f2f7; }
         * { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         
-        /* 核心修改：整体下移 15px 适配灵动岛 */
         body { 
             font-family: -apple-system, sans-serif; background: var(--bg); color: #000; 
             padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; 
             margin: 0; transition: background 0.4s; overflow-x: hidden; touch-action: pan-y; 
         }
         
-        /* 密码遮罩层样式 */
-        #pwdOverlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #ffffff; z-index: 2147483647; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; padding: 20px;
-        }
-        #pwdOverlay h2 { font-size: 18px; margin-bottom: 20px; color: #000; font-weight: 800; }
-        #pwdOverlay input { 
-            width: 80%; max-width: 300px; padding: 15px; border: 1px solid #ddd; 
-            border-radius: 15px; font-size: 24px; text-align: center; background: #f9f9f9;
-            margin-bottom: 20px; outline: none; 
-            -webkit-user-select: text !important; user-select: text !important;
-            pointer-events: auto !important;
-        }
-        #pwdOverlay button {
-            width: 80%; max-width: 300px; padding: 15px; background: #000; color: #fff;
-            border: none; border-radius: 15px; font-weight: 700; font-size: 16px; cursor: pointer;
-        }
-
         .h { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 35px; }
         h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; line-height: 1.1; }
         .user-subtitle { font-size: 14px; color: #8e8e93; font-weight: 600; margin-top: 5px; height: 25px; display: flex; align-items: center; cursor: pointer; min-width: 50px; }
         .reg-btn { background: #000; color: #fff; font-size: 11px; border: none; padding: 0 14px; border-radius: 9px; font-weight: 700; text-transform: uppercase; height: 25px; display: flex; align-items: center; }
         
         .pianos { display: flex; gap: 5px; margin-bottom: 25px; padding: 12px 0 8px 0; overflow: visible; }
-        
         .p-btn { 
             flex: 1; background: var(--btn-gray); 
             color: #8e8e93; border: none; padding: 10px 0; 
@@ -58,7 +40,6 @@
             transition: 0.2s; position: relative; white-space: nowrap; overflow: visible; 
         }
         .p-btn.active { color: #fff !important; }
-        
         .p-badge { 
             position: absolute; top: -5px; right: -5px; 
             background: var(--red); width: 15px; height: 15px; 
@@ -74,7 +55,6 @@
         
         .btn-wrap { position: relative; width: 100%; aspect-ratio: 1/1; }
         .btn-machine { width: 100%; height: 100%; border: none; border-radius: 24px; font-weight: 800; font-size: 17px; background: var(--btn-gray); transition: background 0.3s; }
-        
         .badge { position: absolute; top: -4px; right: -4px; width: 22px; height: 22px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
         .or { background: var(--red) !important; color: #fff !important; animation: pulseRed 1.5s infinite; box-shadow: 0 0 15px rgba(255,59,48,0.4) !important; }
@@ -95,24 +75,12 @@
         .modal-btn { background: #000; color: #fff; padding: 15px; border-radius: 15px; font-weight: 700; width: 100%; font-size: 16px; border: none; }
         
         #v { background: #fff; display: none; flex-direction: column; z-index: 300; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding-top: calc(15px + env(safe-area-inset-top)); }
-        
-        .v-nav { 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            height: 55px; 
-            padding: 8px 20px 0 20px; 
-            flex-shrink: 0; 
-            background: #fff; 
-            border-bottom: 1px solid #f2f2f7; 
-            z-index: 200; 
-        }
+        .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 8px 20px 0 20px; flex-shrink: 0; background: #fff; border-bottom: 1px solid #f2f2f7; z-index: 200; }
         .back-arrow { font-size: 28px; width: 45px; cursor: pointer; display: flex; align-items: center; height: 100%; }
         .v-h2 { font-size: 18px; font-weight: 900; text-transform: uppercase; position: absolute; left: 0; right: 0; text-align: center; margin: 0; pointer-events: none; }
         .v-user-tag { font-size: 12px; color: #8e8e93; font-weight: 600; width: 80px; text-align: right; }
         
         #logContainer { flex: 1; overflow-y: auto; padding: 3px 15px 15px 15px; -webkit-overflow-scrolling: touch; }
-
         .day-header { background: var(--btn-gray); padding: 14px 15px; font-size: 14px; font-weight: 800; color: #000; display: flex; align-items: center; position: sticky; top: 0; z-index: 150; border-radius: 12px; margin-bottom: 15px; min-height: 48px; }
         .day-del-btn { color: var(--red); font-weight: 900; font-size: 20px; margin-right: 12px; width: 20px; display: none; align-items: center; justify-content: center; line-height: 1; cursor: pointer; }
         .day-section.collapsed .day-del-btn { display: flex; }
@@ -124,7 +92,6 @@
         table { width: 100%; border-collapse: collapse; table-layout: fixed; } 
         th, td { padding: 12px 2px; text-align: center; font-size: 14px; border-bottom: 1px solid #f2f2f7; vertical-align: middle; }
         th { color: #8e8e93; font-size: 9px; text-transform: uppercase; background: #fff; position: sticky; top: 48px; z-index: 140; letter-spacing: -0.2px; }
-
         .col-time { text-align: left !important; padding-left: 8px !important; width: 85px; }
         .time-cell { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; line-height: 1.1; font-size: 13.5px; font-weight: 800; padding: 2px 0; height: 100%; }
         .t-a { color: var(--orange); }
@@ -144,11 +111,6 @@
     </style>
 </head>
 <body class="p1">
-    <div id="pwdOverlay">
-        <h2>INSERIRE PASSWORD</h2>
-        <input type="password" id="pwdInput" placeholder="****" readonly onfocus="this.removeAttribute('readonly');" onclick="this.focus();">
-        <button onclick="verifyPwd()">ACCEDI</button>
-    </div>
 
     <div class="h">
         <div class="title-group"><h2>OPERATORE</h2><div id="userNameDisp" class="user-subtitle" onclick="handleNameClick()">Hu_Shan</div></div>
@@ -177,9 +139,7 @@
             <h2 class="v-h2">REGISTRO INTERVENTI</h2>
             <div id="regNameDisp" class="v-user-tag">Hu_Shan</div>
         </div>
-        
         <div id="logContainer"></div>
-        
         <div class="v-footer">
             <div class="btn-group">
                 <button class="bottom-action-btn clear-btn" onclick="openConfirm()">Svuota tutto</button>
@@ -191,25 +151,24 @@
     </div>
 
 <script>
-    // 密码验证
-    function verifyPwd() {
-        if (document.getElementById('pwdInput').value === "hs1234") {
-            document.getElementById('pwdOverlay').style.display = 'none';
-            initApp();
-        } else {
-            alert("Password errata!");
-            document.getElementById('pwdInput').value = "";
-            document.getElementById('pwdInput').setAttribute('readonly', 'readonly');
-        }
-    }
-    document.getElementById('pwdInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyPwd(); });
+    // --- FIREBASE CONFIG ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAUBXn_liUqQJtp1hucwsuERhZ4oxCdBPg",
+        authDomain: "luxottica-app.firebaseapp.com",
+        databaseURL: "https://luxottica-app-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "luxottica-app",
+        appId: "1:288317846374:web:c8ec72c5ecd910840f4ea7"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
+    // --- APP STATE ---
     const pianoData = { 
         1: ['101','101bis','102','102bis','103','103bis','104','104bis','105','105bis','106','106bis','107','107bis','108','108bis'], 
         2: ['201','201bis','202','202bis','203','203bis','204','204bis','205','205bis','206','206bis','207','207bis','208','208bis'], 
         3: ['301','301bis','302','302bis','303','303bis','304','304bis','305','305bis','306','306bis','307','307bis','308','308bis'], 
         4: ['401','401bis','402','402bis','403','403bis','404','404bis','405','405bis','406','406bis','407','407bis','408','408bis'],
-        5: ['501','501bis','502','502bis','503','503bis','504','504bis','505','505bis','506','506bis','507','507bis','508','508bis']
+        5: ['501','501bis','502','502bis','503','503bis','504','503bis','505','505bis','506','506bis','507','507bis','508','508bis']
     };
     const shortcuts = { 'a': 'avvitatore', 'c': 'cambio', 'f': 'faro', 'l': 'lecureux', 'o': 'oliatore', 's': 'stampiglia', 't': 'taglio modificato' };
     
@@ -219,8 +178,26 @@
     let logs = JSON.parse(localStorage.getItem('logs_v7') || '[]');
     let dayHistory = JSON.parse(localStorage.getItem('dayHistory_v7') || '[]');
     let undoStack = [], curPiano = 1, tempLog = null, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
-    
     let usedShortcutsInSession = {}; 
+
+    // --- FIREBASE SYNC ---
+    db.ref('active_calls').on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        // 合并远程 A 端发起的橙色呼叫到本地 act
+        Object.keys(data).forEach(id => {
+            if(!act[id] || (act[id].status !== data[id].status)) {
+                act[id] = data[id];
+            }
+        });
+        // 如果远程删除了，本地也对应清理（前提是本地不是红色正在维修状态，防止误删）
+        Object.keys(act).forEach(id => {
+            if(!data[id] && act[id].status === 'orange') {
+                delete act[id];
+            }
+        });
+        saveState();
+        renderGrid();
+    });
 
     function saveState() { 
         localStorage.setItem('act_v7', JSON.stringify(act)); 
@@ -243,44 +220,21 @@
         }
     }
 
-    async function shareRegistro() {
-        if (logs.length === 0) { alert("Nessun dato da inviare."); return; }
-        const expandedDays = Array.from(document.querySelectorAll('.day-section:not(.collapsed) span')).map(el => el.innerText);
-        if (expandedDays.length === 0) { alert("Espandere almeno un giorno nel registro per inviare i dati."); return; }
-
-        const w = { linea: 12, inizio: 10, attesa: 10, durata: 10 };
-        let shareText = `REGISTRO INTERVENTI - OPERATORE: ${currentUserName}\nESPORTATO IL: ${new Date().toLocaleString('it-IT')}\n------------------------------------------------------------\n`;
-        const groups = {}; 
-        dayHistory.forEach(d => groups[d] = []);
-        logs.forEach(l => { if (groups[l.day]) groups[l.day].push(l); });
-        
-        const sortedDays = Object.keys(groups).filter(day => expandedDays.includes(day)).sort((a,b) => b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join('')));
-
-        sortedDays.forEach(day => {
-            shareText += `\n[ DATA: ${day} ]\n${"LINEA".padEnd(w.linea)}${"INIZIO".padEnd(w.inizio)}${"ATTESA".padEnd(w.attesa)}${"DURATA".padEnd(w.durata)}CAUSALE\n${"".padEnd(50, '-')}\n`;
-            groups[day].sort((a,b) => b.st - a.st).forEach(l => {
-                let displayId = l.i === 'FUORI' ? 'F. Linea' : l.i;
-                shareText += `${displayId.toString().padEnd(w.linea)}${l.s.toString().padEnd(w.inizio)}${(l.tA+"m").padEnd(w.attesa)}${(l.tD+"m").padEnd(w.durata)}${l.c}\n`;
-            });
-        });
-
-        if (navigator.share) {
-            try { await navigator.share({ title: `Registro_${currentUserName}`, text: shareText }); } catch (err) {}
-        } else {
-            const blob = new Blob([shareText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `Registro_${currentUserName}.txt`; a.click(); URL.revokeObjectURL(url);
-        }
-    }
-
     function handleMachineClick(id) {
         const now = Date.now();
         if (!act[id]) {
+            // 手动点击变红
             let anyRed = Object.keys(act).some(k => act[k].status === 'red');
             act[id] = { startA: now, status: anyRed ? 'orange' : 'red', startD: anyRed ? null : now };
+            db.ref('active_calls/' + id).set(act[id]);
         } else if (act[id].status === 'orange') {
-            act[id].status = 'red'; act[id].startD = now;
+            // A端发起的呼叫变红（开始维修）
+            act[id].status = 'red'; 
+            act[id].startD = now;
+            db.ref('active_calls/' + id).update({ status: 'red', startD: now });
         } else {
+            // 结束维修
+            db.ref('active_calls/' + id).remove();
             let startD = act[id].startD || act[id].startA;
             let finalAttesa = Math.max(0, startD - act[id].startA);
             let finalDurata = Math.max(0, now - startD);
@@ -289,12 +243,6 @@
             return;
         }
         saveState(); renderGrid();
-    }
-
-    function getQueueNumber(id) {
-        const orangeIds = Object.keys(act).filter(key => act[key].status === 'orange').sort((a, b) => act[a].startA - act[b].startA);
-        const index = orangeIds.indexOf(id);
-        return index !== -1 ? index + 1 : null;
     }
 
     function renderGrid() {
@@ -310,12 +258,11 @@
             b.onclick = () => handleMachineClick(i);
             wrap.appendChild(b);
             if (s && s.status === 'orange') {
-                const qNum = getQueueNumber(i);
-                if (qNum) {
-                    const badge = document.createElement('div');
-                    badge.className = 'badge'; badge.innerText = qNum;
-                    wrap.appendChild(badge);
-                }
+                const orangeIds = Object.keys(act).filter(key => act[key].status === 'orange').sort((a, b) => act[a].startA - act[b].startA);
+                const qNum = orangeIds.indexOf(i) + 1;
+                const badge = document.createElement('div');
+                badge.className = 'badge'; badge.innerText = qNum;
+                wrap.appendChild(badge);
             }
             gd.appendChild(wrap);
         });
@@ -324,55 +271,7 @@
         if (!fs) f.style.color = themeConfig[curPiano];
     }
 
-    function renderLogs() {
-        const container = document.getElementById('logContainer');
-        const expandedDays = new Set();
-        container.querySelectorAll('.day-section:not(.collapsed) span').forEach(el => {
-            expandedDays.add(el.innerText.trim());
-        });
-
-        container.innerHTML = '';
-        const oggi = new Date().toLocaleDateString('it-IT');
-        const groups = {}; 
-        dayHistory.forEach(d => groups[d] = []);
-        logs.forEach((l, idx) => { if (groups[l.day]) groups[l.day].push({ ...l, originalIndex: idx }); });
-        const sortedDays = Object.keys(groups).sort((a,b) => b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join('')));
-        
-        sortedDays.forEach(day => {
-            const section = document.createElement('div');
-            const isCollapsed = expandedDays.size === 0 ? (day !== oggi) : !expandedDays.has(day);
-
-            section.className = 'day-section' + (isCollapsed ? ' collapsed' : '');
-            const dayLogs = groups[day].sort((a, b) => b.st - a.st);
-            section.innerHTML = `
-                <div class="day-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                    <div class="day-header-left"><div class="day-del-btn" onclick="openDayDelConfirm(event, '${day}')">×</div><span>${day}</span></div>
-                </div>
-                <div class="day-content">
-                    <table>
-                        <thead><tr>
-                            <th>LINEA</th><th>INIZIO</th>
-                            <th class="col-time">ATTESA & DURATA</th>
-                            <th>CAUSALE</th><th><span class="undo-btn" onclick="performUndo(event)">↺</span></th>
-                        </tr></thead>
-                        <tbody>${dayLogs.map(l => `<tr>
-                            <td><b>${l.i === 'FUORI' ? 'F. Linea' : l.i}</b></td>
-                            <td>${l.s}</td>
-                            <td class="col-time">
-                                <div class="time-cell">
-                                    <span class="t-a">A: ${l.tA}m</span>
-                                    <span class="t-d">D: ${l.tD}m</span>
-                                </div>
-                            </td>
-                            <td><span class="editable-causale" onclick="handleCausaleClick(${l.originalIndex})">${l.c}</span></td>
-                            <td class="del-row" onclick="deleteRow(${l.originalIndex})">×</td>
-                        </tr>`).join('')}</tbody>
-                    </table>
-                </div>`;
-            container.appendChild(section);
-        });
-    }
-
+    // --- OTHER ORIGINAL LOGIC (REGISTRO, MODAL, ETC) ---
     function initApp() {
         let redPiano = 0, orangePiano = 0;
         for (let p = 1; p <= 5; p++) { 
@@ -428,6 +327,62 @@
     function doClear() { logs=[]; dayHistory=[]; saveState(); renderLogs(); document.getElementById('confirmModal').style.display='none'; }
     function openConfirm() { document.getElementById('confirmModal').style.display='flex'; }
     
+    function renderLogs() {
+        const container = document.getElementById('logContainer');
+        const expandedDays = new Set();
+        container.querySelectorAll('.day-section:not(.collapsed) span').forEach(el => expandedDays.add(el.innerText.trim()));
+        container.innerHTML = '';
+        const oggi = new Date().toLocaleDateString('it-IT');
+        const groups = {}; 
+        dayHistory.forEach(d => groups[d] = []);
+        logs.forEach((l, idx) => { if (groups[l.day]) groups[l.day].push({ ...l, originalIndex: idx }); });
+        const sortedDays = Object.keys(groups).sort((a,b) => b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join('')));
+        
+        sortedDays.forEach(day => {
+            const section = document.createElement('div');
+            const isCollapsed = expandedDays.size === 0 ? (day !== oggi) : !expandedDays.has(day);
+            section.className = 'day-section' + (isCollapsed ? ' collapsed' : '');
+            const dayLogs = groups[day].sort((a, b) => b.st - a.st);
+            section.innerHTML = `
+                <div class="day-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <div class="day-header-left"><div class="day-del-btn" onclick="openDayDelConfirm(event, '${day}')">×</div><span>${day}</span></div>
+                </div>
+                <div class="day-content">
+                    <table>
+                        <thead><tr><th>LINEA</th><th>INIZIO</th><th class="col-time">ATTESA & DURATA</th><th>CAUSALE</th><th><span class="undo-btn" onclick="performUndo(event)">↺</span></th></tr></thead>
+                        <tbody>${dayLogs.map(l => `<tr>
+                            <td><b>${l.i === 'FUORI' ? 'F. Linea' : l.i}</b></td>
+                            <td>${l.s}</td>
+                            <td class="col-time"><div class="time-cell"><span class="t-a">A: ${l.tA}m</span><span class="t-d">D: ${l.tD}m</span></div></td>
+                            <td><span class="editable-causale" onclick="handleCausaleClick(${l.originalIndex})">${l.c}</span></td>
+                            <td class="del-row" onclick="deleteRow(${l.originalIndex})">×</td>
+                        </tr>`).join('')}</tbody>
+                    </table>
+                </div>`;
+            container.appendChild(section);
+        });
+    }
+
+    async function shareRegistro() {
+        if (logs.length === 0) { alert("Nessun dato da inviare."); return; }
+        const expandedDays = Array.from(document.querySelectorAll('.day-section:not(.collapsed) span')).map(el => el.innerText);
+        if (expandedDays.length === 0) { alert("Espandere almeno un giorno nel registro per inviare i dati."); return; }
+        const w = { linea: 12, inizio: 10, attesa: 10, durata: 10 };
+        let shareText = `REGISTRO INTERVENTI - OPERATORE: ${currentUserName}\n----------------------------------\n`;
+        const groups = {}; 
+        dayHistory.forEach(d => groups[d] = []);
+        logs.forEach(l => { if (groups[l.day]) groups[l.day].push(l); });
+        const sortedDays = Object.keys(groups).filter(day => expandedDays.includes(day)).sort((a,b) => b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join('')));
+        sortedDays.forEach(day => {
+            shareText += `\n[ DATA: ${day} ]\n${"LINEA".padEnd(w.linea)}${"INIZIO".padEnd(w.inizio)}${"ATTESA".padEnd(w.attesa)}${"DURATA".padEnd(w.durata)}CAUSALE\n`;
+            groups[day].sort((a,b) => b.st - a.st).forEach(l => {
+                let displayId = l.i === 'FUORI' ? 'F. Linea' : l.i;
+                shareText += `${displayId.toString().padEnd(w.linea)}${l.s.toString().padEnd(w.inizio)}${(l.tA+"m").padEnd(w.attesa)}${(l.tD+"m").padEnd(w.durata)}${l.c}\n`;
+            });
+        });
+        if (navigator.share) { try { await navigator.share({ title: `Registro_${currentUserName}`, text: shareText }); } catch (err) {} }
+    }
+
     document.addEventListener('touchstart', e=>{ touchStartX=e.changedTouches[0].screenX; });
     document.addEventListener('touchend', e=>{ 
         let d=e.changedTouches[0].screenX-touchStartX; 
@@ -437,7 +392,8 @@
         } 
     });
 
-    // 初始不直接运行 initApp，等待密码验证成功后运行
+    // 启动 App
+    initApp();
 </script>
 </body>
 </html>
