@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <title>A - Operatore</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <style>
+        :root { --bg: #ffffff; --orange: #ff9500; --btn-gray: #f2f2f7; }
+        body { font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--bg); padding: 20px; }
+        h1 { font-size: 24px; font-weight: 900; margin-bottom: 40px; }
+        input { width: 100%; max-width: 280px; padding: 18px; border: 3px solid var(--btn-gray); border-radius: 20px; font-size: 24px; text-align: center; font-weight: 800; outline: none; margin-bottom: 30px; }
+        #mainBtn { width: 220px; height: 220px; border-radius: 50%; border: none; background: var(--btn-gray); font-size: 32px; font-weight: 900; color: #8e8e93; transition: 0.4s; box-shadow: 0 10px 25px rgba(0,0,0,0.1); cursor: pointer; }
+        #mainBtn.waiting { background: var(--orange); color: #fff; transform: scale(1.1); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,149,0,0.7); } 70% { box-shadow: 0 0 0 20px rgba(255,149,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,149,0,0); } }
+    </style>
+</head>
+<body>
+    <h1>ESSILORLUXOTTICA</h1>
+    <input type="text" id="linea" placeholder="LINEA" oninput="document.getElementById('mainBtn').innerText=this.value || 'INVIO'">
+    <button id="mainBtn" onclick="sendCall()">INVIO</button>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAUBXn_liUqQJtp1hucwsuERhZ4oxCdBPg",
+        authDomain: "luxottica-app.firebaseapp.com",
+        databaseURL: "https://luxottica-app-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "luxottica-app",
+        appId: "1:288317846374:web:c8ec72c5ecd910840f4ea7"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function sendCall() {
+        const id = document.getElementById('linea').value.trim().toUpperCase();
+        if(!id) return alert("Inserire Linea!");
+        
+        document.getElementById('mainBtn').classList.add('waiting');
+        
+        // 发送到云端数据库
+        db.ref('active_calls/' + id).set({
+            status: 'orange',
+            startA: Date.now()
+        }).then(() => {
+            const msg = `🚨 *CHIAMATA ATTREZZISTA*\n📍 Linea: *${id}*\nStatus: IN ATTESA (Orange)`;
+            window.location.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        });
+    }
+</script>
+</body>
+</html>
