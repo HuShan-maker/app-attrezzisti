@@ -2,74 +2,94 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>C - Monitor Manual Control</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>C - Management Panel</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
     <style>
-        :root { --orange: #ff9500; --red: #ff3b30; --green: #34c759; --gray: #8e8e93; }
-        body { font-family: -apple-system, sans-serif; padding: 25px; background: #f2f2f7; color: #000; margin: 0; }
+        :root { --bg: #ffffff; --red: #ff3b30; --orange: #ff9500; --gray: #f2f2f7; }
+        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
         
-        .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        h1 { font-weight: 900; font-size: 28px; letter-spacing: -1px; margin: 0; text-transform: uppercase; }
-        
-        .clear-all-btn { 
-            background: #ff3b30; color: #fff; border: none; padding: 12px 20px; 
-            border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; cursor: pointer;
+        body { 
+            font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; 
+            padding: env(safe-area-inset-top) 20px 20px 20px;
+            display: flex; flex-direction: column; height: 100vh;
         }
 
-        #monitorList { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
-        
-        .card { 
-            background: white; border-radius: 22px; padding: 20px; 
-            display: flex; flex-direction: column; gap: 12px; position: relative;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 12px solid #ccc;
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+        h1 { font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase; }
+        .reg-btn { background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+
+        /* 实时状态列表 */
+        #activeList { flex: 1; overflow-y: auto; padding-top: 10px; }
+        .call-card { 
+            background: var(--gray); border-radius: 20px; padding: 20px; margin-bottom: 15px; 
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
         }
-        .card.orange { border-left-color: var(--orange); }
-        .card.red { border-left-color: var(--red); }
-        .card.completed { border-left-color: var(--green); opacity: 0.8; }
-        
-        .del-card { 
-            position: absolute; top: 15px; right: 15px; width: 30px; height: 30px; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; font-weight: 900; color: #ddd; cursor: pointer;
+        .call-info b { font-size: 28px; display: block; line-height: 1.1; }
+        .call-info span { font-size: 13px; color: #8e8e93; font-weight: 600; display: block; margin-top: 4px; }
+        .status-badge { padding: 10px 18px; border-radius: 12px; color: #fff; font-weight: 800; font-size: 12px; text-transform: uppercase; }
+        .bg-orange { background: var(--orange); }
+        .bg-red { background: var(--red); }
+
+        /* 记录页面 */
+        #historyPage { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #fff; z-index: 100; flex-direction: column;
+            padding-top: env(safe-area-inset-top);
         }
-        .del-card:hover { color: var(--red); }
-
-        .linea-id { font-size: 32px; font-weight: 900; letter-spacing: -1px; }
-        .tech-name { font-size: 14px; font-weight: 800; color: #000; background: #eee; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 5px; }
-
-        .time-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: #f8f8fa; padding: 12px; border-radius: 15px; margin-top: 5px; }
-        .time-box { text-align: center; }
-        .time-label { font-size: 9px; font-weight: 800; color: var(--gray); text-transform: uppercase; margin-bottom: 4px; }
-        .time-val { font-size: 16px; font-weight: 900; }
+        .v-nav { display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #f2f2f7; position: relative; }
+        .back-arrow { font-size: 28px; cursor: pointer; z-index: 2; }
+        .v-title { position: absolute; left: 0; right: 0; text-align: center; font-size: 18px; font-weight: 900; margin: 0; text-transform: uppercase; }
         
-        .val-a { color: var(--orange); }
-        .val-d { color: var(--red); }
-        .val-t { color: #000; }
+        #logContainer { flex: 1; overflow-y: auto; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+        th, td { padding: 14px 4px; text-align: center; border-bottom: 1px solid #f2f2f7; word-wrap: break-word; }
+        th { font-size: 9px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
+        .td-linea { font-weight: 800; font-size: 15px; }
 
-        .no-data { text-align: center; margin-top: 100px; color: var(--gray); font-weight: 700; font-size: 18px; }
-        
-        #confirmModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .modal-content { background: white; padding: 30px; border-radius: 30px; text-align: center; width: 85%; max-width: 350px; }
+        /* 主页底部版权信息修正 */
+        .footer-text { text-align: center; padding: 20px 0; font-size: 11px; font-weight: 800; color: #ccc; text-transform: uppercase; letter-spacing: 0.8px; }
     </style>
 </head>
 <body>
 
-    <div class="header-area">
-        <h1>Monitor Dashboard</h1>
-        <button class="clear-all-btn" onclick="openConfirm()">Elimina Tutto</button>
+    <div class="header">
+        <h1>STATUS LINEE</h1>
+        <button class="reg-btn" onclick="showHistory()">REGISTRO</button>
     </div>
 
-    <div id="monitorList">Caricamento...</div>
+    <div id="activeList">
+        <!-- 实时数据渲染区 -->
+    </div>
 
-    <div id="confirmModal">
-        <div class="modal-content">
-            <h3 style="margin-bottom:20px;">Eliminare definitivamente tutti i record?</h3>
-            <div style="display:flex; gap:10px;">
-                <button style="flex:1; padding:15px; border-radius:15px; border:none; background:#eee; font-weight:800;" onclick="closeConfirm()">NO</button>
-                <button style="flex:1; padding:15px; border-radius:15px; border:none; background:red; color:white; font-weight:800;" onclick="clearAll()">SI, ELIMINA</button>
-            </div>
+    <!-- 底部版权：© 2026 HU SHAN. ALL RIGHTS RESERVED. -->
+    <div class="footer-text">© 2026 HU SHAN. ALL RIGHTS RESERVED.</div>
+
+    <!-- 记录历史页面 -->
+    <div id="historyPage">
+        <div class="v-nav">
+            <div class="back-arrow" onclick="closeHistory()">←</div>
+            <h2 class="v-title">REGISTRO INTERVENTI</h2>
+        </div>
+        <div id="logContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">LINEA</th>
+                        <th style="width: 20%;">INIZIO</th> <!-- 新增开始时间 -->
+                        <th style="width: 15%;">DUR.</th>
+                        <th style="width: 20%;">TECNICO</th>
+                        <th style="width: 25%;">CAUSALE</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+            </table>
         </div>
     </div>
 
@@ -84,63 +104,73 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function updateDashboard() {
+    // 监听实时数据
+    db.ref('active_calls').on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        const list = document.getElementById('activeList');
+        list.innerHTML = '';
+
+        // 仅显示正在进行中（orange 或 red）的任务
+        Object.keys(data).forEach(id => {
+            const item = data[id];
+            if(item.status === 'completed' || item.status === 'none') return;
+
+            const timeStr = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            const card = document.createElement('div');
+            card.className = 'call-card';
+            card.innerHTML = `
+                <div class="call-info">
+                    <b>${id}</b>
+                    <span>Chiamata: ${timeStr}</span>
+                </div>
+                <div class="status-badge ${item.status === 'red' ? 'bg-red' : 'bg-orange'}">
+                    ${item.status === 'red' ? 'Lavorando' : 'In attesa'}
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    });
+
+    function showHistory() {
+        document.getElementById('historyPage').style.display = 'flex';
+        renderHistory();
+    }
+
+    function closeHistory() {
+        document.getElementById('historyPage').style.display = 'none';
+    }
+
+    // 渲染历史记录（从 Firebase 获取已完成的数据）
+    function renderHistory() {
         db.ref('active_calls').once('value', (snapshot) => {
             const data = snapshot.val() || {};
-            const container = document.getElementById('monitorList');
-            container.innerHTML = '';
-            const ids = Object.keys(data);
-            
-            if(ids.length === 0) {
-                container.innerHTML = `<div class="no-data">✅ NESSUNA ATTIVITÀ</div>`;
-                return;
-            }
+            const body = document.getElementById('logBody');
+            body.innerHTML = '';
 
-            ids.forEach(id => {
-                const item = data[id];
-                const now = item.endT || Date.now();
-                
-                let tA = Math.round(((item.startD || now) - item.startA) / 60000);
-                let tD = item.startD ? Math.round((now - item.startD) / 60000) : 0;
-                let tT = Math.round((now - item.startA) / 60000);
+            const completedTasks = [];
+            Object.keys(data).forEach(id => {
+                if(data[id].status === 'completed') {
+                    completedTasks.push({ id, ...data[id] });
+                }
+            });
 
-                const card = document.createElement('div');
-                card.className = `card ${item.status}`;
-                card.innerHTML = `
-                    <div class="del-card" onclick="deleteEntry('${id}')">×</div>
-                    <div class="card-header">
-                        <div class="linea-id">${id}</div>
-                        <div style="font-weight:900; font-size:10px; color:var(--gray)">${item.status.toUpperCase()}</div>
-                        ${item.techName ? `<div class="tech-name">TEC: ${item.techName}</div>` : ''}
-                    </div>
-                    <div class="time-grid">
-                        <div class="time-box"><div class="time-label">Attesa</div><div class="time-val val-a">${tA}m</div></div>
-                        <div class="time-box"><div class="time-label">Durata</div><div class="time-val val-d">${tD}m</div></div>
-                        <div class="time-box"><div class="time-label">Totale</div><div class="time-val val-t">${tT}m</div></div>
-                    </div>
+            // 按时间倒序排列
+            completedTasks.sort((a,b) => b.endT - a.endT).forEach(item => {
+                const row = document.createElement('tr');
+                const startStr = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                const duration = Math.round((item.endT - item.startA) / 60000);
+
+                row.innerHTML = `
+                    <td class="td-linea">${item.id}</td>
+                    <td>${startStr}</td>
+                    <td>${duration}m</td>
+                    <td>${item.techName || '-'}</td>
+                    <td style="font-size:11px;">${item.causale || '-'}</td>
                 `;
-                container.appendChild(card);
+                body.appendChild(row);
             });
         });
     }
-
-    function deleteEntry(id) {
-        if(confirm("Eliminare definitivamente record Linea " + id + "?")) {
-            db.ref('active_calls/' + id).remove();
-        }
-    }
-
-    function openConfirm() { document.getElementById('confirmModal').style.display = 'flex'; }
-    function closeConfirm() { document.getElementById('confirmModal').style.display = 'none'; }
-    function clearAll() {
-        db.ref('active_calls').remove().then(() => {
-            closeConfirm();
-            updateDashboard();
-        });
-    }
-
-    db.ref('active_calls').on('value', updateDashboard);
-    setInterval(updateDashboard, 30000);
 </script>
 </body>
 </html>
