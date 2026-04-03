@@ -5,69 +5,79 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Board Control v5.2</title>
+    <title>C - Board Control v5.5</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
     <style>
-        :root { --bg: #f2f2f7; --red: #ff3b30; --orange: #ff9500; --green: #34c759; --white: #ffffff; }
+        :root { --bg: #f2f2f7; --red: #ff3b30; --orange: #ff9500; --green: #34c759; --white: #ffffff; --text-main: #1c1c1e; --text-sec: #8e8e93; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
         
         body { 
             font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; 
-            padding: env(safe-area-inset-top) 10px 20px 10px;
+            padding: env(safe-area-inset-top) 15px 20px 15px;
             display: flex; flex-direction: column; height: 100vh;
         }
 
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 10px; }
-        h1 { font-size: 22px; font-weight: 900; margin: 0; letter-spacing: -1px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 5px; }
+        h1 { font-size: 22px; font-weight: 900; margin: 0; }
         .reg-btn { background: #000; color: #fff; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; }
 
-        #activeList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        /* 网格布局：每行自动排 2-3 个小卡片 */
+        #activeList { 
+            flex: 1; overflow-y: auto; 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+            gap: 12px; 
+            padding-bottom: 20px;
+        }
 
-        /* 卡片重构：左侧固定加宽到 95px 确保 bis 放得下 */
+        /* 紧凑小卡片样式 */
         .card { 
-            background: var(--white); border-radius: 18px; padding: 12px;
-            display: grid; grid-template-columns: 95px 1fr 90px; align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);
-            min-height: 90px;
+            background: var(--white); border-radius: 22px; padding: 15px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 160px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            border: 1.5px solid transparent;
+            transition: 0.3s;
         }
 
-        .card-linea { font-size: 24px; font-weight: 900; color: #000; text-align: center; border-right: 2px solid #f2f2f7; padding-right: 5px; }
+        /* 状态颜色强化 */
+        .st-waiting { border-color: var(--orange); animation: pulse 2s infinite; }
+        .st-working { border-color: var(--red); }
+        .st-done { border-color: var(--green); background: #fafffa; }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,149,0,0.4); } 70% { box-shadow: 0 0 0 10px rgba(255,149,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,149,0,0); } }
+
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .card-linea { font-size: 24px; font-weight: 900; color: var(--text-main); }
+        .card-badge { font-size: 9px; font-weight: 900; padding: 4px 8px; border-radius: 8px; text-transform: uppercase; color: #fff; }
+
+        .card-causale { font-size: 14px; font-weight: 800; color: #000; margin: 10px 0; text-transform: uppercase; height: 34px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         
-        .card-details { padding-left: 12px; display: flex; flex-direction: column; gap: 2px; }
-        .card-causale { font-size: 15px; font-weight: 800; color: #1c1c1e; text-transform: uppercase; margin-bottom: 2px; }
-        .detail-row { font-size: 10.5px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
-        .detail-row b { color: #444; }
+        .card-stats { font-size: 10px; font-weight: 600; color: var(--text-sec); line-height: 1.4; }
+        .card-stats b { color: #333; }
 
-        /* 状态标签：色彩强化 */
-        .card-status { 
-            height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 900; text-transform: uppercase; text-align: center;
-        }
+        /* 标签背景 */
+        .bg-orange { background: var(--orange); }
+        .bg-red { background: var(--red); }
+        .bg-green { background: var(--green); }
 
-        .st-waiting { background: var(--orange); color: #fff; animation: blink 1.5s infinite; }
-        .st-working { background: var(--red); color: #fff; }
-        .st-done { background: var(--green); color: #fff; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
-
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-        /* 记录页面 */
+        /* 记录页 */
         #historyPage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 100; flex-direction: column; padding-top: env(safe-area-inset-top); }
-        .v-nav { display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #f2f2f7; }
+        .v-nav { display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #eee; }
         #logContainer { flex: 1; overflow-y: auto; padding: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
         th, td { padding: 12px 2px; text-align: center; border-bottom: 1px solid #f2f2f7; }
-        th { color: #b0b0b8; text-transform: uppercase; font-size: 9px; }
 
-        .footer-text { text-align: center; padding: 15px 0; font-size: 10px; font-weight: 800; color: #c7c7cc; letter-spacing: 1px; }
+        .footer-text { text-align: center; padding: 15px 0; font-size: 10px; font-weight: 800; color: #c7c7cc; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>BOARD CONTROL</h1>
+        <h1>CONTROL PANEL</h1>
         <button class="reg-btn" onclick="showHistory()">Registro</button>
     </div>
 
@@ -85,8 +95,8 @@
                 <thead>
                     <tr>
                         <th style="width:20%">LINEA</th>
-                        <th style="width:15%">START</th>
-                        <th style="width:13%">WAIT</th> 
+                        <th style="width:15%">INIZIO</th>
+                        <th style="width:13%">ATTESA</th> 
                         <th style="width:13%">WORK</th>
                         <th style="width:18%">TECH</th>
                         <th>CAUSA</th> 
@@ -112,48 +122,47 @@
         const data = snapshot.val() || {};
         const list = document.getElementById('activeList');
         list.innerHTML = '';
-        const todayStr = new Date().toLocaleDateString('it-IT');
+        const today = new Date().toLocaleDateString('it-IT');
 
         const entries = Object.keys(data).map(id => ({ id, ...data[id] }));
         
-        // 排序逻辑：正在维修的(RIPARAZIONE)排第一，等待中(CHIAMATA)第二，已完工(CONCLUSO)最后
+        // 排序：先排红色，再排橙色，最后排绿色
         entries.sort((a, b) => {
-            const score = { 'red': 1, 'orange': 2, 'completed': 3 };
-            return (score[a.status] || 99) - (score[b.status] || 99) || b.startA - a.startA;
+            const priority = { 'red': 1, 'orange': 2, 'completed': 3 };
+            return (priority[a.status] || 99) - (priority[b.status] || 99) || b.startA - a.startA;
         });
 
         entries.forEach(item => {
-            const itemDate = new Date(item.startA).toLocaleDateString('it-IT');
-            if (itemDate !== todayStr) return;
+            if (new Date(item.startA).toLocaleDateString('it-IT') !== today) return;
 
             const card = document.createElement('div');
-            card.className = 'card';
-
-            const tStart = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            let stClass = "", stBadge = "", stColor = "", causaleText = "";
+            
             let wait = item.startB ? Math.round((item.startB - item.startA) / 60000) + "m" : "0m";
             let work = (item.endT && item.startB) ? Math.round((item.endT - item.startB) / 60000) + "m" : "0m";
 
-            let stClass = "", stText = "", causaleText = "";
-
-            if (item.status === 'orange') { 
-                stClass = "st-waiting"; stText = "CHIAMATA"; 
-                causaleText = "ATTESA...";
-            } else if (item.status === 'red') { 
-                stClass = "st-working"; stText = "RIPARAZIONE"; 
-                causaleText = item.causale || "IN CORSO..."; 
-            } else if (item.status === 'completed') { 
-                stClass = "st-done"; stText = "CONCLUSO"; 
+            if (item.status === 'orange') {
+                stClass = "st-waiting"; stBadge = "ATTESA"; stColor = "bg-orange";
+                causaleText = "CHIAMATA...";
+            } else if (item.status === 'red') {
+                stClass = "st-working"; stBadge = "RIPARAZIONE"; stColor = "bg-red";
+                causaleText = item.causale || "IN CORSO...";
+            } else {
+                stClass = "st-done"; stBadge = "CONCLUSO"; stColor = "bg-green";
                 causaleText = item.causale || "FINITO";
             }
 
+            card.className = `card ${stClass}`;
             card.innerHTML = `
-                <div class="card-linea">${item.id}</div>
-                <div class="card-details">
-                    <div class="card-causale">${causaleText}</div>
-                    <div class="detail-row">Start: <b>${tStart}</b> | Wait: <b>${wait}</b></div>
-                    <div class="detail-row">Tech: <b>${item.techName || '-'}</b> | Work: <b>${work}</b></div>
+                <div class="card-top">
+                    <div class="card-linea">${item.id}</div>
+                    <div class="card-badge ${stColor}">${stBadge}</div>
                 </div>
-                <div class="card-status ${stClass}">${stText}</div>
+                <div class="card-causale">${causaleText}</div>
+                <div class="card-stats">
+                    Wait: <b>${wait}</b> | Work: <b>${work}</b><br>
+                    Tech: <b>${item.techName || '-'}</b>
+                </div>
             `;
             list.appendChild(card);
         });
@@ -161,20 +170,17 @@
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderHistory(); }
     function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
-
     function renderHistory() {
         db.ref('active_calls').once('value', (snapshot) => {
             const data = snapshot.val() || {};
             const body = document.getElementById('logBody');
             body.innerHTML = '';
-            const logs = Object.keys(data).map(id => ({ id, ...data[id] })).filter(i => i.status === 'completed').sort((a, b) => b.endT - a.endT);
-            logs.forEach(item => {
+            Object.keys(data).map(id => ({ id, ...data[id] })).filter(i => i.status === 'completed').sort((a, b) => b.endT - a.endT).forEach(item => {
                 const row = document.createElement('tr');
-                const tStart = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
                 row.innerHTML = `
                     <td style="font-weight:900;">${item.id}</td>
-                    <td>${tStart}</td>
-                    <td style="color:var(--orange);font-weight:700;">${item.startB ? Math.round((item.startB-item.startA)/60000)+"m" : "0m"}</td>
+                    <td>${new Date(item.startA).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+                    <td style="color:var(--orange);font-weight:700;">${item.startB?Math.round((item.startB-item.startA)/60000)+"m":"0m"}</td>
                     <td style="color:var(--green);font-weight:700;">${(item.endT && item.startB)?Math.round((item.endT-item.startB)/60000)+"m":"0m"}</td>
                     <td>${item.techName || '-'}</td>
                     <td style="text-align:left;padding-left:5px;font-weight:600;font-size:10px;">${item.causale || '-'}</td>
