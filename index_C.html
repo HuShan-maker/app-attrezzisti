@@ -5,68 +5,60 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Management Panel v5.0</title>
+    <title>C - Board Control v5.2</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
     <style>
-        :root { --bg: #f2f2f7; --red: #ff3b30; --orange: #ff9500; --green: #34c759; --gray: #ffffff; }
+        :root { --bg: #f2f2f7; --red: #ff3b30; --orange: #ff9500; --green: #34c759; --white: #ffffff; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
         
         body { 
             font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; 
-            padding: env(safe-area-inset-top) 15px 20px 15px;
+            padding: env(safe-area-inset-top) 10px 20px 10px;
             display: flex; flex-direction: column; height: 100vh;
         }
 
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 5px; }
-        h1 { font-size: 24px; font-weight: 900; margin: 0; }
-        .reg-btn { background: #000; color: #fff; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 10px; }
+        h1 { font-size: 22px; font-weight: 900; margin: 0; letter-spacing: -1px; }
+        .reg-btn { background: #000; color: #fff; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; }
 
-        /* 卡片容器：类似苹果信息流 */
-        #activeList { 
-            flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px;
-        }
+        #activeList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
-        /* 苹果风格卡片：宽度填满，高度紧凑 */
+        /* 卡片重构：左侧固定加宽到 95px 确保 bis 放得下 */
         .card { 
-            background: var(--gray); border-radius: 20px; padding: 15px;
-            display: grid; grid-template-columns: 80px 1fr 90px; align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative;
-            border: 1px solid rgba(0,0,0,0.03);
+            background: var(--white); border-radius: 18px; padding: 12px;
+            display: grid; grid-template-columns: 95px 1fr 90px; align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);
+            min-height: 90px;
         }
 
-        .card-linea { font-size: 28px; font-weight: 900; color: #000; text-align: center; border-right: 1.5px solid #eee; }
+        .card-linea { font-size: 24px; font-weight: 900; color: #000; text-align: center; border-right: 2px solid #f2f2f7; padding-right: 5px; }
         
-        .card-details { padding-left: 15px; display: flex; flex-direction: column; gap: 2px; }
-        .detail-row { font-size: 11px; font-weight: 600; color: #8e8e93; display: flex; align-items: center; gap: 5px; }
-        .detail-row b { color: #1c1c1e; }
-        .card-causale { font-size: 13px; font-weight: 800; color: #000; margin-top: 2px; text-transform: uppercase; }
+        .card-details { padding-left: 12px; display: flex; flex-direction: column; gap: 2px; }
+        .card-causale { font-size: 15px; font-weight: 800; color: #1c1c1e; text-transform: uppercase; margin-bottom: 2px; }
+        .detail-row { font-size: 10.5px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
+        .detail-row b { color: #444; }
 
+        /* 状态标签：色彩强化 */
         .card-status { 
-            height: 100%; display: flex; align-items: center; justify-content: center;
-            border-radius: 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; text-align: center; padding: 0 5px;
+            height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 900; text-transform: uppercase; text-align: center;
         }
 
-        /* 颜色定义 */
-        .st-waiting { background: #fff3e0; color: var(--orange); border: 1.5px solid var(--orange); animation: blink 2s infinite; }
-        .st-working { background: #ffebee; color: var(--red); border: 1.5px solid var(--red); }
-        .st-done { background: #e8f5e9; color: var(--green); border: 1.5px solid var(--green); }
+        .st-waiting { background: var(--orange); color: #fff; animation: blink 1.5s infinite; }
+        .st-working { background: var(--red); color: #fff; }
+        .st-done { background: var(--green); color: #fff; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
 
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* 记录页面覆盖层 */
-        #historyPage { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #fff; z-index: 100; flex-direction: column;
-            padding-top: env(safe-area-inset-top);
-        }
+        /* 记录页面 */
+        #historyPage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 100; flex-direction: column; padding-top: env(safe-area-inset-top); }
         .v-nav { display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #f2f2f7; }
-        
         #logContainer { flex: 1; overflow-y: auto; padding: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
-        th, td { padding: 12px 2px; text-align: center; border-bottom: 1px solid #f2f2f7; word-wrap: break-word; }
+        th, td { padding: 12px 2px; text-align: center; border-bottom: 1px solid #f2f2f7; }
         th { color: #b0b0b8; text-transform: uppercase; font-size: 9px; }
 
         .footer-text { text-align: center; padding: 15px 0; font-size: 10px; font-weight: 800; color: #c7c7cc; letter-spacing: 1px; }
@@ -79,9 +71,7 @@
         <button class="reg-btn" onclick="showHistory()">Registro</button>
     </div>
 
-    <div id="activeList">
-        <!-- 实时卡片在此生成 -->
-    </div>
+    <div id="activeList"></div>
 
     <div class="footer-text">© 2026 HU SHAN. ALL RIGHTS RESERVED.</div>
 
@@ -91,13 +81,13 @@
             <h2 style="margin:0; font-size:18px; font-weight:900;">ARCHIVIO</h2>
         </div>
         <div id="logContainer">
-            <table id="logTable">
+            <table>
                 <thead>
                     <tr>
-                        <th style="width:15%">LINEA</th>
+                        <th style="width:20%">LINEA</th>
                         <th style="width:15%">START</th>
-                        <th style="width:15%">WAIT</th> 
-                        <th style="width:15%">WORK</th>
+                        <th style="width:13%">WAIT</th> 
+                        <th style="width:13%">WORK</th>
                         <th style="width:18%">TECH</th>
                         <th>CAUSA</th> 
                     </tr>
@@ -118,90 +108,76 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 实时更新：显示当天的所有卡片（进行中+已完成）
     db.ref('active_calls').on('value', (snapshot) => {
         const data = snapshot.val() || {};
         const list = document.getElementById('activeList');
         list.innerHTML = '';
-
         const todayStr = new Date().toLocaleDateString('it-IT');
 
-        // 将所有数据转为数组并排序 (正在进行的排前面)
         const entries = Object.keys(data).map(id => ({ id, ...data[id] }));
         
+        // 排序逻辑：正在维修的(RIPARAZIONE)排第一，等待中(CHIAMATA)第二，已完工(CONCLUSO)最后
         entries.sort((a, b) => {
-            if (a.status === 'completed' && b.status !== 'completed') return 1;
-            if (a.status !== 'completed' && b.status === 'completed') return -1;
-            return b.startA - a.startA;
+            const score = { 'red': 1, 'orange': 2, 'completed': 3 };
+            return (score[a.status] || 99) - (score[b.status] || 99) || b.startA - a.startA;
         });
 
         entries.forEach(item => {
             const itemDate = new Date(item.startA).toLocaleDateString('it-IT');
-            // 只保留当天的卡片
             if (itemDate !== todayStr) return;
 
             const card = document.createElement('div');
             card.className = 'card';
 
-            const timeStart = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            
-            // 计算等待时长
-            let waitTime = item.startB ? Math.round((item.startB - item.startA) / 60000) + "m" : "-";
-            // 计算修理时长
-            let workTime = (item.endT && item.startB) ? Math.round((item.endT - item.startB) / 60000) + "m" : "-";
+            const tStart = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            let wait = item.startB ? Math.round((item.startB - item.startA) / 60000) + "m" : "0m";
+            let work = (item.endT && item.startB) ? Math.round((item.endT - item.startB) / 60000) + "m" : "0m";
 
-            let statusClass = "";
-            let statusText = "";
-            if (item.status === 'orange') { statusClass = "st-waiting"; statusText = "In Attesa"; }
-            else if (item.status === 'red') { statusClass = "st-working"; statusText = "Riparando"; }
-            else { statusClass = "st-done"; statusText = "Finito"; }
+            let stClass = "", stText = "", causaleText = "";
+
+            if (item.status === 'orange') { 
+                stClass = "st-waiting"; stText = "CHIAMATA"; 
+                causaleText = "ATTESA...";
+            } else if (item.status === 'red') { 
+                stClass = "st-working"; stText = "RIPARAZIONE"; 
+                causaleText = item.causale || "IN CORSO..."; 
+            } else if (item.status === 'completed') { 
+                stClass = "st-done"; stText = "CONCLUSO"; 
+                causaleText = item.causale || "FINITO";
+            }
 
             card.innerHTML = `
                 <div class="card-linea">${item.id}</div>
                 <div class="card-details">
-                    <div class="card-causale">${item.causale || (item.status==='orange' ? 'CHIAMATA...' : 'IN CORSO...')}</div>
-                    <div class="detail-row">Start: <b>${timeStart}</b> | Wait: <b>${waitTime}</b></div>
-                    <div class="detail-row">Tech: <b>${item.techName || '-'}</b> | Work: <b>${workTime}</b></div>
+                    <div class="card-causale">${causaleText}</div>
+                    <div class="detail-row">Start: <b>${tStart}</b> | Wait: <b>${wait}</b></div>
+                    <div class="detail-row">Tech: <b>${item.techName || '-'}</b> | Work: <b>${work}</b></div>
                 </div>
-                <div class="card-status ${statusClass}">${statusText}</div>
+                <div class="card-status ${stClass}">${stText}</div>
             `;
             list.appendChild(card);
         });
     });
 
-    function showHistory() {
-        document.getElementById('historyPage').style.display = 'flex';
-        renderHistory();
-    }
-
-    function closeHistory() {
-        document.getElementById('historyPage').style.display = 'none';
-    }
+    function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderHistory(); }
+    function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
 
     function renderHistory() {
         db.ref('active_calls').once('value', (snapshot) => {
             const data = snapshot.val() || {};
             const body = document.getElementById('logBody');
             body.innerHTML = '';
-
-            const logs = Object.keys(data)
-                .map(id => ({ id, ...data[id] }))
-                .filter(i => i.status === 'completed')
-                .sort((a, b) => b.endT - a.endT);
-
+            const logs = Object.keys(data).map(id => ({ id, ...data[id] })).filter(i => i.status === 'completed').sort((a, b) => b.endT - a.endT);
             logs.forEach(item => {
                 const row = document.createElement('tr');
-                const timeStart = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                let wait = item.startB ? Math.round((item.startB - item.startA) / 60000) + "m" : "-";
-                let work = (item.endT && item.startB) ? Math.round((item.endT - item.startB) / 60000) + "m" : "-";
-
+                const tStart = new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
                 row.innerHTML = `
                     <td style="font-weight:900;">${item.id}</td>
-                    <td>${timeStart}</td>
-                    <td style="color:var(--orange); font-weight:700;">${wait}</td>
-                    <td style="color:#007aff; font-weight:700;">${work}</td>
+                    <td>${tStart}</td>
+                    <td style="color:var(--orange);font-weight:700;">${item.startB ? Math.round((item.startB-item.startA)/60000)+"m" : "0m"}</td>
+                    <td style="color:var(--green);font-weight:700;">${(item.endT && item.startB)?Math.round((item.endT-item.startB)/60000)+"m":"0m"}</td>
                     <td>${item.techName || '-'}</td>
-                    <td style="text-align:left; padding-left:5px; font-weight:600;">${item.causale || '-'}</td>
+                    <td style="text-align:left;padding-left:5px;font-weight:600;font-size:10px;">${item.causale || '-'}</td>
                 `;
                 body.appendChild(row);
             });
