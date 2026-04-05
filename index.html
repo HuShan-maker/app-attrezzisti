@@ -2,78 +2,98 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Luxottica Service Portal</title>
     <style>
-        :root { --blue: #007aff; --red: #ff3b30; --black: #1c1c1e; --gray: #8e8e93; }
-        body { font-family: -apple-system, sans-serif; background: #f2f2f7; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        :root { --blue: #007aff; --red: #ff3b30; --black: #000000; --gray: #8e8e93; --bg: #f2f2f7; }
+        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
         
-        .header { text-align: center; margin-bottom: 30px; }
-        h1 { font-size: 26px; font-weight: 900; margin: 0; color: var(--black); }
-        p { color: var(--gray); font-size: 14px; margin-top: 5px; }
-
-        .menu { width: 90%; max-width: 350px; display: flex; flex-direction: column; gap: 15px; }
-        
-        /* 选项基础样式 */
-        .option {
-            background: #fff; border-radius: 20px; padding: 20px;
-            text-decoration: none; display: flex; align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transition: transform 0.2s, background 0.2s;
-            border: 2px solid transparent;
+        body { 
+            font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; 
+            display: flex; flex-direction: column; min-height: 100vh;
+            padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
         }
-        .option:active { transform: scale(0.97); background: #f9f9f9; }
+        
+        .main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
 
-        .icon { font-size: 32px; margin-right: 20px; width: 50px; text-align: center; }
+        .header { text-align: center; margin-bottom: 35px; }
+        h1 { font-size: 26px; font-weight: 900; margin: 0; color: var(--black); letter-spacing: -1px; text-transform: uppercase; }
+        p { color: var(--gray); font-size: 13px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .menu { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 16px; }
+        
+        .option {
+            background: #fff; border-radius: 22px; padding: 18px 22px;
+            text-decoration: none; display: flex; align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            transition: 0.2s; border: 2.5px solid transparent;
+        }
+        .option:active { transform: scale(0.96); background: #f9f9f9; }
+
+        .icon { font-size: 30px; margin-right: 18px; width: 45px; text-align: center; }
         .text-group { display: flex; flex-direction: column; }
-        .title { font-size: 18px; font-weight: 800; color: var(--black); }
-        .desc { font-size: 12px; color: var(--gray); margin-top: 2px; }
+        .title { font-size: 17px; font-weight: 800; color: var(--black); }
+        .desc { font-size: 11px; color: var(--gray); margin-top: 3px; font-weight: 600; text-transform: uppercase; }
 
-        /* 针对不同角色的颜色引导 */
+        /* 侧边色条区分 */
         .opt-a { border-left: 6px solid var(--blue); }
         .opt-b { border-left: 6px solid var(--red); }
         .opt-c { border-left: 6px solid var(--black); }
 
-        .footer { margin-top: 40px; font-size: 11px; color: var(--gray); font-weight: 600; text-transform: uppercase; }
+        /* 底部 Copyright 样式 - 与其他端统一 */
+        .footer-text { 
+            text-align: center; padding: 20px 0; font-size: 10px; 
+            font-weight: 900; color: #000; text-transform: uppercase; 
+            letter-spacing: 1px; flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>SISTEMA SERVICE</h1>
-        <p>Seleziona il tuo profilo aziendale</p>
+    <div class="main-content">
+        <div class="header">
+            <h1>SISTEMA SERVICE</h1>
+            <p>Seleziona il tuo profilo</p>
+        </div>
+
+        <div class="menu">
+            <!-- Lato A -->
+            <a href="index_A.html" class="option opt-a">
+                <div class="icon">📱</div>
+                <div class="text-group">
+                    <span class="title">LATO A: PRODUZIONE</span>
+                    <span class="desc">Chiamata rapida tecnico</span>
+                </div>
+            </a>
+
+            <!-- Lato B -->
+            <a href="index_B.html" class="option opt-b">
+                <div class="icon">🛠️</div>
+                <div class="text-group">
+                    <span class="title">LATO B: TECNICI</span>
+                    <span class="desc">Gestione interventi Alex/Gio</span>
+                </div>
+            </a>
+
+            <!-- Lato C -->
+            <a href="index_C.html" class="option opt-c">
+                <div class="icon">📊</div>
+                <div class="text-group">
+                    <span class="title">LATO C: CAPI TURNO</span>
+                    <span class="desc">Monitoraggio e statistiche</span>
+                </div>
+            </a>
+        </div>
     </div>
 
-    <div class="menu">
-        <!-- A端：生产线工人 -->
-        <a href="index_A.html" class="option opt-a">
-            <div class="icon">📱</div>
-            <div class="text-group">
-                <span class="title">LATO A: PRODUZIONE</span>
-                <span class="desc">Per chi lavora in linea e chiama il tecnico.</span>
-            </div>
-        </a>
+    <!-- 统一后的底部 -->
+    <div class="footer-text">© <span id="curYear"></span> HU SHAN. ALL RIGHTS RESERVED.</div>
 
-        <!-- B端：维修技术员 -->
-        <a href="index_B.html" class="option opt-b">
-            <div class="icon">🛠️</div>
-            <div class="text-group">
-                <span class="title">LATO B: TECNICI</span>
-                <span class="desc">Per attrezzisti che gestiscono gli interventi.</span>
-            </div>
-        </a>
-
-        <!-- C端：工头/看板 -->
-        <a href="index_C.html" class="option opt-c">
-            <div class="icon">📊</div>
-            <div class="text-group">
-                <span class="title">LATO C: CAPI TURNO</span>
-                <span class="desc">Monitoraggio real-time e statistiche.</span>
-            </div>
-        </a>
-    </div>
-
-    <div class="footer">Luxottica App v2026 - Hu Shan</div>
+    <script>
+        document.getElementById('curYear').innerText = new Date().getFullYear();
+    </script>
 
 </body>
 </html>
