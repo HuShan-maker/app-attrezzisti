@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Board Control Professional v18.9.10</title>
+    <title>C - Board Control Professional v18.9.12</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -24,13 +24,13 @@
         h1 { font-size: 22px; font-weight: 900; margin: 0; letter-spacing: -1px; }
         .reg-btn { background: #000; color: #fff; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 11px; text-transform: uppercase; cursor: pointer; }
 
-        #activeList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 10px 20px; align-items: center; }
+        #activeList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 10px 20px; align-items: center; }
 
         .card { 
-            background: var(--white); border-radius: 20px; padding: 16px 20px;
-            display: flex; align-items: flex-start; justify-content: space-between;
-            width: 100%; max-width: 500px; min-height: 100px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 2.5px solid transparent;
+            background: var(--white); border-radius: 20px; padding: 18px 25px;
+            display: flex; align-items: center; 
+            width: 100%; max-width: 650px; min-height: 110px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 2.5px solid transparent;
             position: relative; transition: 0.3s;
         }
         .card.st-waiting { border-color: var(--orange); }
@@ -42,28 +42,34 @@
             width: 26px; height: 26px; background: var(--red); 
             color: white; border-radius: 50%; border: 2.5px solid white;
             display: flex; align-items: center; justify-content: center;
-            font-size: 16px; font-weight: 900; cursor: pointer; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 20;
+            font-size: 16px; font-weight: 900; cursor: pointer; z-index: 20;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* 左侧布局：Linea 和下面的 Causale */
-        .card-left { display: flex; flex-direction: column; gap: 8px; flex: 1.5; }
-        .card-linea { font-size: 24px; font-weight: 900; color: var(--text-main); line-height: 1; }
+        .card-left { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 130px; }
+        .card-linea { font-size: 24px; font-weight: 900; color: var(--text-main); }
         .card-causale { font-size: 16px; font-weight: 700; color: #333; text-transform: uppercase; }
 
-        /* 右侧布局：状态和放大的信息 */
-        .card-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: 1; }
-        .card-badge { font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 10px; text-transform: uppercase; color: #fff; margin-bottom: 2px; }
-        
-        /* 放大右侧文字内容 */
-        .card-stats { font-size: 13px; font-weight: 600; color: var(--text-sec); line-height: 1.5; }
+        .card-center { flex: 1.5; padding-left: 10px; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+        .card-stats { font-size: 14px; font-weight: 600; color: var(--text-sec); line-height: 1.4; }
         .card-stats b { color: #000; font-weight: 800; }
+
+        .card-right { flex: 1; display: flex; align-items: center; justify-content: flex-end; }
+        .card-badge { 
+            font-size: 24px; 
+            font-weight: 900; 
+            padding: 6px 15px; 
+            border-radius: 12px; 
+            text-transform: uppercase; 
+            color: #fff; 
+            text-align: center;
+            min-width: 110px;
+        }
 
         .bg-orange { background: var(--orange); }
         .bg-red { background: var(--red); }
         .bg-black { background: var(--black); }
 
-        /* Archivio Page Logic */
         #historyPage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 500; flex-direction: column; padding-top: env(safe-area-inset-top); }
         .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 0 20px; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; }
         
@@ -130,15 +136,12 @@
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
                 let startD = item.startD || item.startA;
                 const newEntry = {
-                    i: id, 
-                    day: new Date(item.startA).toLocaleDateString('it-IT'),
+                    i: id, day: new Date(item.startA).toLocaleDateString('it-IT'),
                     s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
                     tA: Math.round((startD - item.startA) / 60000),
                     tD: Math.round(((item.endT || Date.now()) - startD) / 60000),
-                    st: item.startA,      
-                    et: item.endT || Date.now(),
-                    c: item.causale || "-", 
-                    tech: item.techName || "-"
+                    st: item.startA, et: item.endT || Date.now(),
+                    c: item.causale || "-", tech: item.techName || "-"
                 };
                 logs.push(newEntry);
                 processedStarts.add(item.startA);
@@ -200,22 +203,24 @@
             card.innerHTML = `${delBtn}
                 <div class="card-left">
                     <div class="card-linea">${item.id}</div>
-                    <div class="card-causale">${item.causale || (item.status === 'orange' ? 'CHIAMATA APERTA' : 'INTERVENTO IN CORSO')}</div>
+                    <div class="card-causale">${item.causale || (item.status === 'orange' ? 'CHIAMATA' : 'IN CORSO')}</div>
+                </div>
+                <div class="card-center">
+                    <div class="card-stats">
+                        Inizio: <b>${item.startTimeStr}</b><br>
+                        Wait: <b>${wait}</b> | Work: <b>${work}</b><br>
+                        Tech: <b>${item.techName||'-'}</b>
+                    </div>
                 </div>
                 <div class="card-right">
                     <div class="card-badge bg-${colorClass}">${statusLabel}</div>
-                    <div class="card-stats">
-                        Inizio: <b>${item.startTimeStr}</b><br>
-                        A: <b>${wait}</b> | D: <b>${work}</b><br>
-                        Tech: <b>${item.techName||'-'}</b>
-                    </div>
                 </div>`;
             list.appendChild(card);
         });
     }
 
     function handleManualDel(id, st) {
-        if(!confirm("Nascondere?")) return;
+        if(!confirm("Nascondere dalla bacheca?")) return;
         const idx = logs.findIndex(l => l.st === st);
         if(idx !== -1) {
             lastDeleted = { type: 'hide', index: idx, data: {...logs[idx]} };
@@ -223,6 +228,9 @@
             saveState(); renderCombinedCards();
         }
     }
+
+    function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
+    function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
 
     function renderLogs() {
         const container = document.getElementById('logContainer'); 
@@ -236,11 +244,26 @@
                 </div>
                 <div class="day-content">
                     <table>
-                        <thead><tr><th>LINEA</th><th>A</th><th>D</th><th>CAUSA</th><th>TECH</th><th><span class="undo-head" onclick="undoAction(event)">↺</span></th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th style="width:15%">LINEA</th>
+                                <th style="width:10%">A</th>
+                                <th style="width:10%">D</th>
+                                <th style="width:35%">CAUSA</th>
+                                <th style="width:20%">OPERATORE</th>
+                                <th style="width:10%"><span class="undo-head" onclick="undoAction(event)">↺</span></th>
+                            </tr>
+                        </thead>
                         <tbody>${dayLogs.map(l => {
                             const idx = logs.indexOf(l);
-                            return `<tr><td><b>${l.i}</b></td><td>${l.tA}m</td><td>${l.tD}m</td><td style="font-size:9px">${l.c}</td><td>${l.tech}</td><td class="del-row" onclick="deleteRow(${idx})">×</td></tr>`
-                        }).join('')}</tbody>
+                            return `<tr>
+                                <td><b>${l.i}</b></td>
+                                <td>${l.tA}m</td>
+                                <td>${l.tD}m</td>
+                                <td style="font-size:9px">${l.c}</td>
+                                <td>${l.tech}</td>
+                                <td class="del-row" onclick="deleteRow(${idx})">×</td>
+                            </tr>`}).join('')}</tbody>
                     </table>
                 </div>`;
             container.appendChild(section);
@@ -250,13 +273,15 @@
     function undoAction(e) {
         if(e) e.stopPropagation();
         if(!lastDeleted) return;
-        if(lastDeleted.type === 'hide') logs[lastDeleted.index].hideFromBoard = false;
-        else if(lastDeleted.type === 'delete') {
+        if(lastDeleted.type === 'hide') {
+            logs[lastDeleted.index].hideFromBoard = false;
+        } else if(lastDeleted.type === 'delete') {
             logs.splice(lastDeleted.index, 0, lastDeleted.data);
             processedStarts.add(lastDeleted.data.st);
-            if (!dayHistory.includes(lastDeleted.data.day)) dayHistory.push(lastDeleted.data.day);
+            if(!dayHistory.includes(lastDeleted.data.day)) dayHistory.push(lastDeleted.data.day);
         }
-        lastDeleted = null; saveState(); renderCombinedCards(); renderLogs();
+        lastDeleted = null;
+        saveState(); renderCombinedCards(); renderLogs();
     }
 
     function deleteRow(idx) { 
@@ -268,19 +293,17 @@
     
     function deleteDay(e, day) {
         e.stopPropagation();
-        if(!confirm("Eliminare giorno?")) return;
+        if(!confirm("Eliminare record del " + day + "?")) return;
         logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; });
         dayHistory = dayHistory.filter(d => d !== day);
         saveState(); renderLogs(); renderCombinedCards();
     }
 
     function clearAll() {
-        if(!confirm("Svuotare tutto?")) return;
+        if(!confirm("Svuotare tutto l'archivio locale?")) return;
         logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards();
     }
 
-    function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
-    function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
     document.getElementById('curYear').innerText = new Date().getFullYear();
 </script>
 </body>
