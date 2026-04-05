@@ -2,98 +2,62 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Board Control Undo Fixed v9.1</title>
-    
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <title>C - Monitoring Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
-
     <style>
-        :root { --bg: #f2f2f7; --red: #ff3b30; --orange: #ff9500; --black: #000000; --white: #ffffff; --text-main: #1c1c1e; --text-sec: #8e8e93; }
-        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+        body { font-family: -apple-system, sans-serif; background: #f2f2f7; margin: 0; padding: 25px; color: #000; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        h1 { font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase; }
+        h2 { text-transform: uppercase; font-size: 13px; letter-spacing: 1px; color: #8e8e93; margin: 30px 0 15px 0; }
         
-        body { 
-            font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; 
-            padding: env(safe-area-inset-top) 0 20px 0;
-            display: flex; flex-direction: column; height: 100vh;
-        }
+        /* 实时卡片 */
+        #activeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+        .card { background: #fff; padding: 25px; border-radius: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); text-align: center; position: relative; border-left: 8px solid #ccc; transition: 0.3s; }
+        .card.orange { border-left-color: #ff9500; animation: pulse 1.5s infinite; }
+        .card.red { border-left-color: #ff3b30; }
+        .card .id { font-size: 32px; font-weight: 900; margin-bottom: 5px; }
+        .card .status-label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #8e8e93; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.98); } }
 
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; flex-shrink: 0; }
-        h1 { font-size: 22px; font-weight: 900; margin: 0; letter-spacing: -1px; }
-        .reg-btn { background: #000; color: #fff; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 11px; text-transform: uppercase; cursor: pointer; }
-
-        #activeList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 10px 0; align-items: center; }
-
-        .card { 
-            background: var(--white); border-radius: 18px; padding: 12px 16px;
-            display: flex; align-items: center; justify-content: space-between;
-            width: 94%; max-width: 450px; min-height: 85px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.05); border: 2.5px solid transparent;
-            position: relative;
-        }
-        .card.st-waiting { border-color: var(--orange); }
-        .card.st-working { border-color: var(--red); }
-        .card.st-completed { border-color: var(--black); }
-
-        .card-del {
-            position: absolute; top: -6px; right: -6px; 
-            width: 22px; height: 22px; background: var(--red); 
-            color: white; border-radius: 50%; border: 2px solid white;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; font-weight: 900; cursor: pointer; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15); z-index: 20;
-        }
-
-        .card-left { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-        .card-linea { font-size: 20px; font-weight: 900; color: var(--text-main); }
-        .card-causale { font-size: 14px; font-weight: 800; color: #000; text-transform: uppercase; }
-
-        .card-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-        .card-badge { font-size: 9px; font-weight: 900; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; color: #fff; }
-        .card-stats { font-size: 10px; font-weight: 600; color: var(--text-sec); line-height: 1.3; }
-        .card-stats b { color: #333; }
-
-        .bg-orange { background: var(--orange); }
-        .bg-red { background: var(--red); }
-        .bg-black { background: var(--black); }
-
-        #historyPage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 500; flex-direction: column; padding-top: env(safe-area-inset-top); }
-        .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 0 20px; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; }
-        
-        #logContainer { flex: 1; overflow-y: auto; padding: 15px; }
-        .day-header { background: #f2f2f7; padding: 12px 15px; font-size: 14px; font-weight: 800; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; }
-        
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { padding: 12px 2px; text-align: center; font-size: 11px; border-bottom: 1px solid #f2f2f7; vertical-align: middle; }
-        
-        /* 这里的表头撤回键 */
-        .undo-head { font-size: 18px; color: var(--black); cursor: pointer; font-weight: 900; display: inline-block; padding: 5px; }
-        .del-row { color: var(--red); font-weight: 900; cursor: pointer; font-size: 18px; }
-
-        .footer-text { text-align: center; padding: 15px 0; font-size: 10px; font-weight: 900; color: #000; text-transform: uppercase; letter-spacing: 1px; }
+        /* 历史表格 */
+        .table-wrap { background: #fff; border-radius: 25px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 18px 20px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 15px; }
+        th { background: #fafafa; color: #8e8e93; font-size: 10px; text-transform: uppercase; font-weight: 800; }
+        .tech-name { color: #8e8e93; font-size: 13px; font-weight: 600; }
+        .duration { font-family: monospace; font-weight: 700; }
+        .causale { color: #555; }
+        .tag { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; display: inline-block; }
+        .tag-wait { background: #fff4e5; color: #ff9500; }
+        .tag-work { background: #ffebeb; color: #ff3b30; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>BOARD CONTROL</h1>
-        <button class="reg-btn" onclick="showHistory()">Archivio</button>
+        <h1>Dashboard Controllo</h1>
+        <div id="clock" style="font-weight: 700; color: #8e8e93;"></div>
     </div>
 
-    <div id="activeList"></div>
+    <h2>Live Operations</h2>
+    <div id="activeGrid"></div>
 
-    <div class="footer-text">© <span id="curYear"></span> HU SHAN. ALL RIGHTS RESERVED.</div>
-
-    <div id="historyPage">
-        <div class="v-nav">
-            <div style="font-size:28px; cursor:pointer" onclick="closeHistory()">←</div>
-            <h2 style="font-size:16px; font-weight:900; margin:0;">LOCAL RECORD</h2>
-            <div style="width:28px"></div>
-        </div>
-        <div id="logContainer"></div>
-        <div style="padding:15px;"><button style="width:100%; padding:14px; border-radius:12px; border:none; background:#eee; color:var(--red); font-weight:800;" onclick="clearAll()">CLEAN STORAGE</button></div>
+    <h2>History Logs (Permanent Cloud)</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 150px;">Time</th>
+                    <th style="width: 100px;">Linea</th>
+                    <th style="width: 150px;">Technician</th>
+                    <th style="width: 180px;">Durations (A / D)</th>
+                    <th>Causale Intervento</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
     </div>
 
 <script>
@@ -107,170 +71,56 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let logs = JSON.parse(localStorage.getItem('c_local_v89') || '[]');
-    let dayHistory = JSON.parse(localStorage.getItem('c_days_v89') || '[]');
-    let processedStarts = new Set(logs.map(l => l.st));
-    let cloudData = {};
-    let lastDeleted = null;
+    // 时间显示
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString('it-IT');
+    }, 1000);
 
-    db.ref('active_calls').on('value', (snapshot) => {
-        cloudData = snapshot.val() || {};
-        Object.keys(cloudData).forEach(id => {
-            const item = cloudData[id];
-            if (item.status === 'completed' && !processedStarts.has(item.startA)) {
-                let startD = item.startD || item.startA;
-                const newEntry = {
-                    i: id, 
-                    day: new Date(item.startA).toLocaleDateString('it-IT'),
-                    s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                    tA: Math.round((startD - item.startA) / 60000),
-                    tD: Math.round((item.endT - startD) / 60000),
-                    st: item.startA, 
-                    c: item.causale || "-", 
-                    tech: item.techName || "-"
-                };
-                logs.push(newEntry);
-                processedStarts.add(item.startA);
-                if (!dayHistory.includes(newEntry.day)) dayHistory.push(newEntry.day);
-                saveState();
-                db.ref('active_calls/' + id).remove();
-            }
+    // 1. 监听活跃任务 (修完即消失)
+    db.ref('active_calls').on('value', (snap) => {
+        const data = snap.val() || {};
+        const grid = document.getElementById('activeGrid');
+        grid.innerHTML = '';
+        
+        const activeIds = Object.keys(data).filter(id => data[id].status !== 'completed');
+        
+        activeIds.forEach(id => {
+            const item = data[id];
+            const card = document.createElement('div');
+            card.className = `card ${item.status}`;
+            card.innerHTML = `
+                <div class="status-label">${item.status === 'orange' ? 'Waiting' : 'Working'}</div>
+                <div class="id">${id}</div>
+                <div style="font-size:11px; color:#aaa; margin-top:5px;">Started: ${new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+            `;
+            grid.appendChild(card);
         });
-        renderCombinedCards();
-        if(document.getElementById('historyPage').style.display === 'flex') renderLogs();
+        
+        if(activeIds.length === 0) grid.innerHTML = '<div style="color:#aaa; font-style:italic; padding:20px;">All lines running normally.</div>';
     });
 
-    function saveState() {
-        localStorage.setItem('c_local_v89', JSON.stringify(logs));
-        localStorage.setItem('c_days_v89', JSON.stringify(dayHistory));
-    }
-
-    function handleManualDel(id, st) {
-        if(!confirm("Eliminare?")) return;
-        if(cloudData[id] && cloudData[id].startA === st) {
-            db.ref('active_calls/' + id).remove();
-        } else {
-            const idx = logs.findIndex(l => l.st === st);
-            if(idx !== -1) {
-                lastDeleted = { type: 'hide', index: idx, data: {...logs[idx]} };
-                logs[idx].hideFromBoard = true;
-                saveState();
-            }
-        }
-        renderCombinedCards();
-    }
-
-    function undoAction() {
-        if(!lastDeleted) return;
-        if(lastDeleted.type === 'hide') {
-            logs[lastDeleted.index].hideFromBoard = false;
-        } else if(lastDeleted.type === 'delete') {
-            logs.splice(lastDeleted.index, 0, lastDeleted.data);
-            processedStarts.add(lastDeleted.data.st);
-            if(!dayHistory.includes(lastDeleted.data.day)) dayHistory.push(lastDeleted.data.day);
-        }
-        lastDeleted = null;
-        saveState();
-        renderCombinedCards();
-        renderLogs();
-    }
-
-    function renderCombinedCards() {
-        const list = document.getElementById('activeList'); list.innerHTML = '';
-        const today = new Date().toLocaleDateString('it-IT');
-        const localToday = logs.filter(l => l.day === today && !l.hideFromBoard).map(l => ({
-            id: l.i, status: 'completed', startA: l.st, 
-            causale: l.c, techName: l.tech, tA: l.tA, tD: l.tD, isLocal: true
-        }));
-        const cloudItems = Object.keys(cloudData).map(id => ({ id: id, ...cloudData[id], isLocal: false }));
-        const all = [...localToday, ...cloudItems].sort((a, b) => b.startA - a.startA);
-
-        all.forEach(item => {
-            let wait = item.isLocal ? item.tA + "m" : (item.startB ? Math.round((item.startB-item.startA)/60000)+"m" : "0m");
-            let work = item.isLocal ? item.tD + "m" : ((item.endT && item.startB) ? Math.round((item.endT-item.startB)/60000)+"m" : "0m");
-            let statusLabel, colorClass;
-            if(item.status === 'orange') { statusLabel = 'ATTESA'; colorClass = 'orange'; }
-            else if(item.status === 'red' || item.status === 'finishing') { statusLabel = 'LAVORO'; colorClass = 'red'; }
-            else { statusLabel = 'FINE'; colorClass = 'black'; }
-            
-            const card = document.createElement('div');
-            card.className = `card st-${item.status === 'completed' ? 'completed' : (item.status === 'orange' ? 'waiting' : 'working')}`;
-            let showDel = (item.status === 'completed' || item.status === 'finishing');
-            let delBtn = showDel ? `<div class="card-del" onclick="handleManualDel('${item.id}', ${item.startA})">×</div>` : '';
-
-            card.innerHTML = `${delBtn}
-                <div class="card-left">
-                    <div class="card-linea">${item.id}</div>
-                    <div class="card-causale">${item.causale || (item.status === 'orange' ? 'CHIAMATA APERTA' : 'INTERVENTO IN CORSO')}</div>
-                </div>
-                <div class="card-right">
-                    <div class="card-badge bg-${colorClass}">${statusLabel}</div>
-                    <div class="card-stats">A: <b>${wait}</b> | D: <b>${work}</b><br>Operatore: <b>${item.techName||'-'}</b></div>
-                </div>`;
-            list.appendChild(card);
+    // 2. 监听永久历史记录
+    db.ref('history_logs').orderByChild('ts').limitToLast(50).on('value', (snap) => {
+        const data = snap.val() || {};
+        const body = document.getElementById('historyBody');
+        body.innerHTML = '';
+        
+        const sorted = Object.values(data).sort((a,b) => b.ts - a.ts);
+        
+        sorted.forEach(l => {
+            const row = `<tr>
+                <td><div style="font-weight:700;">${l.day}</div><div style="font-size:12px; color:#8e8e93;">${l.time}</div></td>
+                <td><b style="font-size:18px;">${l.linea}</b></td>
+                <td class="tech-name">${l.techName}</td>
+                <td>
+                    <span class="tag tag-wait">A: ${l.wait}m</span>
+                    <span class="tag tag-work">D: ${l.work}m</span>
+                </td>
+                <td class="causale">${l.causale}</td>
+            </tr>`;
+            body.insertAdjacentHTML('beforeend', row);
         });
-    }
-
-    function renderLogs() {
-        const container = document.getElementById('logContainer'); container.innerHTML = '';
-        dayHistory.sort((a,b)=>b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
-            const dayLogs = logs.filter(l => l.day === day).sort((a,b)=>b.st-a.st);
-            const section = document.createElement('div');
-            section.innerHTML = `
-                <div class="day-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-                    <span style="color:var(--red); margin-right:12px; cursor:pointer" onclick="deleteDay(event, '${day}')">×</span>${day}
-                </div>
-                <div class="day-content">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width:15%">LINEA</th>
-                                <th style="width:10%">A</th>
-                                <th style="width:10%">D</th>
-                                <th style="width:35%">CAUSA</th>
-                                <th style="width:20%">OPERATORE</th>
-                                <th style="width:10%"><span class="undo-head" onclick="undoAction(event)">↺</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>${dayLogs.map(l => {
-                            const idx = logs.indexOf(l);
-                            return `<tr>
-                                <td><b>${l.i}</b></td>
-                                <td>${l.tA}m</td>
-                                <td>${l.tD}m</td>
-                                <td style="font-size:9px">${l.c}</td>
-                                <td>${l.tech}</td>
-                                <td class="del-row" onclick="deleteRow(${idx})">×</td>
-                            </tr>`}).join('')}</tbody>
-                    </table>
-                </div>`;
-            container.appendChild(section);
-        });
-    }
-
-    function deleteRow(idx) { 
-        lastDeleted = { type: 'delete', index: idx, data: {...logs[idx]} };
-        const removed = logs.splice(idx, 1)[0];
-        processedStarts.delete(removed.st);
-        saveState(); renderLogs(); renderCombinedCards();
-    }
-    
-    function deleteDay(e, day) {
-        e.stopPropagation();
-        if(!confirm("Eliminare record del " + day + "?")) return;
-        logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; });
-        dayHistory = dayHistory.filter(d => d !== day);
-        saveState(); renderLogs(); renderCombinedCards();
-    }
-
-    function clearAll() {
-        if(!confirm("Svuotare tutto?")) return;
-        logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards();
-    }
-
-    function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
-    function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
-    document.getElementById('curYear').innerText = new Date().getFullYear();
+    });
 </script>
 </body>
 </html>
