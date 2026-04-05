@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>B - Technician Side Full v18.9.4</title>
+    <title>B - Technician Side Full v18.9.5</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -186,12 +186,13 @@
     db.ref('active_calls').on('value', (snapshot) => {
         const data = snapshot.val() || {};
         
+        // --- 根除修改：彻底删除触发橙色页面的逻辑判断 ---
         Object.keys(data).forEach(id => {
             const item = data[id];
+            // 只保留 Bark 推送，不涉及任何页面状态
             if (item.status === 'orange' && !knownCalls.has(item.startA)) {
                 if(!isInitialLoad) {
                     sendBark(id);
-                    // 彻底移除页面弹窗逻辑
                 }
                 knownCalls.add(item.startA);
             }
