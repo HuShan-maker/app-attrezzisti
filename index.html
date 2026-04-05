@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>EssilorLuxottica - B Side v18.5</title>
+    <title>B - Technician Side (Full Logic) v18.9</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -27,7 +27,7 @@
             margin: 0; transition: background 0.4s; overflow-x: hidden; touch-action: pan-y; 
         }
         
-        /* 呼叫全屏报警 */
+        /* 页面报警弹窗逻辑保留 */
         #callAlert { 
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             background: var(--orange); z-index: 2147483647; flex-direction: column; 
@@ -82,14 +82,12 @@
         .color-picker-wrap { position: fixed; right: 20px; bottom: 40px; z-index: 50; width: 40px; height: 40px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3); }
         #floorColor { width: 24px; height: 24px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer; }
         
-        /* Modals */
         #modal, #confirmModal, #editModal, #nameModal, #dayConfirmModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 400; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-content { background: #fff; width: 85%; padding: 25px; border-radius: 30px; text-align: center; }
         .modal-content h3 { font-size: 14px; white-space: nowrap; margin-bottom: 20px; }
         .modal-content input { width: 90%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 18px; text-align: center; background: #f9f9f9; outline: none; -webkit-user-select: text; user-select: text; }
         .modal-btn { background: #000; color: #fff; padding: 15px; border-radius: 15px; font-weight: 700; width: 100%; font-size: 16px; border: none; }
         
-        /* Registro View */
         #v { background: #fff; display: none; flex-direction: column; z-index: 300; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding-top: calc(15px + env(safe-area-inset-top)); }
         .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 8px 20px 0 20px; flex-shrink: 0; background: #fff; border-bottom: 1px solid #f2f2f7; z-index: 200; }
         .back-arrow { font-size: 28px; width: 45px; cursor: pointer; display: flex; align-items: center; height: 100%; }
@@ -156,26 +154,7 @@
     <div id="confirmModal"><div class="modal-content"><h3>Svuota tutto il registro?</h3><div style="display:flex;gap:15px;margin-top:10px;"><button style="background:#e5e5ea;flex:1;padding:15px;border-radius:15px;border:none;" onclick="document.getElementById('confirmModal').style.display='none'">NO</button><button style="background:var(--red);color:#fff;flex:1;padding:15px;border-radius:15px;border:none;" onclick="doClear()">SI</button></div></div></div>
     <div id="dayConfirmModal"><div class="modal-content"><h3>vuoi cancellare tutti i dati del giorno?</h3><div style="display:flex;gap:15px;margin-top:10px;"><button style="background:#e5e5ea;flex:1;padding:15px;border-radius:15px;border:none;" onclick="document.getElementById('dayConfirmModal').style.display='none'">NO</button><button id="confirmDayDelBtn" style="background:var(--red);color:#fff;flex:1;padding:15px;border-radius:15px;border:none;">SI</button></div></div></div>
 
-    <!-- Registro View -->
-    <div id="v">
-        <div class="v-nav">
-            <div class="back-arrow" onclick="closeMemoria()">←</div>
-            <h2 class="v-h2">REGISTRO INTERVENTI</h2>
-            <div id="regNameDisp" class="v-user-tag">Hu_Shan</div>
-        </div>
-        <div id="logContainer"></div>
-        <div class="v-footer">
-            <div class="btn-group">
-                <button class="bottom-action-btn clear-btn" onclick="openConfirm()">Svuota tutto</button>
-                <button class="bottom-action-btn export-btn" onclick="shareRegistro()">INVIO REGISTRO</button>
-            </div>
-            <div class="v-edit-hint">doppio tocco per modificare la causale， x per cancellare</div>
-            <div class="copy-text">© <span id="curYear"></span> Hu Shan. All rights reserved.</div>
-        </div>
-    </div>
-
 <script>
-    // --- Firebase Init ---
     const firebaseConfig = {
         apiKey: "AIzaSyAUBXn_liUqQJtp1hucwsuERhZ4oxCdBPg",
         authDomain: "luxottica-app.firebaseapp.com",
@@ -186,7 +165,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Bark Config ---
     const BARK_TOKEN = "t3WWfkPgH4KVC8axqhWBLR";
 
     const pianoData = { 
@@ -208,7 +186,6 @@
     let currentActiveId = null;
     let knownCalls = new Set(); 
 
-    // --- Bark Send Function ---
     function sendBark(lineaId) {
         const title = encodeURIComponent("⚠️ NUOVA CHIAMATA");
         const body = encodeURIComponent("Linea " + lineaId + " ha bisogno di assistenza!");
@@ -216,7 +193,6 @@
         fetch(url, { mode: 'no-cors', keepalive: true }).catch(e => console.error(e));
     }
 
-    // --- Firebase Sync ---
     db.ref('active_calls').on('value', (snapshot) => {
         const data = snapshot.val() || {};
         
@@ -253,7 +229,6 @@
         applyTheme();
     });
 
-    // --- Keep Alive & Wakeup Logic ---
     let lastActive = Date.now();
     setInterval(() => {
         const now = Date.now();
@@ -291,7 +266,7 @@
             db.ref('active_calls/' + id).update({ status: 'finishing', techName: currentUserName, endT: now, causale: "IN SCRITTURA..." });
             let startD = act[id].startD || act[id].startA;
             tempLog = { i: id, day: new Date().toLocaleDateString('it-IT'), s: new Date(act[id].startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), tA: Math.round((startD - act[id].startA) / 60000), tD: Math.round((now - startD) / 60000), st: act[id].startA };
-            showModal(id);
+            showModal();
         }
     }
 
@@ -344,28 +319,19 @@
     function saveCausale() {
         const val = document.getElementById('causaleInput').value.trim() || "-";
         tempLog.c = val; 
-        
-        // 1. 本地保存 ( Registro )
         logs.push(tempLog);
         if(!dayHistory.includes(tempLog.day)) dayHistory.push(tempLog.day);
         saveState();
 
-        // 2. 【核心修改】推送到永久历史节点 ( 云端备份 )
         if (currentActiveId) {
-            db.ref('history_logs').push({
-                linea: currentActiveId,
-                techName: currentUserName,
+            // 【修正交接逻辑】发完成信号给 C 端归档
+            db.ref('active_calls/' + currentActiveId).update({
+                status: 'completed',
                 causale: val,
-                day: tempLog.day,
-                startA: tempLog.st,
-                time: tempLog.s,
-                wait: tempLog.tA,
-                work: tempLog.tD,
-                ts: Date.now()
+                endT: Date.now(),
+                techName: currentUserName
             });
-
-            // 3. 删除活跃呼叫 (触发 A 端复位变白)
-            db.ref('active_calls/' + currentActiveId).remove();
+            // 这里不再直接 remove，由 C 端存好本地后再 remove
         }
 
         document.getElementById('modal').style.display='none'; 
@@ -442,7 +408,6 @@
     function showCallAlert(id) { document.getElementById('alertLinea').innerText = id; document.getElementById('callAlert').style.display = 'flex'; }
     function closeAlert() { document.getElementById('callAlert').style.display = 'none'; }
 
-    // --- Swiping ---
     document.addEventListener('touchstart', e=>{ touchStartX=e.changedTouches[0].screenX; });
     document.addEventListener('touchend', e=>{ 
         let d=e.changedTouches[0].screenX-touchStartX; 
@@ -452,7 +417,6 @@
         } 
     });
 
-    // Init
     document.getElementById('userNameDisp').innerText = currentUserName;
     document.getElementById('regNameDisp').innerText = currentUserName;
     document.getElementById('curYear').innerText = new Date().getFullYear();
