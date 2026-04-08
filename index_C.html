@@ -123,14 +123,14 @@
 
     setInterval(() => renderCombinedCards(), 60000);
 
-    // --- 数据入库逻辑修正 ---
+    // --- Firebase 监听及存档逻辑 ---
     db.ref('active_calls').on('value', (snapshot) => {
         cloudData = snapshot.val() || {};
         let needsSave = false;
 
         Object.keys(cloudData).forEach(id => {
             const item = cloudData[id];
-            // 当状态为 completed 且本地未记录时入库
+            // 归档已完成的任务
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
                 let startD = item.startD || item.startA;
                 const newEntry = {
@@ -141,14 +141,14 @@
                     tD: Math.round(((item.endT || Date.now()) - startD) / 60000),
                     st: item.startA, 
                     et: item.endT || Date.now(),
-                    c: item.causale || "-", // A端输入的原因
-                    tech: item.techName || "-" // B端人员名字
+                    c: item.causale || "-",
+                    // 核心修复：存档时捕获 B 端的人员名字
+                    tech: item.takenBy || item.techName || "-" 
                 };
                 logs.push(newEntry);
                 processedStarts.add(item.startA);
                 if (!dayHistory.includes(newEntry.day)) dayHistory.push(newEntry.day);
                 needsSave = true;
-                // 从云端移除已完成任务
                 db.ref('active_calls/' + id).remove();
             }
         });
@@ -163,7 +163,7 @@
         localStorage.setItem('c_days_v89', JSON.stringify(dayHistory));
     }
 
-    // --- 卡片显示逻辑修正 ---
+    // --- 主界面卡片渲染 ---
     function renderCombinedCards() {
         const list = document.getElementById('activeList'); 
         list.innerHTML = '';
@@ -199,11 +199,13 @@
                 statusLabel = 'FINE'; colorClass = 'black'; statusKey = 'completed';
             }
             
+            // 核心修复：实时渲染时捕获 B 端人员名字
+            const operator = item.techName || item.takenBy || "-";
+            
             const card = document.createElement('div');
             card.className = `card st-${statusKey}`;
             let delBtn = (item.status === 'completed') ? `<div class="card-del" onclick="handleManualDel('${item.id}', ${item.startA})">×</div>` : '';
 
-            // 修改点：卡片内容实时显示 Causale (ATTESA时) 和 Operatore (LAVORO时)
             card.innerHTML = `${delBtn}
                 <div class="card-left">
                     <div class="card-badge bg-${colorClass}">${statusLabel}</div>
@@ -214,7 +216,7 @@
                         Inizio: <b>${item.startTimeStr}</b><br>
                         Attesa: <b>${wait}</b> | Durata: <b>${work}</b><br>
                         Causale: <b>${item.causale || "-"}</b><br>
-                        Operatore: <b>${item.techName || "-"}</b>
+                        Operatore: <b>${operator}</b>
                     </div>
                 </div>
                 <div class="card-right"></div>`;
@@ -235,6 +237,7 @@
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
     function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
 
+    // --- 档案页面渲染 ---
     function renderLogs() {
         const container = document.getElementById('logContainer'); 
         container.innerHTML = '';
