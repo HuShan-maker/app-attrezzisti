@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Controllo Linee Professional v18.9.17</title>
+    <title>C - Controllo Linee Professional v18.9.18</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -67,7 +67,6 @@
         .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 0 20px; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; }
         #logContainer { flex: 1; overflow-y: auto; padding: 15px; }
         
-        /* 优化后的日历头部样式，增加小箭头指示 */
         .day-header { 
             background: #f2f2f7; padding: 12px 15px; font-size: 14px; font-weight: 800; 
             border-radius: 12px; margin-top: 10px; margin-bottom: 5px; 
@@ -124,26 +123,32 @@
 
     setInterval(() => renderCombinedCards(), 60000);
 
+    // --- 数据入库逻辑修正 ---
     db.ref('active_calls').on('value', (snapshot) => {
         cloudData = snapshot.val() || {};
         let needsSave = false;
 
         Object.keys(cloudData).forEach(id => {
             const item = cloudData[id];
+            // 当状态为 completed 且本地未记录时入库
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
                 let startD = item.startD || item.startA;
                 const newEntry = {
-                    i: id, day: new Date(item.startA).toLocaleDateString('it-IT'),
+                    i: id, 
+                    day: new Date(item.startA).toLocaleDateString('it-IT'),
                     s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
                     tA: Math.round((startD - item.startA) / 60000),
                     tD: Math.round(((item.endT || Date.now()) - startD) / 60000),
-                    st: item.startA, et: item.endT || Date.now(),
-                    c: item.causale || "-", tech: item.techName || "-"
+                    st: item.startA, 
+                    et: item.endT || Date.now(),
+                    c: item.causale || "-", // A端输入的原因
+                    tech: item.techName || "-" // B端人员名字
                 };
                 logs.push(newEntry);
                 processedStarts.add(item.startA);
                 if (!dayHistory.includes(newEntry.day)) dayHistory.push(newEntry.day);
                 needsSave = true;
+                // 从云端移除已完成任务
                 db.ref('active_calls/' + id).remove();
             }
         });
@@ -158,6 +163,7 @@
         localStorage.setItem('c_days_v89', JSON.stringify(dayHistory));
     }
 
+    // --- 卡片显示逻辑修正 ---
     function renderCombinedCards() {
         const list = document.getElementById('activeList'); 
         list.innerHTML = '';
@@ -181,8 +187,8 @@
         const all = [...localToDisplay, ...cloudItems].sort((a, b) => b.sortTime - a.sortTime);
 
         all.forEach(item => {
-            let wait = item.isLocal ? item.tA + "m" : (item.startB ? Math.round((item.startB-item.startA)/60000)+"m" : "0m");
-            let work = item.isLocal ? item.tD + "m" : ((item.endT && item.startB) ? Math.round((item.endT-item.startB)/60000)+"m" : "0m");
+            let wait = item.isLocal ? item.tA + "m" : (item.startB ? Math.round((item.startB-item.startA)/60000)+"m" : Math.round((Date.now()-item.startA)/60000)+"m");
+            let work = item.isLocal ? item.tD + "m" : (item.startB ? Math.round((Date.now()-item.startB)/60000)+"m" : "0m");
             
             let statusLabel, colorClass, statusKey;
             if(item.status === 'orange') { 
@@ -197,6 +203,7 @@
             card.className = `card st-${statusKey}`;
             let delBtn = (item.status === 'completed') ? `<div class="card-del" onclick="handleManualDel('${item.id}', ${item.startA})">×</div>` : '';
 
+            // 修改点：卡片内容实时显示 Causale (ATTESA时) 和 Operatore (LAVORO时)
             card.innerHTML = `${delBtn}
                 <div class="card-left">
                     <div class="card-badge bg-${colorClass}">${statusLabel}</div>
@@ -206,7 +213,8 @@
                     <div class="card-stats">
                         Inizio: <b>${item.startTimeStr}</b><br>
                         Attesa: <b>${wait}</b> | Durata: <b>${work}</b><br>
-                        Operatore: <b>${item.techName||'-'}</b>
+                        Causale: <b>${item.causale || "-"}</b><br>
+                        Operatore: <b>${item.techName || "-"}</b>
                     </div>
                 </div>
                 <div class="card-right"></div>`;
@@ -227,7 +235,6 @@
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
     function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
 
-    // --- 修改的核心部分：renderLogs ---
     function renderLogs() {
         const container = document.getElementById('logContainer'); 
         container.innerHTML = '';
@@ -235,8 +242,6 @@
 
         dayHistory.sort((a,b)=>b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
             const dayLogs = logs.filter(l => l.day === day).sort((a,b)=>b.st-a.st);
-            
-            // 判断是否为当天：如果是当天则展开(block)，否则折叠(none)
             const isToday = (day === todayStr);
             const displayStatus = isToday ? 'block' : 'none';
             const arrow = isToday ? '▼' : '▶';
@@ -278,7 +283,6 @@
         });
     }
 
-    // 辅助函数：切换折叠状态
     function toggleDay(headerElement) {
         const content = headerElement.nextElementSibling;
         const arrow = headerElement.querySelector('.arrow-icon');
