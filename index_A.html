@@ -88,7 +88,12 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const BARK_TOKEN = "t3WWfkPgH4KVC8axqhWBLR";
+    // --- 方案一修改点：动态获取 Token 名单 ---
+    let techTokens = {};
+    db.ref('tokens').on('value', (snapshot) => {
+        techTokens = snapshot.val() || {};
+        console.log("Tokens aggiornati:", Object.keys(techTokens).length);
+    });
 
     document.getElementById('year').innerText = new Date().getFullYear();
 
@@ -102,6 +107,22 @@
     if(currentId) {
         lineaInput.value = currentId;
         startListening(currentId);
+    }
+
+    // --- 方案一修改点：群发广播函数 ---
+    function sendBroadcastNotification(id) {
+        const title = encodeURIComponent("⚠️ CHIAMATA LINEA " + id.toUpperCase());
+        const body = encodeURIComponent("Richiesta assistenza!");
+        
+        // 遍历所有技术员的 Token
+        Object.values(techTokens).forEach(token => {
+            if(!token) return;
+            const barkUrl = `https://api.day.app/${token}/${title}/${body}?sound=alarm&level=critical&volume=10&group=Luxottica&isArchive=1`;
+            
+            fetch(barkUrl, { mode: 'no-cors', keepalive: true })
+            .then(() => console.log("Notifica inviata a un dispositivo"))
+            .catch(e => console.log("Errore Bark:", e));
+        });
     }
 
     function sendCall() {
@@ -119,15 +140,8 @@
             startA: Date.now(),
             status: 'orange'
         }).then(() => {
-            const title = encodeURIComponent("⚠️ CHIAMATA LINEA " + id.toUpperCase());
-            const body = encodeURIComponent("Richiesta assistenza!");
-            
-            // 已更新：铃声换为 alarm，音量 volume=10（最大），保持重要通知级别
-            const barkUrl = `https://api.day.app/${BARK_TOKEN}/${title}/${body}?sound=alarm&level=critical&volume=10&group=Luxottica&isArchive=1`;
-            
-            fetch(barkUrl, { mode: 'no-cors', keepalive: true })
-            .catch(e => console.log("Errore Bark:", e));
-
+            // 调用群发广播函数
+            sendBroadcastNotification(id);
             startListening(id);
         }).catch(e => alert("Errore connessione: " + e.message));
     }
