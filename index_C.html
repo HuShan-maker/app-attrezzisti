@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Controllo Linee Professional v18.9.25</title>
+    <title>C - Controllo Linee Professional v18.9.27</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -128,27 +128,10 @@
 
         Object.keys(cloudData).forEach(id => {
             const item = cloudData[id];
-            // 当 B 端点击结束，任务进入 completed 状态时进行归档
+            // 当任务被标记为完成时，自动归档并从云端移除
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
-                let startD = item.startD || item.startA;
-                const newEntry = {
-                    i: id, 
-                    day: new Date(item.startA).toLocaleDateString('it-IT'),
-                    s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                    tA: Math.round((startD - item.startA) / 60000),
-                    tD: Math.round(((item.endT || Date.now()) - startD) / 60000),
-                    st: item.startA, 
-                    et: item.endT || Date.now(),
-                    c: item.causale || "-",
-                    // 核心修复：存档时捕获 B 端的人员名字
-                    tech: item.techName || item.takenBy || "-" 
-                };
-                logs.push(newEntry);
-                processedStarts.add(item.startA);
-                if (!dayHistory.includes(newEntry.day)) dayHistory.push(newEntry.day);
+                archiveTask(id, item);
                 needsSave = true;
-                // 归档后从云端移除该记录
-                db.ref('active_calls/' + id).remove();
             }
         });
 
@@ -156,6 +139,26 @@
         renderCombinedCards();
         if(document.getElementById('historyPage').style.display === 'flex') renderLogs();
     });
+
+    function archiveTask(id, item) {
+        let startD = item.startD || item.startA;
+        const newEntry = {
+            i: id, 
+            day: new Date(item.startA).toLocaleDateString('it-IT'),
+            s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+            tA: Math.round((startD - item.startA) / 60000),
+            tD: Math.round(((item.endT || Date.now()) - startD) / 60000),
+            st: item.startA, 
+            et: item.endT || Date.now(),
+            c: item.causale || "-",
+            tech: item.techName || item.takenBy || "-" 
+        };
+        logs.push(newEntry);
+        processedStarts.add(item.startA);
+        if (!dayHistory.includes(newEntry.day)) dayHistory.push(newEntry.day);
+        // 从云端移除
+        db.ref('active_calls/' + id).remove();
+    }
 
     function saveState() {
         localStorage.setItem('c_local_v89', JSON.stringify(logs));
@@ -168,14 +171,12 @@
         list.innerHTML = '';
         const todayStr = new Date().toLocaleDateString('it-IT');
 
-        // 处理本地已完成但尚未从列表手动隐藏的任务
         const localToDisplay = logs.filter(l => l.day === todayStr && !l.hideFromBoard).map(l => ({
             id: l.i, status: 'completed', startA: l.st, endT: l.et, 
             causale: l.c, techName: l.tech, tA: l.tA, tD: l.tD, isLocal: true,
             sortTime: l.et || l.st, startTimeStr: l.s
         }));
 
-        // 处理云端实时任务（正在等待或正在维修）
         const cloudItems = Object.keys(cloudData).map(id => {
             const item = cloudData[id];
             return { 
@@ -185,7 +186,6 @@
             };
         });
 
-        // 合并并按时间倒序排序
         const all = [...localToDisplay, ...cloudItems].sort((a, b) => b.sortTime - a.sortTime);
 
         all.forEach(item => {
@@ -201,12 +201,13 @@
                 statusLabel = 'FINE'; colorClass = 'black'; statusKey = 'completed';
             }
             
-            // 核心修复：实时渲染时捕获 B 端人员名字
             const operator = item.techName || item.takenBy || "-";
             
             const card = document.createElement('div');
             card.className = `card st-${statusKey}`;
-            let delBtn = (item.status === 'completed') ? `<div class="card-del" onclick="handleManualDel('${item.id}', ${item.startA})">×</div>` : '';
+            
+            // 核心修改：所有状态都显示删除按钮
+            let delBtn = `<div class="card-del" onclick="handleManualDel('${item.id}', ${item.startA}, ${item.isLocal})">×</div>`;
 
             card.innerHTML = `${delBtn}
                 <div class="card-left">
@@ -220,26 +221,38 @@
                         Causale: <b>${item.causale || "-"}</b><br>
                         Operatore: <b>${operator}</b>
                     </div>
-                </div>
-                <div class="card-right"></div>`;
+                </div>`;
             list.appendChild(card);
         });
     }
 
-    function handleManualDel(id, st) {
-        if(!confirm("Nascondere dalla bacheca?")) return;
-        const idx = logs.findIndex(l => l.st === st);
-        if(idx !== -1) {
-            lastDeleted = { type: 'hide', index: idx, data: {...logs[idx]} };
-            logs[idx].hideFromBoard = true;
-            saveState(); renderCombinedCards();
+    // 核心修改：手动删除逻辑
+    function handleManualDel(id, st, isLocal) {
+        if(!confirm("Rimuovere dalla bacheca e archiviare?")) return;
+
+        if (isLocal) {
+            // 如果是已经归档在本地的“FINE”状态，直接隐藏
+            const idx = logs.findIndex(l => l.st === st);
+            if(idx !== -1) {
+                lastDeleted = { type: 'hide', index: idx, data: {...logs[idx]} };
+                logs[idx].hideFromBoard = true;
+            }
+        } else {
+            // 如果是云端实时任务（橙色或红色），手动强制归档并从云端删除
+            const item = cloudData[id];
+            if (item && item.startA === st) {
+                // 标记为手动强制结束，并捕获当前时间作为结束时间
+                const manualItem = { ...item, status: 'completed', endT: Date.now(), causale: item.causale ? item.causale + " (MANUALE)" : "MANUALE" };
+                archiveTask(id, manualItem);
+            }
         }
+        saveState();
+        renderCombinedCards();
     }
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
     function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
 
-    // --- 档案页面渲染逻辑 ---
     function renderLogs() {
         const container = document.getElementById('logContainer'); 
         container.innerHTML = '';
