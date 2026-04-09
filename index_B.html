@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>B - Technician Side Full v18.9.31</title>
+    <title>B - Technician Side Full v18.9.29</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -53,8 +53,8 @@
 
         /* 网格动画 */
         #g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; }
-        .slide-left { transform: translateX(-35px); opacity: 0; }
-        .slide-right { transform: translateX(35px); opacity: 0; }
+        .slide-left { transform: translateX(-30px); opacity: 0; }
+        .slide-right { transform: translateX(30px); opacity: 0; }
         
         .btn-wrap { position: relative; width: 100%; aspect-ratio: 1/1; }
         .btn-machine { width: 100%; height: 100%; border: none; border-radius: 24px; font-weight: 800; font-size: 17px; background: var(--btn-gray); transition: all 0.3s; }
@@ -104,7 +104,7 @@
         .bottom-action-btn { border: none; padding: 10px 0; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; flex: 1; max-width: 140px; cursor: pointer; }
         .export-btn { background: #000; color: #fff; }
         .clear-btn { background: var(--btn-gray); color: var(--red); border: 1px solid #ddd; }
-        .copy-text { text-align: center; font-size: 10px; color: #8e8e93; margin-top: 5px; font-weight: 800; text-transform: uppercase; }
+        .copy-text { text-align: center; font-size: 11px; color: #000000; margin-top: 5px; font-weight: 800; text-transform: uppercase; }
 
         .undo-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--btn-gray); border-radius: 50%; font-size: 16px; font-weight: bold; cursor: pointer; }
         .del-row { color: var(--red); font-weight: 900; font-size: 20px; text-align: center; cursor: pointer; }
@@ -160,7 +160,7 @@
                 <button class="bottom-action-btn clear-btn" onclick="openConfirm()">Svuota tutto</button>
                 <button class="bottom-action-btn export-btn" onclick="shareRegistro()">INVIO REGISTRO</button>
             </div>
-            <div class="copy-text">© <span id="curYear"></span> HU SHAN · ALL RIGHTS RESERVED</div>
+            <div class="copy-text">© <span id="curYear"></span> Hu Shan. All rights reserved.</div>
         </div>
     </div>
 
@@ -176,12 +176,15 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // --- 服务器时间同步核心变量 ---
     let serverTimeOffset = 0;
     db.ref(".info/serverTimeOffset").on("value", (snap) => {
         serverTimeOffset = snap.val() || 0;
     });
 
+    // --- 2. 班次逻辑 (基于服务器时间) ---
     function getRealTimeTurno() {
+        // 使用本地时间校准后的真实时间
         const now = new Date(Date.now() + serverTimeOffset);
         const hour = now.getHours() + (now.getMinutes() / 60);
         const start = new Date(now.getFullYear(), 0, 1);
@@ -207,8 +210,10 @@
         }
     }
 
-    const myDeviceId = localStorage.getItem('deviceId') || 'dev_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('deviceId', myDeviceId);
+    if (!localStorage.getItem('deviceId')) {
+        localStorage.setItem('deviceId', 'dev_' + Math.random().toString(36).substr(2, 9));
+    }
+    const myDeviceId = localStorage.getItem('deviceId');
 
     const pianoData = { 
         1: ['101','101bis','102','102bis','103','103bis','104','104bis','105','105bis','106','106bis','107','107bis','108','108bis'], 
@@ -226,23 +231,13 @@
     let dayHistory = JSON.parse(localStorage.getItem('dayHistory_v7') || '[]');
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
-    let lastOrangeCount = 0; // 震动逻辑检测变量
 
     // --- 4. 核心监听器 ---
     db.ref('active_calls').on('value', (snapshot) => {
         const rawData = snapshot.val() || {};
         const currentSystemTurno = getRealTimeTurno();
-
-        // 核心修正：新任务震动逻辑
-        const currentOranges = Object.keys(rawData).filter(id => id !== 'FUORI' && rawData[id].status === 'orange');
-        if (currentOranges.length > lastOrangeCount) {
-            if (myShift === currentSystemTurno && "vibrate" in navigator) {
-                navigator.vibrate([400, 200, 400]);
-            }
-        }
-        lastOrangeCount = currentOranges.length;
-
         let needsLocalArchive = false;
+
         Object.keys(rawData).forEach(id => {
             const item = rawData[id];
             if (item.turno && item.turno !== currentSystemTurno) {
@@ -347,10 +342,12 @@
         renderGrid();
     }
 
+    // --- 6. UI 渲染 (隐私保护增强) ---
     function renderGrid() {
         const gd = document.getElementById('g'); gd.innerHTML = '';
         const turnoLabel = document.getElementById('turnoDisp');
         const contentArea = document.getElementById('dynamicContent');
+        
         const systemTurno = getRealTimeTurno();
         const isWorkingTime = (myShift === systemTurno);
         
@@ -369,6 +366,8 @@
         pianoData[curPiano].forEach(i => {
             const wrap = document.createElement('div'); wrap.className = 'btn-wrap';
             const b = document.createElement('button'); 
+            
+            // 核心隐私修改：如果不属于我的上班时间，实时状态 s 强制设为 null
             const s = isWorkingTime ? act[i] : null; 
             
             b.className = 'btn-machine'; b.innerText = i;
@@ -383,6 +382,7 @@
             b.onclick = () => isWorkingTime && handleMachineClick(i); 
             wrap.appendChild(b);
             
+            // 只有上班时才显示橙色角标
             if (isWorkingTime && s && s.status === 'orange') {
                 const qNum = allOrangeIds.indexOf(i) + 1;
                 const badge = document.createElement('div'); badge.className = 'badge'; badge.innerText = qNum; wrap.appendChild(badge);
@@ -400,6 +400,7 @@
         const isW = (myShift === getRealTimeTurno());
         for (let p = 1; p <= 5; p++) {
             const btn = document.getElementById(`p-btn-${p}`);
+            // 只有上班时才计算红/橙色总数徽章
             const count = isW ? pianoData[p].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'red')).length : 0;
             const oldBadge = btn.querySelector('.p-badge');
             if (oldBadge) oldBadge.remove();
@@ -407,27 +408,7 @@
         }
     }
 
-    // --- 核心修复：切换 Piano 动画保活逻辑 ---
-    function switchPiano(p) {
-        if (p === curPiano) return; 
-        
-        const gd = document.getElementById('g');
-        const directionClass = p > curPiano ? 'slide-left' : 'slide-right';
-        
-        // 1. 触发退出动画
-        gd.classList.add(directionClass);
-        
-        // 2. 动画过半时切换内容
-        setTimeout(() => {
-            curPiano = p;
-            renderGrid();
-            applyTheme();
-            
-            // 3. 移除退出类，瞬间复位产生“滑入”效果
-            gd.classList.remove('slide-left', 'slide-right');
-        }, 125);
-    }
-
+    function switchPiano(p, dir='left') { if(p===curPiano) return; const gd = document.getElementById('g'); gd.className = (dir==='left' ? 'slide-left' : 'right'); setTimeout(() => { curPiano = p; applyTheme(); gd.className = ''; }, 150); }
     function applyTheme() { 
         const c=themeConfig[curPiano]; 
         document.querySelectorAll('.p-btn').forEach((b,i)=>{ 
@@ -436,10 +417,9 @@
             b.style.color = isTarget ? '#fff' : '#8e8e93';
             b.classList.toggle('active', isTarget); 
         }); 
-        document.getElementById('floorColor').value = c;
+        document.getElementById('floorColor').value = c; renderGrid(); 
     }
-
-    function updateThemeColor(c) { themeConfig[curPiano]=c; localStorage.setItem('pianoThemes',JSON.stringify(themeConfig)); applyTheme(); renderGrid(); }
+    function updateThemeColor(c) { themeConfig[curPiano]=c; localStorage.setItem('pianoThemes',JSON.stringify(themeConfig)); applyTheme(); }
 
     function renderLogs() {
         const container = document.getElementById('logContainer');
@@ -449,13 +429,11 @@
         const oggi = new Date(Date.now() + serverTimeOffset).toLocaleDateString('it-IT');
         const groups = {}; dayHistory.forEach(d => groups[d] = []);
         logs.forEach((l, idx) => { if (groups[l.day]) groups[l.day].push({ ...l, originalIndex: idx }); });
-        
         Object.keys(groups).sort((a,b) => b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
             const section = document.createElement('div');
             const isCollapsed = expandedDays.size === 0 ? (day !== oggi) : !expandedDays.has(day);
             section.className = 'day-section' + (isCollapsed ? ' collapsed' : '');
             const dayLogs = groups[day].sort((a, b) => b.st - a.st);
-            
             section.innerHTML = `
                 <div class="day-header" onclick="this.parentElement.classList.toggle('collapsed')">
                     <div class="day-header-left"><div class="day-del-btn" onclick="openDayDelConfirm(event, '${day}')">×</div><span>${day}</span></div>
@@ -500,22 +478,14 @@
         if (navigator.share) await navigator.share({ title: `Registro`, text: text }); 
     }
 
-    // 左右滑动逻辑保活
     document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
-    document.addEventListener('touchend', e => {
-        if (document.getElementById('v').style.display === 'flex') return;
-        let dX = e.changedTouches[0].screenX - touchStartX;
-        if (Math.abs(dX) > 75) {
-            if (dX > 0 && curPiano > 1) switchPiano(curPiano - 1);
-            else if (dX < 0 && curPiano < 5) switchPiano(curPiano + 1);
-        }
-    }, { passive: true });
+    document.addEventListener('touchend', e => { if (document.getElementById('v').style.display === 'flex') return; let dX = e.changedTouches[0].screenX - touchStartX; if (Math.abs(dX) > 70) dX > 0 ? (curPiano > 1 && switchPiano(curPiano - 1, 'right')) : (curPiano < 5 && switchPiano(curPiano + 1, 'left')); }, { passive: true });
 
     document.getElementById('userNameDisp').innerText = document.getElementById('regNameDisp').innerText = currentUserName;
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
-    renderGrid();
     applyTheme();
-
+    
+    // 每 5 秒强制检查一次班次锁定状态
     setInterval(() => {
         renderGrid();
         updateGlobalBadges();
