@@ -184,7 +184,6 @@
 
     // --- 2. 班次逻辑 (基于服务器时间) ---
     function getRealTimeTurno() {
-        // 使用本地时间校准后的真实时间
         const now = new Date(Date.now() + serverTimeOffset);
         const hour = now.getHours() + (now.getMinutes() / 60);
         const start = new Date(now.getFullYear(), 0, 1);
@@ -231,10 +230,22 @@
     let dayHistory = JSON.parse(localStorage.getItem('dayHistory_v7') || '[]');
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
+    let lastOrangeCount = 0; // 用于震动检测的任务计数器
 
     // --- 4. 核心监听器 ---
     db.ref('active_calls').on('value', (snapshot) => {
         const rawData = snapshot.val() || {};
+        
+        // --- 震动逻辑检测 ---
+        const currentOranges = Object.keys(rawData).filter(id => id !== 'FUORI' && rawData[id].status === 'orange');
+        if (currentOranges.length > lastOrangeCount) {
+            // 检查是否为上班时间且支持震动
+            if (myShift === getRealTimeTurno() && "vibrate" in navigator) {
+                navigator.vibrate([400, 200, 400]); // 震动400ms，停200ms，震动400ms
+            }
+        }
+        lastOrangeCount = currentOranges.length;
+
         const currentSystemTurno = getRealTimeTurno();
         let needsLocalArchive = false;
 
@@ -342,7 +353,7 @@
         renderGrid();
     }
 
-    // --- 6. UI 渲染 (隐私保护增强) ---
+    // --- 6. UI 渲染 ---
     function renderGrid() {
         const gd = document.getElementById('g'); gd.innerHTML = '';
         const turnoLabel = document.getElementById('turnoDisp');
@@ -366,8 +377,6 @@
         pianoData[curPiano].forEach(i => {
             const wrap = document.createElement('div'); wrap.className = 'btn-wrap';
             const b = document.createElement('button'); 
-            
-            // 核心隐私修改：如果不属于我的上班时间，实时状态 s 强制设为 null
             const s = isWorkingTime ? act[i] : null; 
             
             b.className = 'btn-machine'; b.innerText = i;
@@ -382,7 +391,6 @@
             b.onclick = () => isWorkingTime && handleMachineClick(i); 
             wrap.appendChild(b);
             
-            // 只有上班时才显示橙色角标
             if (isWorkingTime && s && s.status === 'orange') {
                 const qNum = allOrangeIds.indexOf(i) + 1;
                 const badge = document.createElement('div'); badge.className = 'badge'; badge.innerText = qNum; wrap.appendChild(badge);
@@ -400,7 +408,6 @@
         const isW = (myShift === getRealTimeTurno());
         for (let p = 1; p <= 5; p++) {
             const btn = document.getElementById(`p-btn-${p}`);
-            // 只有上班时才计算红/橙色总数徽章
             const count = isW ? pianoData[p].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'red')).length : 0;
             const oldBadge = btn.querySelector('.p-badge');
             if (oldBadge) oldBadge.remove();
@@ -485,7 +492,6 @@
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
     applyTheme();
     
-    // 每 5 秒强制检查一次班次锁定状态
     setInterval(() => {
         renderGrid();
         updateGlobalBadges();
