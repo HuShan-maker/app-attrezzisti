@@ -73,7 +73,6 @@
         .color-picker-wrap { position: fixed; right: 20px; bottom: 40px; z-index: 50; width: 40px; height: 40px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3); }
         #floorColor { width: 24px; height: 24px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer; }
         
-        /* --- Registro 页面 --- */
         #v { background: #fff; display: none; flex-direction: column; z-index: 300; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding-top: calc(15px + env(safe-area-inset-top)); }
         .v-nav { display: flex; align-items: center; height: 60px; padding: 0 10px; background: #fff; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; position: relative; }
         .v-nav-left { width: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-start; }
@@ -142,7 +141,7 @@
 
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
 
-    <!-- Modals (保持不变) -->
+    <!-- Modals -->
     <div id="nameModal"><div class="modal-content"><h3>Cambia Nome</h3><input type="text" id="nameInput" class="modal-input" autocomplete="off"><button class="modal-btn" onclick="saveName()">SALVA</button></div></div>
     <div id="fuoriModal"><div class="modal-content"><h3>Causale Fuori Linea</h3><input type="text" id="fuoriCausaleInput" class="modal-input" placeholder="Attività svolta..."><button class="modal-btn" onclick="saveFuoriCausale()">SALVA</button></div></div>
     <div id="editModal"><div class="modal-content"><h3>Modifica Causale</h3><input type="text" id="editCausaleInput" class="modal-input" autocomplete="off"><button class="modal-btn" onclick="confirmEdit()">AGGIORNA</button></div></div>
@@ -161,7 +160,6 @@
                 <button class="bottom-action-btn clear-btn" onclick="openConfirm()">Svuota tutto</button>
                 <button class="bottom-action-btn export-btn" onclick="shareRegistro()">INVIO REGISTRO</button>
             </div>
-            <div class="v-edit-hint" style="font-size: 9px; color:#8e8e93; text-align:center;">doppio tocco per modificare, x per cancellare</div>
             <div class="copy-text">© <span id="curYear"></span> Hu Shan. All rights reserved.</div>
         </div>
     </div>
@@ -210,7 +208,6 @@
     }
     const myDeviceId = localStorage.getItem('deviceId');
 
-    // --- 3. 基础数据 ---
     const pianoData = { 
         1: ['101','101bis','102','102bis','103','103bis','104','104bis','105','105bis','106','106bis','107','107bis','108','108bis'], 
         2: ['201','201bis','202','202bis','203','203bis','204','204bis','205','205bis','206','206bis','207','207bis','208','208bis'], 
@@ -228,19 +225,17 @@
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
 
-    // --- 4. 核心监听器：包含班次自动清理逻辑 ---
+    // --- 4. 核心监听器 ---
     db.ref('active_calls').on('value', (snapshot) => {
         const rawData = snapshot.val() || {};
         const currentSystemTurno = getRealTimeTurno();
         let needsLocalArchive = false;
 
-        // 班次扫描：处理过期任务
         Object.keys(rawData).forEach(id => {
             const item = rawData[id];
-            // 如果云端任务的班次 (item.turno) 和 现在的系统班次不一致
             if (item.turno && item.turno !== currentSystemTurno) {
                 const now = Date.now();
-                const tech = item.techName || "AUTO-CLOSE"; // 如果没修完，名字记为自动结束
+                const tech = item.techName || "AUTO-CLOSE";
                 archiveIntervention(id, item.causale + " (Fine Turno)", item.startA, item.startD || item.startA, now, tech);
                 db.ref('active_calls/' + id).remove();
                 needsLocalArchive = true;
@@ -249,7 +244,6 @@
 
         if(needsLocalArchive) saveState();
 
-        // 更新本地 UI 数据
         act = rawData;
         if (isInitialLoad) {
             let redP = 0, orangeP = 0, oldest = Infinity;
@@ -275,35 +269,36 @@
         localStorage.setItem('dayHistory_v7', JSON.stringify(dayHistory)); 
     }
 
-    // --- 5. 归档逻辑 ---
+    // --- 5. 归档逻辑：核心时间戳修改 ---
     function handleMachineClick(id) {
-        const now = Date.now();
+        const sTime = firebase.database.ServerValue.TIMESTAMP;
         if (!act[id]) return; 
         if (act[id].status === 'orange') {
             db.ref('active_calls/' + id).update({ 
                 status: 'red', 
-                startD: now, 
-                startB: now, 
+                startD: sTime, // 服务器时间戳
+                startB: sTime, // 服务器时间戳
                 takenBy: myDeviceId,
                 techName: currentUserName 
             });
         } 
         else if (act[id].status === 'red' && act[id].takenBy === myDeviceId) {
             const item = act[id];
+            // 本地记录使用 Date.now() 确保 UI 刷新，数据库使用服务器占位符
+            const now = Date.now();
             archiveIntervention(id, item.causale || "-", item.startA, item.startD || item.startA, now, currentUserName);
             if (id === 'FUORI') { db.ref('active_calls/FUORI').remove(); }
-            else { db.ref('active_calls/' + id).update({ status: 'completed', endT: now }); }
+            else { db.ref('active_calls/' + id).update({ status: 'completed', endT: sTime }); }
         }
     }
 
-    // 统筹归档函数
     function archiveIntervention(id, causale, startA, startD, endT, tech) {
         const newLog = { 
             i: id, day: new Date().toLocaleDateString('it-IT'), 
             s: new Date(startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
             tA: Math.round((startD - startA) / 60000), 
             tD: Math.round((endT - startD) / 60000), 
-            st: startA, c: causale, tech: tech // 记录当时操作的人
+            st: startA, c: causale, tech: tech
         };
         logs.push(newLog);
         if(!dayHistory.includes(newLog.day)) dayHistory.push(newLog.day);
@@ -311,17 +306,17 @@
     }
 
     function toggleFuori() {
-        const now = Date.now(); const fs = act['FUORI'];
+        const sTime = firebase.database.ServerValue.TIMESTAMP;
+        const fs = act['FUORI'];
         if(fs && fs.status === 'red' && fs.takenBy === myDeviceId) {
             document.getElementById('fuoriModal').style.display = 'flex';
             setTimeout(() => document.getElementById('fuoriCausaleInput').focus(), 150);
         } else if (!fs || fs.status === 'completed') {
-            // 注意：这里要带上当前班次标记，供以后跨班清理识别
             db.ref('active_calls/FUORI').set({ 
                 status: 'red', 
-                startA: now, 
-                startB: now, 
-                startD: now, 
+                startA: sTime, // 服务器时间戳
+                startB: sTime, // 服务器时间戳
+                startD: sTime, // 服务器时间戳
                 takenBy: myDeviceId,
                 techName: currentUserName,
                 turno: getRealTimeTurno() 
@@ -339,7 +334,7 @@
         renderGrid();
     }
 
-    // --- 6. UI 渲染 & 辅助功能 (保持原有完整逻辑) ---
+    // --- 6. UI 渲染 (保持原样) ---
     function renderGrid() {
         const gd = document.getElementById('g'); gd.innerHTML = '';
         const turnoLabel = document.getElementById('turnoDisp');
