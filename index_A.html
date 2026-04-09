@@ -34,7 +34,6 @@
             text-align: center; outline: none; background: #fff;
             -webkit-user-select: text; user-select: text; 
         }
-        /* 当禁用输入框时的样式 */
         input:disabled { background-color: #f9f9fb; color: #8e8e93; border-color: #e5e5ea; opacity: 1; }
 
         .turno-tag { font-size: 11px; font-weight: 800; color: #8e8e93; text-transform: uppercase; background: var(--gray); padding: 5px 10px; border-radius: 10px; }
@@ -137,7 +136,6 @@
             if (!data || data.status === 'completed') {
                 resetUI();
             } else {
-                // 核心修改：呼叫中状态下禁用线号输入和原因选择
                 lineaInput.disabled = true; 
                 causaleSelect.disabled = true;
                 
@@ -160,7 +158,6 @@
         btnIcon.innerText = "⚡️";
         mainBtn.classList.remove('locked');
         
-        // 核心修改：恢复自由输入状态
         lineaInput.disabled = false;
         causaleSelect.disabled = false;
         causaleSelect.value = "";
@@ -176,20 +173,33 @@
         if(!regex.test(id)) { alert("LINEA ERRATA!"); return; }
         if(!causale) { alert("SELEZIONA UNA CAUSALE!"); return; }
 
-        db.ref('active_calls/' + id).set({
-            startA: Date.now(),
-            status: 'orange',
-            causale: causale,
-            turno: currentTurno
-        }).then(() => {
-            startListening();
-            const tKey = currentTurno.replace(" ", "_");
-            db.ref('tokens/' + tKey).once('value', (snap) => {
-                const tokens = snap.val() || {};
-                Object.values(tokens).forEach(t => {
-                    if(!t) return;
-                    const barkUrl = `https://api.day.app/${t}/⚠️ LINEA ${id.toUpperCase()}/Causale: ${causale}?sound=alarm&group=Luxottica&isArchive=1`;
-                    fetch(barkUrl, { mode: 'no-cors', keepalive: true }).catch(() => {});
+        // --- 核心防重逻辑：先查询数据库是否已有该 LINEA 的活跃呼叫 ---
+        db.ref('active_calls/' + id).once('value').then((snapshot) => {
+            const existingData = snapshot.val();
+            
+            // 如果 ID 已存在且状态不是已完成，则拦截
+            if (existingData && existingData.status !== 'completed') {
+                alert("ATTENZIONE: Linea " + id.toUpperCase() + " è già stata chiamata!");
+                startListening(); // 重新同步界面状态
+                return; 
+            }
+
+            // 如果校验通过，执行写入
+            db.ref('active_calls/' + id).set({
+                startA: Date.now(),
+                status: 'orange',
+                causale: causale,
+                turno: currentTurno
+            }).then(() => {
+                startListening();
+                const tKey = currentTurno.replace(" ", "_");
+                db.ref('tokens/' + tKey).once('value', (snap) => {
+                    const tokens = snap.val() || {};
+                    Object.values(tokens).forEach(t => {
+                        if(!t) return;
+                        const barkUrl = `https://api.day.app/${t}/⚠️ LINEA ${id.toUpperCase()}/Causale: ${causale}?sound=alarm&group=Luxottica&isArchive=1`;
+                        fetch(barkUrl, { mode: 'no-cors', keepalive: true }).catch(() => {});
+                    });
                 });
             });
         });
@@ -201,7 +211,6 @@
         startListening(); 
     }
     
-    // 如果没有正在进行的呼叫，允许修改输入框
     lineaInput.addEventListener('blur', () => {
         if (!mainBtn.classList.contains('locked')) {
             startListening();
