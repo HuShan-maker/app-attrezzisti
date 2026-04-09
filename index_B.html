@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>B - Technician Side Full v18.9.27</title>
+    <title>B - Technician Side Full v18.9.28</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -176,25 +176,21 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 核心安全增强：服务器时间同步 ---
+    // --- 服务器时间同步核心变量 ---
     let serverTimeOffset = 0;
     db.ref(".info/serverTimeOffset").on("value", (snap) => {
         serverTimeOffset = snap.val() || 0;
     });
 
-    // 使用同步后的服务器时间判断班次
+    // --- 2. 班次逻辑 (基于服务器时间) ---
     function getRealTimeTurno() {
-        // 关键修复：当前真实时间 = 本地时间 + 服务器偏移量
+        // 使用本地时间校准后的真实时间
         const now = new Date(Date.now() + serverTimeOffset);
         const hour = now.getHours() + (now.getMinutes() / 60);
-        
         const start = new Date(now.getFullYear(), 0, 1);
         const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
         const isSingleWeek = week % 2 !== 0; 
-        
-        // 14:15 是分界线 (14 + 15/60 = 14.25)
         const isAfternoon = (hour >= 14.25); 
-        
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
     }
 
@@ -235,12 +231,6 @@
     let dayHistory = JSON.parse(localStorage.getItem('dayHistory_v7') || '[]');
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
-
-    // 每秒检查一次班次，确保 UI 即时锁定/解锁
-    setInterval(() => {
-        renderGrid();
-        updateGlobalBadges();
-    }, 1000);
 
     // --- 4. 核心监听器 ---
     db.ref('active_calls').on('value', (snapshot) => {
@@ -311,8 +301,7 @@
     function archiveIntervention(id, causale, startA, startD, endT, tech) {
         const nowServer = new Date(endT);
         const newLog = { 
-            i: id, 
-            day: nowServer.toLocaleDateString('it-IT'), 
+            i: id, day: nowServer.toLocaleDateString('it-IT'), 
             s: new Date(startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
             tA: Math.round((startD - startA) / 60000), 
             tD: Math.round((endT - startD) / 60000), 
@@ -353,7 +342,7 @@
         renderGrid();
     }
 
-    // --- 6. UI 渲染 ---
+    // --- 6. UI 渲染 (隐私保护增强) ---
     function renderGrid() {
         const gd = document.getElementById('g'); gd.innerHTML = '';
         const turnoLabel = document.getElementById('turnoDisp');
@@ -376,36 +365,50 @@
         
         pianoData[curPiano].forEach(i => {
             const wrap = document.createElement('div'); wrap.className = 'btn-wrap';
-            const b = document.createElement('button'); const s = act[i]; 
+            const b = document.createElement('button'); 
+            
+            // 核心隐私修改：如果不属于我的上班时间，实时状态 s 强制设为 null
+            const s = isWorkingTime ? act[i] : null; 
+            
             b.className = 'btn-machine'; b.innerText = i;
             if (s && (s.status === 'orange' || s.status === 'red')) {
                 if (s.status === 'orange') { b.classList.add('waiting'); b.style.color = "#ffffff"; } 
                 else { if (s.takenBy === myDeviceId) { b.classList.add('or'); b.style.color = "#ffffff"; } else { b.classList.add('locked-btn'); } }
-            } else { b.style.color = c; b.style.backgroundColor = 'var(--btn-gray)'; }
+            } else { 
+                b.style.color = c; 
+                b.style.backgroundColor = 'var(--btn-gray)'; 
+            }
+            
             b.onclick = () => isWorkingTime && handleMachineClick(i); 
             wrap.appendChild(b);
-            if (s && s.status === 'orange') {
+            
+            // 只有上班时才显示橙色角标
+            if (isWorkingTime && s && s.status === 'orange') {
                 const qNum = allOrangeIds.indexOf(i) + 1;
                 const badge = document.createElement('div'); badge.className = 'badge'; badge.innerText = qNum; wrap.appendChild(badge);
             }
             gd.appendChild(wrap);
         });
-        const f = document.getElementById('btn-fuori'), fs = act['FUORI'];
+        
+        const f = document.getElementById('btn-fuori');
+        const fs = isWorkingTime ? act['FUORI'] : null;
         f.className = (fs && fs.status === 'red') ? 'fuori-btn or' : 'fuori-btn';
         if (!(fs && fs.status === 'red')) f.style.color = c;
     }
 
     function updateGlobalBadges() {
+        const isW = (myShift === getRealTimeTurno());
         for (let p = 1; p <= 5; p++) {
             const btn = document.getElementById(`p-btn-${p}`);
-            const count = pianoData[p].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'red')).length;
+            // 只有上班时才计算红/橙色总数徽章
+            const count = isW ? pianoData[p].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'red')).length : 0;
             const oldBadge = btn.querySelector('.p-badge');
             if (oldBadge) oldBadge.remove();
             if (count > 0) { const b = document.createElement('div'); b.className = 'p-badge'; btn.appendChild(b); }
         }
     }
 
-    function switchPiano(p, dir='left') { if(p===curPiano) return; const gd = document.getElementById('g'); gd.className = (dir==='left' ? 'slide-left' : 'slide-right'); setTimeout(() => { curPiano = p; applyTheme(); gd.className = ''; }, 150); }
+    function switchPiano(p, dir='left') { if(p===curPiano) return; const gd = document.getElementById('g'); gd.className = (dir==='left' ? 'slide-left' : 'right'); setTimeout(() => { curPiano = p; applyTheme(); gd.className = ''; }, 150); }
     function applyTheme() { 
         const c=themeConfig[curPiano]; 
         document.querySelectorAll('.p-btn').forEach((b,i)=>{ 
@@ -481,6 +484,12 @@
     document.getElementById('userNameDisp').innerText = document.getElementById('regNameDisp').innerText = currentUserName;
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
     applyTheme();
+    
+    // 每 5 秒强制检查一次班次锁定状态
+    setInterval(() => {
+        renderGrid();
+        updateGlobalBadges();
+    }, 5000);
 </script>
 </body>
 </html>
