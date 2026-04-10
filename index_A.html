@@ -113,6 +113,7 @@
     const turnoLabel = document.getElementById('turnoLabel');
 
     let isLocalAction = false; 
+    let lastKnownStatus = null; // 新增：用于记录上一个状态
 
     function getActiveTurno() {
         const now = new Date();
@@ -138,10 +139,18 @@
             const data = snapshot.val();
             
             if (!data || data.status === 'completed') {
-                if (id === savedLinea) localStorage.removeItem('myActiveCall');
+                if (id === savedLinea) {
+                    localStorage.removeItem('myActiveCall');
+                    // 核心修改：只有当上一个状态是红色(red)或正在完成(finishing)时，才重置Causale
+                    if (lastKnownStatus === 'red' || lastKnownStatus === 'finishing') {
+                        causaleSelect.value = ""; 
+                    }
+                }
+                lastKnownStatus = null; // 重置追踪状态
                 resetUI();
             } else {
                 if (id === savedLinea) {
+                    lastKnownStatus = data.status; // 记录当前状态
                     lineaInput.disabled = true; 
                     causaleSelect.disabled = true;
                     
@@ -168,8 +177,6 @@
         mainBtn.classList.remove('locked');
         lineaInput.disabled = false;
         causaleSelect.disabled = false;
-        // 修改点：重置原因选择框到第一个默认选项
-        causaleSelect.value = ""; 
     }
 
     function sendCall() {
