@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>B - Technician Side Full v18.9.29</title>
+    <title>B - Technician Side Full v18.9.30</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -231,6 +231,46 @@
     let dayHistory = JSON.parse(localStorage.getItem('dayHistory_v7') || '[]');
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
+
+    // --- 新增：30天自动清理逻辑 ---
+    function autoCleanOldRecords() {
+        const now = new Date(Date.now() + serverTimeOffset);
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        
+        let needsSave = false;
+
+        // 1. 过滤 dayHistory
+        const updatedDayHistory = dayHistory.filter(dayStr => {
+            const [d, m, y] = dayStr.split('/');
+            const recordDate = new Date(y, m - 1, d);
+            if (recordDate < thirtyDaysAgo) {
+                needsSave = true;
+                return false;
+            }
+            return true;
+        });
+
+        // 2. 过滤 logs
+        const updatedLogs = logs.filter(l => {
+            const [d, m, y] = l.day.split('/');
+            const recordDate = new Date(y, m - 1, d);
+            if (recordDate < thirtyDaysAgo) {
+                needsSave = true;
+                return false;
+            }
+            return true;
+        });
+
+        if (needsSave) {
+            logs = updatedLogs;
+            dayHistory = updatedDayHistory;
+            saveState();
+        }
+    }
+
+    // 初始化时执行清理
+    autoCleanOldRecords();
 
     // --- 4. 核心监听器 ---
     db.ref('active_calls').on('value', (snapshot) => {
