@@ -6,9 +6,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Luxottica Service Portal</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f2f2f7">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <style>
         :root { --blue: #007aff; --red: #ff3b30; --black: #000000; --gray: #8e8e93; --bg: #f2f2f7; }
-        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
         
         body { 
             font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; 
@@ -28,21 +33,19 @@
             background: #fff; border-radius: 22px; padding: 18px 22px;
             text-decoration: none; display: flex; align-items: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-            transition: 0.2s; border: 2.5px solid transparent;
+            transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 2.5px solid transparent;
         }
-        .option:active { transform: scale(0.96); background: #f9f9f9; }
+        .option:active { transform: scale(0.97); background: #f2f2f7; }
 
         .icon { font-size: 30px; margin-right: 18px; width: 45px; text-align: center; }
         .text-group { display: flex; flex-direction: column; }
         .title { font-size: 17px; font-weight: 800; color: var(--black); }
         .desc { font-size: 11px; color: var(--gray); margin-top: 3px; font-weight: 600; text-transform: uppercase; }
 
-        /* 侧边色条区分 */
         .opt-a { border-left: 6px solid var(--blue); }
         .opt-b { border-left: 6px solid var(--red); }
         .opt-c { border-left: 6px solid var(--black); }
 
-        /* 底部 Copyright 样式 - 与其他端统一 */
         .footer-text { 
             text-align: center; padding: 20px 0; font-size: 10px; 
             font-weight: 900; color: #000; text-transform: uppercase; 
@@ -59,7 +62,6 @@
         </div>
 
         <div class="menu">
-            <!-- Lato A -->
             <a href="index_A.html" class="option opt-a">
                 <div class="icon">📱</div>
                 <div class="text-group">
@@ -68,7 +70,6 @@
                 </div>
             </a>
 
-            <!-- Lato B -->
             <a href="index_B.html" class="option opt-b">
                 <div class="icon">🛠️</div>
                 <div class="text-group">
@@ -77,7 +78,6 @@
                 </div>
             </a>
 
-            <!-- Lato C -->
             <a href="index_C.html" class="option opt-c">
                 <div class="icon">📊</div>
                 <div class="text-group">
@@ -88,12 +88,19 @@
         </div>
     </div>
 
-    <!-- 统一后的底部 -->
     <div class="footer-text">© <span id="curYear"></span> HU SHAN. ALL RIGHTS RESERVED.</div>
 
     <script>
         document.getElementById('curYear').innerText = new Date().getFullYear();
-    </script>
 
+        // 关键修改 2：注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('PWA: Service Worker OK'))
+                    .catch(err => console.log('PWA: Service Worker Error', err));
+            });
+        }
+    </script>
 </body>
 </html>
