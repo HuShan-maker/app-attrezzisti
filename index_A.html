@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>LINK A</title>
+    <title>LINEA DI PRODUZIONE</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -106,7 +106,7 @@
 <body>
 
     <div class="header">
-        <h1>LINK DIRETTO-A</h1>
+        <h1>linea di produzione</h1>
     </div>
 
     <div class="main-container">
@@ -294,7 +294,7 @@
 
     function cancelCall() {
         const id = localStorage.getItem('myActiveCall');
-        if (!id || !confirm("Annullare la chiamata per linea " + id.toUpperCase() + "?")) return;
+        if (!id || !confirm("Annullare la chiamata for linea " + id.toUpperCase() + "?")) return;
         db.ref('active_calls/' + id).update({ status: 'completed', endT: Date.now(), causale: "ANNULATO DA OPERATORE" })
         .then(() => { localStorage.removeItem('myActiveCall'); resetUI(); });
     }
