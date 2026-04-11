@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>LINK DIRETTO-A v8.5.7</title>
+    <title>LINK DIRETTO-A v8.5.8</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -18,56 +18,64 @@
         body { 
             font-family: -apple-system, sans-serif; background: var(--bg); 
             margin: 0; display: flex; flex-direction: column; 
-            height: 100vh; overflow: hidden;
-            padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
+            height: 100vh; width: 100vw; overflow: hidden;
+            padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
         }
 
-        .container {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 20px; width: 100%; max-width: 400px; margin: 0 auto;
+        /* 顶部区域：固定在上方 */
+        .header { 
+            width: 100%; text-align: center; padding: 20px 0 10px 0; flex-shrink: 0; 
         }
-
-        .header { text-align: center; margin-bottom: 5px; }
         h1 { font-size: 18px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; color: var(--black); }
 
-        /* Crescita Tecnica 按钮：统一为灰色背景黑字 */
+        /* 灰色反馈按钮：与标题保持距离 */
         .feedback-entry-btn {
             background: var(--gray); color: var(--black); border: none; padding: 8px 18px;
-            border-radius: 12px; font-size: 11px; font-weight: 800; margin-top: 10px;
-            text-transform: uppercase; letter-spacing: 0.5px; transition: 0.2s;
-        }
-        .feedback-entry-btn:active { transform: scale(0.95); background: #e5e5ea; }
-
-        /* 输入区域：宽度固定为 260px 以对齐下方大按钮 */
-        .input-card { 
-            width: 260px; 
-            display: flex; flex-direction: column; gap: 12px;
+            border-radius: 12px; font-size: 11px; font-weight: 800; margin-top: 12px;
+            text-transform: uppercase; letter-spacing: 0.5px;
         }
 
-        .linea-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+        /* 中间核心区：占据剩余空间并垂直居中 */
+        .main-content {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 25px; width: 100%;
+        }
+
+        /* 输入组合框：宽度严格限制在 260px */
+        .input-group { 
+            width: 260px; display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .linea-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+        
         input { 
-            flex: 1; padding: 12px; border-radius: 15px; 
-            border: 3px solid var(--gray); font-size: 24px; font-weight: 900; 
+            flex: 1; height: 55px; border-radius: 18px; 
+            border: 3px solid var(--gray); font-size: 26px; font-weight: 900; 
             text-align: center; outline: none; background: #fff;
             -webkit-user-select: text; user-select: text; 
         }
         input:disabled { background-color: #f9f9fb; color: #8e8e93; border-color: #e5e5ea; opacity: 1; }
 
-        .turno-tag { font-size: 11px; font-weight: 800; color: #8e8e93; text-transform: uppercase; background: var(--gray); padding: 8px 12px; border-radius: 12px; white-space: nowrap; }
+        .turno-tag { 
+            height: 55px; padding: 0 15px; border-radius: 18px;
+            background: var(--gray); color: #8e8e93; 
+            font-size: 12px; font-weight: 800; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center;
+        }
 
         #causaleSelect {
-            width: 100%; padding: 14px; border-radius: 15px;
+            width: 100%; height: 50px; border-radius: 15px;
             border: none; background: var(--gray); font-size: 14px;
             font-weight: 800; color: #3a3a3c; outline: none;
-            cursor: pointer; text-align: center; -webkit-appearance: none;
+            cursor: pointer; text-align-last: center; /* 文字居中 */
         }
 
         /* 呼叫大按钮：宽度 260px */
         .main-btn {
-            width: 260px; height: 260px; border-radius: 45px; 
+            width: 260px; height: 260px; border-radius: 50px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: none;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08); cursor: pointer;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.06); cursor: pointer;
         }
 
         .status-none { background: #fff; border: 4px solid var(--gray); color: #000; }
@@ -77,36 +85,40 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(0.98); } 100% { transform: scale(1); } }
 
-        .btn-icon { font-size: 60px; margin-bottom: 10px; }
+        .btn-icon { font-size: 65px; margin-bottom: 12px; }
         .btn-text { font-size: 16px; font-weight: 900; text-transform: uppercase; text-align: center; padding: 0 25px; line-height: 1.2; }
 
         #cancelBtn {
-            margin-top: 15px; background: #fff; border: 2px solid #e5e5ea;
+            margin-top: 5px; background: #fff; border: 2px solid #e5e5ea;
             color: #8e8e93; font-size: 13px; font-weight: 800; text-transform: uppercase;
             padding: 12px 30px; border-radius: 15px; display: none;
         }
         
-        /* 反馈弹窗 */
+        /* 底部页脚：固定在最下方 */
+        .footer {
+            width: 100%; text-align: center; padding: 15px 0; flex-shrink: 0;
+            font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* 模态框 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
         .modal-content { background: #fff; width: 90%; max-width: 340px; border-radius: 30px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
         .modal-h2 { font-size: 18px; font-weight: 900; text-align: center; margin: 0; color: var(--black); }
         .f-label { font-size: 11px; font-weight: 800; color: #8e8e93; margin-bottom: -10px; margin-left: 5px; text-transform: uppercase; }
-        .f-select, .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; -webkit-user-select: text; user-select: text; }
+        .f-select, .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; }
         .f-submit { background: var(--black); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 14px; margin-top: 10px; }
         .f-close { color: #8e8e93; font-size: 12px; font-weight: 700; text-align: center; margin-top: 5px; }
-
-        .copy-text { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; padding: 20px 0; text-align: center; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h1>LINK DIRETTO-A</h1>
-            <button class="feedback-entry-btn" onclick="handleFeedbackOpen()">🎓 Crescita Tecnica</button>
-        </div>
+    <div class="header">
+        <h1>LINK DIRETTO-A</h1>
+        <button class="feedback-entry-btn" onclick="handleFeedbackOpen()">🎓 Crescita Tecnica</button>
+    </div>
 
-        <div class="input-card">
+    <div class="main-content">
+        <div class="input-group">
             <div class="linea-row">
                 <input type="text" id="lineaInput" placeholder="NO." autocomplete="off" oninput="localStorage.setItem('persistentLinea', this.value)">
                 <div class="turno-tag" id="turnoLabel">--</div>
@@ -124,16 +136,15 @@
             </select>
         </div>
 
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-            <button id="mainBtn" class="main-btn status-none" onclick="sendCall()">
-                <div id="btnIcon" class="btn-icon">⚡️</div>
-                <div id="statusText" class="btn-text">Chiamare Attrezzista</div>
-            </button>
-            <button id="cancelBtn" onclick="cancelCall()">Annulla Chiamata</button>
-        </div>
+        <button id="mainBtn" class="main-btn status-none" onclick="sendCall()">
+            <div id="btnIcon" class="btn-icon">⚡️</div>
+            <div id="statusText" class="btn-text">Chiamare Attrezzista</div>
+        </button>
+        
+        <button id="cancelBtn" onclick="cancelCall()">Annulla Chiamata</button>
     </div>
 
-    <div class="copy-text">© <span id="curYear"></span> HU SHAN · ALL RIGHTS RESERVED</div>
+    <div class="footer">© <span id="curYear"></span> HU SHAN · ALL RIGHTS RESERVED</div>
 
     <div id="fModal" class="modal">
         <div class="modal-content">
