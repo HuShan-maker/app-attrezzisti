@@ -63,7 +63,8 @@
         .btn-icon { font-size: 55px; margin-bottom: 10px; }
         .btn-text { font-size: 16px; font-weight: 900; text-transform: uppercase; text-align: center; padding: 0 20px; }
         
-        .footer-text { font-size: 10px; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        /* 修改底部文字样式：缩小、加粗、加深颜色 */
+        .copy-text { font-size: 9px; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -104,6 +105,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    // 自动更新年份
+    document.getElementById('curYear').innerText = new Date().getFullYear();
 
     const mainBtn = document.getElementById('mainBtn');
     const statusText = document.getElementById('statusText');
@@ -148,7 +152,6 @@
                 lastKnownStatus = null; 
                 resetUI();
             } else {
-                // BUG 修复核心逻辑：只有当该线号等于本设备保存的活跃呼叫时，才锁定 UI
                 if (id === savedLinea) {
                     lastKnownStatus = data.status; 
                     lineaInput.disabled = true; 
@@ -164,7 +167,6 @@
                         btnIcon.innerText = "⚙️";
                     }
                 } else {
-                    // 如果输入的线号虽然在云端有呼叫，但不是本设备发起的，保持 UI 开启，允许修改
                     resetUI();
                 }
             }
@@ -218,19 +220,16 @@
         });
     }
 
-    // --- 初始化逻辑：读取永久保存的线号 ---
     const persistentLinea = localStorage.getItem('persistentLinea');
     if(persistentLinea) {
         lineaInput.value = persistentLinea;
     }
 
-    // 只有当本地存储中有活跃呼叫记录时，才启动监听并可能锁定 UI
     const lastActive = localStorage.getItem('myActiveCall');
     if(lastActive) {
         lineaInput.value = lastActive;
         startListening();
     } else {
-        // 初始状态下不锁定，但如果线号存在，确保监听逻辑已准备好
         startListening();
     }
     
