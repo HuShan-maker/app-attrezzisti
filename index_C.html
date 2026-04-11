@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Tabellone v8.8.2</title>
+    <title>Link Diretto - Tabellone v8.8.4</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -47,6 +47,10 @@
 
         .card-left { display: flex; flex-direction: column; gap: 6px; flex: 0.7; min-width: 80px; justify-content: center; align-items: flex-start; }
         .card-badge { font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; color: #fff; letter-spacing: 0.3px; white-space: nowrap; }
+        .bg-orange { background: var(--orange); }
+        .bg-red { background: var(--red); }
+        .bg-black { background: var(--black); }
+
         .card-linea { font-size: 22px; font-weight: 700; color: var(--text-main); line-height: 1; margin-left: 2px; }
 
         .card-center { flex: 2; padding-left: 10px; display: flex; flex-direction: column; gap: 3px; justify-content: center; border-right: 1px solid #f2f2f7; }
@@ -63,7 +67,7 @@
         #historyPage, #feedbackPage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 500; flex-direction: column; padding-top: env(safe-area-inset-top); }
         .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 0 20px; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; }
         #logContainer, #feedbackContainer { flex: 1; overflow-y: auto; padding: 15px; }
-        
+
         .fb-card { background: #f9f9fb; border-radius: 18px; padding: 15px; margin-bottom: 15px; border: 1.5px solid var(--black); box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
         .fb-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
         .fb-name { font-size: 15px; font-weight: 800; color: var(--black); }
@@ -80,12 +84,7 @@
         th { font-weight: 700; color: var(--text-sec); text-transform: uppercase; font-size: 9px; }
         .tech-cell { font-size: 10px; font-weight: 600; color: var(--text-main); word-break: break-all; }
 
-        .fb-read-btn {
-            background: #e5e5ea; color: #000; border: none; padding: 12px 25px;
-            border-radius: 20px; font-weight: 800; font-size: 10px;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            margin-bottom: 15px; cursor: pointer; transition: 0.2s;
-        }
+        .fb-read-btn { background: #e5e5ea; color: #000; border: none; padding: 12px 25px; border-radius: 20px; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px; cursor: pointer; }
         .fb-read-btn:active { transform: scale(0.95); opacity: 0.7; }
 
         .footer-text { text-align: center; padding: 10px 0 20px 0; font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; width: 100%; }
@@ -150,24 +149,6 @@
     let processedStarts = new Set(logs.map(l => l.st));
     let cloudData = {};
 
-    function autoCleanOldRecords() {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyMs = thirtyDaysAgo.getTime();
-        let needsSave = false;
-        dayHistory = dayHistory.filter(dayStr => {
-            const [d, m, y] = dayStr.split('/');
-            const recordDate = new Date(y, m - 1, d);
-            if (recordDate < thirtyDaysAgo) { logs = logs.filter(l => l.day !== dayStr); needsSave = true; return false; }
-            return true;
-        });
-        const fbLen = feedbackLogs.length;
-        feedbackLogs = feedbackLogs.filter(f => f.timestamp > thirtyMs);
-        if(fbLen !== feedbackLogs.length) needsSave = true;
-        if (needsSave) { processedStarts = new Set(logs.map(l => l.st)); saveState(); }
-    }
-    autoCleanOldRecords();
-
     function calculateTurnoByTimestamp(ts) {
         const date = new Date(ts);
         const hour = date.getHours() + (date.getMinutes() / 60);
@@ -180,23 +161,19 @@
 
     db.ref('feedback_pending').on('child_added', (snapshot) => {
         const data = snapshot.val();
-        const key = snapshot.key;
         if (data) {
             feedbackLogs.unshift(data); 
             localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
-            db.ref('feedback_pending/' + key).remove();
+            db.ref('feedback_pending/' + snapshot.key).remove();
             if(document.getElementById('feedbackPage').style.display === 'flex') renderFeedback();
         }
     });
 
-    function getRealTimeTurno() {
-        return calculateTurnoByTimestamp(Date.now());
-    }
-
+    function getRealTimeTurno() { return calculateTurnoByTimestamp(Date.now()); }
     function updateHeaderTurno() { document.getElementById('turnoDisp').innerText = getRealTimeTurno(); }
-    updateHeaderTurno(); setInterval(updateHeaderTurno, 60000);
+    updateHeaderTurno(); setInterval(updateHeaderTurno, 30000);
 
-    // 监控核心逻辑：增加跨班次强制清空
+    // 监控与清空核心逻辑
     db.ref('active_calls').on('value', (snapshot) => {
         cloudData = snapshot.val() || {};
         const currentTurno = getRealTimeTurno();
@@ -208,21 +185,29 @@
             const taskTurno = item.turno || calculateTurnoByTimestamp(item.startA);
             const taskDay = new Date(item.startA).toLocaleDateString('it-IT');
 
-            // 1. 强制清空逻辑：班次不符 或 不是今天的任务 (针对0点)
+            // 物理自毁：只要班次不对或不是今天的，立即从数据库删掉并隐藏
             if (taskTurno !== currentTurno || taskDay !== todayStr) {
-                 // 强制变为完成并自动归档
                  item.status = 'completed';
-                 item.causale = (item.causale || "-") + " [CAMBIO TURNO]";
-                 item.techName = item.techName || "AUTO";
+                 item.causale = "CHIUSURA TURNO";
+                 item.techName = "SISTEMA";
                  item.endT = Date.now();
+                 item.hideFromBoard = true; 
+                 db.ref('active_calls/' + id).remove(); 
             }
 
-            // 2. 正常的归档处理
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
                 archiveTask(id, item); 
                 needsSave = true;
             }
         });
+
+        // 强行清理本地残留：如果缓存里有旧班次且没被标记隐藏，强制标记
+        logs.forEach(l => {
+            if(l.day === todayStr && l.t !== currentTurno && !l.hideFromBoard) {
+                l.hideFromBoard = true; needsSave = true;
+            }
+        });
+
         if(needsSave) saveState();
         renderCombinedCards();
         if(document.getElementById('historyPage').style.display === 'flex') renderLogs();
@@ -239,7 +224,8 @@
             st: item.startA, et: endT,
             c: item.causale || "-",
             tech: item.techName || item.takenBy || "-",
-            t: item.turno || calculateTurnoByTimestamp(item.startA)
+            t: item.turno || calculateTurnoByTimestamp(item.startA),
+            hideFromBoard: item.hideFromBoard || false
         };
         logs.push(newEntry); processedStarts.add(item.startA);
         if (!dayHistory.includes(newEntry.day)) dayHistory.push(newEntry.day);
@@ -249,18 +235,24 @@
     function saveState() {
         localStorage.setItem('c_local_v89', JSON.stringify(logs));
         localStorage.setItem('c_days_v89', JSON.stringify(dayHistory));
-        localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
     }
 
     function renderCombinedCards() {
         const list = document.getElementById('activeList'); list.innerHTML = '';
         const now = Date.now(); const todayStr = new Date().toLocaleDateString('it-IT');
+        const currentTurno = getRealTimeTurno();
         
-        // 只渲染今天的本地记录和云端记录
-        const localToDisplay = logs.filter(l => l.day === todayStr && !l.hideFromBoard).map(l => ({
+        // 渲染过滤：必须是今天、本班次且未隐藏
+        const localToDisplay = logs.filter(l => l.day === todayStr && l.t === currentTurno && !l.hideFromBoard).map(l => ({
             id: l.i, status: 'completed', startA: l.st, endT: l.et, causale: l.c, techName: l.tech, tA: l.tA, tD: l.tD, isLocal: true, sortTime: l.et || l.st, startTimeStr: l.s
         }));
-        const cloudItems = Object.keys(cloudData).filter(id => new Date(cloudData[id].startA).toLocaleDateString('it-IT') === todayStr).map(id => {
+        
+        const cloudItems = Object.keys(cloudData).filter(id => {
+            const item = cloudData[id];
+            const tDay = new Date(item.startA).toLocaleDateString('it-IT');
+            const tTurno = item.turno || calculateTurnoByTimestamp(item.startA);
+            return tDay === todayStr && tTurno === currentTurno && !item.hideFromBoard;
+        }).map(id => {
             const item = cloudData[id];
             return { id: id, ...item, isLocal: false, sortTime: (item.status === 'orange') ? item.startA : (item.startB || item.startA), startTimeStr: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) };
         });
@@ -268,8 +260,8 @@
         const all = [...localToDisplay, ...cloudItems].sort((a, b) => {
             const aAnn = String(a.causale).includes("ANNULATO"); const bAnn = String(b.causale).includes("ANNULATO");
             if (aAnn && !bAnn) return 1; if (!aAnn && bAnn) return -1;
-            const bTo = (!b.isLocal && b.status === 'orange' && Math.round((Date.now() - b.startA) / 60000) >= 15);
-            const aTo = (!a.isLocal && a.status === 'orange' && Math.round((Date.now() - a.startA) / 60000) >= 15);
+            const bTo = (!b.isLocal && b.status === 'orange' && Math.round((now - b.startA) / 60000) >= 15);
+            const aTo = (!a.isLocal && a.status === 'orange' && Math.round((now - a.startA) / 60000) >= 15);
             if (aTo && !bTo) return -1; if (!aTo && bTo) return 1;
             return b.sortTime - a.sortTime;
         });
@@ -282,9 +274,11 @@
             if(item.status === 'orange') { statusL = 'ATTESA'; colorC = 'orange'; statusK = 'waiting'; }
             else if(item.status === 'red' || item.status === 'finishing') { statusL = 'LAVORO'; colorC = 'red'; statusK = 'working'; }
             else { statusL = 'FINE'; colorC = 'black'; statusK = 'completed'; }
+            
             const card = document.createElement('div');
             card.className = `card st-${isAnnulato ? 'annulato' : statusK}`;
             if(!item.isLocal && item.status === 'orange' && waitMin >= 15) card.classList.add('timeout-critical');
+            
             if (isAnnulato) {
                 card.innerHTML = `<div class="card-left"><div class="card-linea" style="font-size: 18px; color: var(--text-sec);">${item.id}</div></div>
                     <div class="card-center" style="border:none; text-align: center;"><div style="font-size: 11px; font-weight: 700; color: var(--text-sec);">ANNULLATO DA OPERATORE</div></div>
@@ -298,16 +292,25 @@
         });
     }
 
-    // 换班点强制刷新页面逻辑：解决长时间运行App不更新的问题
+    // 解决 PWA 冻结不刷新：进入前台时检测班次
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            const currentTurno = getRealTimeTurno();
+            const todayStr = new Date().toLocaleDateString('it-IT');
+            // 如果列表里有不是今天的任务，或者班次不对，强制刷新
+            const hasObsolete = logs.some(l => (l.day !== todayStr || l.t !== currentTurno) && !l.hideFromBoard);
+            if(hasObsolete) {
+                console.log("Dati obsoleti rilevati. Ricaricamento...");
+                window.location.reload(true);
+            }
+        }
+    });
+
     setInterval(() => {
         const d = new Date();
         const hm = d.getHours() + ":" + d.getMinutes();
-        // 14:15 下午换班点， 00:00 凌晨换班点
-        if (hm === "14:15" || hm === "0:0") {
-            console.log("Cambio turno: Ricaricamento pagina...");
-            location.reload(); 
-        }
-    }, 60000); // 每分钟检查一次
+        if (hm === "14:15" || hm === "0:0") window.location.reload(true);
+    }, 30000);
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
     function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
@@ -331,8 +334,8 @@
         const todayStr = new Date().toLocaleDateString('it-IT');
         dayHistory.sort((a,b)=>b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
             const dayLogs = logs.filter(l => l.day === day).sort((a,b)=>b.st-a.st);
-            const countA = dayLogs.filter(l => l.t === "Turno A" && !String(l.c).includes("ANNULATO") && !String(l.c).includes("CAMBIO")).length;
-            const countB = dayLogs.filter(l => l.t === "Turno B" && !String(l.c).includes("ANNULATO") && !String(l.c).includes("CAMBIO")).length;
+            const countA = dayLogs.filter(l => l.t === "Turno A" && !String(l.c).includes("ANNULATO") && !String(l.c).includes("CHIUSURA")).length;
+            const countB = dayLogs.filter(l => l.t === "Turno B" && !String(l.c).includes("ANNULATO") && !String(l.c).includes("CHIUSURA")).length;
             const isToday = (day === todayStr);
             const section = document.createElement('div');
             section.innerHTML = `
