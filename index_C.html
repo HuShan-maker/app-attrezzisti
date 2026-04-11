@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Tabellone v8.7.7</title>
+    <title>C - Tabellone v8.8.0</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -64,7 +64,6 @@
         .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 0 20px; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; }
         #logContainer, #feedbackContainer { flex: 1; overflow-y: auto; padding: 15px; }
         
-        /* 修正后的 Feedback 卡片：黑色细边框 */
         .fb-card { background: #f9f9fb; border-radius: 18px; padding: 15px; margin-bottom: 15px; border: 1.5px solid var(--black); box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
         .fb-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
         .fb-name { font-size: 15px; font-weight: 800; color: var(--black); }
@@ -150,80 +149,64 @@
     let feedbackLogs = JSON.parse(localStorage.getItem('c_feedback_v89') || '[]');
     let processedStarts = new Set(logs.map(l => l.st));
     let cloudData = {};
-    let lastCheckDay = new Date().toLocaleDateString('it-IT');
 
     function autoCleanOldRecords() {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const thirtyMs = thirtyDaysAgo.getTime();
         let needsSave = false;
-
         dayHistory = dayHistory.filter(dayStr => {
             const [d, m, y] = dayStr.split('/');
             const recordDate = new Date(y, m - 1, d);
-            if (recordDate < thirtyDaysAgo) {
-                logs = logs.filter(l => l.day !== dayStr);
-                needsSave = true;
-                return false; 
-            }
+            if (recordDate < thirtyDaysAgo) { logs = logs.filter(l => l.day !== dayStr); needsSave = true; return false; }
             return true;
         });
-
         const fbLen = feedbackLogs.length;
         feedbackLogs = feedbackLogs.filter(f => f.timestamp > thirtyMs);
         if(fbLen !== feedbackLogs.length) needsSave = true;
-
-        if (needsSave) {
-            processedStarts = new Set(logs.map(l => l.st));
-            saveState();
-        }
+        if (needsSave) { processedStarts = new Set(logs.map(l => l.st)); saveState(); }
     }
     autoCleanOldRecords();
 
-    db.ref('feedback_pending').on('child_added', (snapshot) => {
-        const data = snapshot.val();
-        const key = snapshot.key;
-        feedbackLogs.unshift(data); 
-        localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
-        db.ref('feedback_pending/' + key).remove();
-        if(document.getElementById('feedbackPage').style.display === 'flex') renderFeedback();
-    });
-
-    function getRealTimeTurno() {
-        const now = new Date();
-        const hour = now.getHours() + (now.getMinutes() / 60);
+    // 自动班次计算保底逻辑
+    function calculateTurnoByTimestamp(ts) {
+        const date = new Date(ts);
+        const hour = date.getHours() + (date.getMinutes() / 60);
         const baseDate = new Date(2025, 11, 29); 
-        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-        const totalWeeks = Math.floor((now - baseDate) / msPerWeek) + 1;
+        const totalWeeks = Math.floor((date - baseDate) / (7*24*60*60*1000)) + 1;
         const isSingleWeek = totalWeeks % 2 !== 0; 
         const isAfternoon = (hour >= 14.25); 
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
     }
 
-    function updateHeaderTurno() {
-        document.getElementById('turnoDisp').innerText = getRealTimeTurno();
+    db.ref('feedback_pending').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        const key = snapshot.key;
+        if (data) {
+            feedbackLogs.unshift(data); 
+            localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
+            db.ref('feedback_pending/' + key).remove();
+            if(document.getElementById('feedbackPage').style.display === 'flex') renderFeedback();
+        }
+    });
+
+    function getRealTimeTurno() {
+        return calculateTurnoByTimestamp(Date.now());
     }
-    updateHeaderTurno();
-    setInterval(updateHeaderTurno, 60000);
+
+    function updateHeaderTurno() { document.getElementById('turnoDisp').innerText = getRealTimeTurno(); }
+    updateHeaderTurno(); setInterval(updateHeaderTurno, 60000);
 
     db.ref('active_calls').on('value', (snapshot) => {
         cloudData = snapshot.val() || {};
         const currentTurno = getRealTimeTurno();
         let needsSave = false;
-
         Object.keys(cloudData).forEach(id => {
             const item = cloudData[id];
-            if (item.turno && item.turno !== currentTurno) {
-                const manualItem = { ...item, status: 'completed', endT: Date.now(), causale: "Chiusura turno" };
-                archiveTask(id, manualItem);
-                needsSave = true;
-            }
-            else if (item.status === 'completed' && !processedStarts.has(item.startA)) {
-                archiveTask(id, item);
-                needsSave = true;
+            if (item.status === 'completed' && !processedStarts.has(item.startA)) {
+                archiveTask(id, item); needsSave = true;
             }
         });
-
         if(needsSave) saveState();
         renderCombinedCards();
         if(document.getElementById('historyPage').style.display === 'flex') renderLogs();
@@ -233,18 +216,16 @@
         let startD = item.startD || item.startA;
         let endT = item.endT || Date.now();
         const newEntry = {
-            i: id, 
-            day: new Date(item.startA).toLocaleDateString('it-IT'),
+            i: id, day: new Date(item.startA).toLocaleDateString('it-IT'),
             s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
             tA: Math.round((startD - item.startA) / 60000),
             tD: Math.round((endT - startD) / 60000),
             st: item.startA, et: endT,
             c: item.causale || "-",
             tech: item.techName || item.takenBy || "-",
-            t: item.turno || getRealTimeTurno()
+            t: item.turno || calculateTurnoByTimestamp(item.startA)
         };
-        logs.push(newEntry);
-        processedStarts.add(item.startA);
+        logs.push(newEntry); processedStarts.add(item.startA);
         if (!dayHistory.includes(newEntry.day)) dayHistory.push(newEntry.day);
         db.ref('active_calls/' + id).remove();
     }
@@ -256,60 +237,40 @@
     }
 
     function renderCombinedCards() {
-        const list = document.getElementById('activeList'); 
-        list.innerHTML = '';
-        const now = Date.now();
-        const todayStr = new Date().toLocaleDateString('it-IT');
-
+        const list = document.getElementById('activeList'); list.innerHTML = '';
+        const now = Date.now(); const todayStr = new Date().toLocaleDateString('it-IT');
         const localToDisplay = logs.filter(l => l.day === todayStr && !l.hideFromBoard).map(l => ({
-            id: l.i, status: 'completed', startA: l.st, endT: l.et, 
-            causale: l.c, techName: l.tech, tA: l.tA, tD: l.tD, isLocal: true,
-            sortTime: l.et || l.st, startTimeStr: l.s
+            id: l.i, status: 'completed', startA: l.st, endT: l.et, causale: l.c, techName: l.tech, tA: l.tA, tD: l.tD, isLocal: true, sortTime: l.et || l.st, startTimeStr: l.s
         }));
-
-        const cloudItems = Object.keys(cloudData).filter(id => {
+        const cloudItems = Object.keys(cloudData).filter(id => new Date(cloudData[id].startA).toLocaleDateString('it-IT') === todayStr).map(id => {
             const item = cloudData[id];
-            return new Date(item.startA).toLocaleDateString('it-IT') === todayStr; 
-        }).map(id => {
-            const item = cloudData[id];
-            return { 
-                id: id, ...item, isLocal: false, 
-                sortTime: (item.status === 'orange') ? item.startA : (item.status === 'red' || item.status === 'finishing' ? item.startB || item.startA : item.startA),
-                startTimeStr: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
-            };
+            return { id: id, ...item, isLocal: false, sortTime: (item.status === 'orange') ? item.startA : (item.startB || item.startA), startTimeStr: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) };
         });
-
         const all = [...localToDisplay, ...cloudItems].sort((a, b) => {
-            const aAnn = String(a.causale).includes("ANNULATO");
-            const bAnn = String(b.causale).includes("ANNULATO");
-            if (aAnn && !bAnn) return 1;
-            if (!aAnn && bAnn) return -1;
-            const bIsTimeout = (!b.isLocal && b.status === 'orange' && Math.round((Date.now() - b.startA) / 60000) >= 15);
-            const aIsTimeout = (!a.isLocal && a.status === 'orange' && Math.round((Date.now() - a.startA) / 60000) >= 15);
-            if (aIsTimeout && !bIsTimeout) return -1;
-            if (!aIsTimeout && bIsTimeout) return 1;
+            const aAnn = String(a.causale).includes("ANNULATO"); const bAnn = String(b.causale).includes("ANNULATO");
+            if (aAnn && !bAnn) return 1; if (!aAnn && bAnn) return -1;
+            const bTo = (!b.isLocal && b.status === 'orange' && Math.round((Date.now() - b.startA) / 60000) >= 15);
+            const aTo = (!a.isLocal && a.status === 'orange' && Math.round((Date.now() - a.startA) / 60000) >= 15);
+            if (aTo && !bTo) return -1; if (!aTo && bTo) return 1;
             return b.sortTime - a.sortTime;
         });
-
         all.forEach(item => {
             const isAnnulato = String(item.causale).includes("ANNULATO");
             let waitMin = item.isLocal ? item.tA : Math.round((now-item.startA)/60000);
             let workMin = item.isLocal ? item.tD : (item.startB ? Math.round((now-item.startB)/60000) : 0);
-            let statusLabel, colorClass, statusKey;
-            if(item.status === 'orange') { statusLabel = 'ATTESA'; colorClass = 'orange'; statusKey = 'waiting'; }
-            else if(item.status === 'red' || item.status === 'finishing') { statusLabel = 'LAVORO'; colorClass = 'red'; statusKey = 'working'; }
-            else { statusLabel = 'FINE'; colorClass = 'black'; statusKey = 'completed'; }
-            
+            let statusL, colorC, statusK;
+            if(item.status === 'orange') { statusL = 'ATTESA'; colorC = 'orange'; statusK = 'waiting'; }
+            else if(item.status === 'red' || item.status === 'finishing') { statusL = 'LAVORO'; colorC = 'red'; statusK = 'working'; }
+            else { statusL = 'FINE'; colorC = 'black'; statusK = 'completed'; }
             const card = document.createElement('div');
-            card.className = `card st-${isAnnulato ? 'annulato' : statusKey}`;
+            card.className = `card st-${isAnnulato ? 'annulato' : statusK}`;
             if(!item.isLocal && item.status === 'orange' && waitMin >= 15) card.classList.add('timeout-critical');
-
             if (isAnnulato) {
                 card.innerHTML = `<div class="card-left"><div class="card-linea" style="font-size: 18px; color: var(--text-sec);">${item.id}</div></div>
                     <div class="card-center" style="border:none; text-align: center;"><div style="font-size: 11px; font-weight: 700; color: var(--text-sec);">ANNULLATO DA OPERATORE</div></div>
                     <div class="card-right" style="min-width: 50px;"><div style="font-size: 10px; color: var(--text-sec);">${item.startTimeStr}</div></div>`;
             } else {
-                card.innerHTML = `<div class="card-left"><div class="card-badge bg-${colorClass}">${statusLabel}</div><div class="card-linea">${item.id}</div></div>
+                card.innerHTML = `<div class="card-left"><div class="card-badge bg-${colorC}">${statusL}</div><div class="card-linea" style="margin-bottom: 20px;">${item.id}</div></div>
                     <div class="card-center"><div class="card-stats">Inizio: <b>${item.startTimeStr}</b><br>Attesa: <b>${waitMin}m</b> | Durata: <b>${workMin}m</b><br>Causale: <b>${item.causale||"-"}</b><br>Tecnico: <b>${item.techName||item.takenBy||"-"}</b></div></div>
                     <div class="card-right"><div class="total-label">Totale</div><div class="total-val">${waitMin+workMin}m</div></div>`;
             }
@@ -324,21 +285,18 @@
     function clearFeedback() { if(confirm("Cancellare tutti i feedback?")) { feedbackLogs=[]; saveState(); renderFeedback(); } }
 
     function renderFeedback() {
-        const container = document.getElementById('feedbackContainer');
-        container.innerHTML = '';
+        const container = document.getElementById('feedbackContainer'); container.innerHTML = '';
         if(feedbackLogs.length === 0) { container.innerHTML = '<div style="text-align:center;padding:50px;color:#8e8e93;">Nessun feedback presente.</div>'; return; }
         feedbackLogs.forEach(fb => {
-            const div = document.createElement('div');
-            div.className = 'fb-card';
-            // 显示班次 fb.turno，该字段由 A 端在发送时直接注入数据包
-            div.innerHTML = `<div class="fb-head"><div class="fb-name">👤 ${fb.attrezzista}</div><div class="fb-score">⭐ ${fb.punteggio}/5</div></div><div class="fb-msg">"${fb.messaggio || "-"}"</div><div class="fb-meta"><span>${fb.turno || '-'}</span><span>${fb.data}</span></div>`;
+            const div = document.createElement('div'); div.className = 'fb-card';
+            const displayTurno = fb.turno || calculateTurnoByTimestamp(fb.timestamp || Date.now());
+            div.innerHTML = `<div class="fb-head"><div class="fb-name">👤 ${fb.attrezzista}</div><div class="fb-score">⭐ ${fb.punteggio}/5</div></div><div class="fb-msg">"${fb.messaggio || "-"}"</div><div class="fb-meta"><span>${displayTurno}</span><span>${fb.data}</span></div>`;
             container.appendChild(div);
         });
     }
 
     function renderLogs() {
-        const container = document.getElementById('logContainer'); 
-        container.innerHTML = '';
+        const container = document.getElementById('logContainer'); container.innerHTML = '';
         const todayStr = new Date().toLocaleDateString('it-IT');
         dayHistory.sort((a,b)=>b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
             const dayLogs = logs.filter(l => l.day === day).sort((a,b)=>b.st-a.st);
@@ -357,7 +315,7 @@
                         <tbody>${dayLogs.map(l => {
                             const isAnn = String(l.c).includes("ANNULATO");
                             return `<tr><td><b>${l.i}</b></td><td>${isAnn ? '-' : l.tA+'m'}</td><td>${isAnn ? '-' : l.tD+'m'}</td>
-                            <td style="font-size:9px">${l.c}<br><span style="color:#8e8e93; font-size:8px;">[${l.t || '-'}]</span></td>
+                            <td style="font-size:9px">${l.c}<br><span style="color:#8e8e93; font-size:8px;">[${l.t || calculateTurnoByTimestamp(l.st)}]</span></td>
                             <td class="tech-cell">${l.tech || '-'}</td></tr>`
                         }).join('')}</tbody>
                     </table>
@@ -366,26 +324,9 @@
         });
     }
 
-    function deleteDay(e, day) {
-        e.stopPropagation();
-        if(!confirm("Cancellare i dati del " + day + "?")) return;
-        logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; });
-        dayHistory = dayHistory.filter(d => d !== day);
-        saveState(); renderLogs(); renderCombinedCards();
-    }
-
-    function toggleDay(header) {
-        const content = header.nextElementSibling;
-        const arrow = header.querySelector('.arrow-icon');
-        const isHidden = content.style.display === 'none';
-        content.style.display = isHidden ? 'block' : 'none';
-        arrow.innerText = isHidden ? '▼' : '▶';
-    }
-
-    function clearAll() {
-        if(!confirm("Cancellare tutti i dati dell'archivio?")) return;
-        logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards();
-    }
+    function toggleDay(header) { const content = header.nextElementSibling; const arrow = header.querySelector('.arrow-icon'); const isHidden = content.style.display === 'none'; content.style.display = isHidden ? 'block' : 'none'; arrow.innerText = isHidden ? '▼' : '▶'; }
+    function deleteDay(e, day) { e.stopPropagation(); if(!confirm("Cancellare i dati del " + day + "?")) return; logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; }); dayHistory = dayHistory.filter(d => d !== day); saveState(); renderLogs(); renderCombinedCards(); }
+    function clearAll() { if(!confirm("Cancellare tutti i dati dell'archivio?")) return; logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards(); }
     document.getElementById('curYear').innerText = new Date().getFullYear();
 </script>
 </body>
