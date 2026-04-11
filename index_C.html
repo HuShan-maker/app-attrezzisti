@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Controllo Side v8.3</title>
+    <title>C - Controllo Side v8.4.1</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -43,8 +43,7 @@
         .card.st-waiting { border-color: var(--orange); }
         .card.st-working { border-color: var(--red); }
         .card.st-completed { border-color: var(--black); }
-        /* 取消任务的特殊样式：更细 */
-        .card.st-annulato { min-height: 50px; background: #fafafa; border-color: #e5e5ea; opacity: 0.8; }
+        .card.st-annulato { min-height: 55px !important; background: #fafafa; border-color: #e5e5ea; opacity: 0.8; }
 
         .card-left { display: flex; flex-direction: column; gap: 6px; flex: 0.7; min-width: 80px; justify-content: center; align-items: flex-start; }
         .card-badge { font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; color: #fff; letter-spacing: 0.3px; white-space: nowrap; }
@@ -170,7 +169,6 @@
 
     updateHeaderTurno();
     setInterval(updateHeaderTurno, 60000);
-
     setInterval(() => renderCombinedCards(), 30000); 
 
     db.ref('active_calls').on('value', (snapshot) => {
@@ -247,32 +245,23 @@
             };
         });
 
-        // --- 排序逻辑：超时优先 -> 正常时间 -> 取消(ANNULATO)垫底 ---
         const all = [...localToDisplay, ...cloudItems].sort((a, b) => {
+            const aAnn = String(a.causale).includes("ANNULATO");
+            const bAnn = String(b.causale).includes("ANNULATO");
+            if (aAnn && !bAnn) return 1;
+            if (!aAnn && bAnn) return -1;
             const nowTime = Date.now();
-            const aIsAnnulato = String(a.causale).includes("ANNULATO");
-            const bIsAnnulato = String(b.causale).includes("ANNULATO");
-
-            // 1. 如果其中一个是取消，取消的排在后面
-            if (aIsAnnulato && !bIsAnnulato) return 1;
-            if (!aIsAnnulato && bIsAnnulato) return -1;
-
-            // 2. 正常呼叫的内部排序
             const aIsTimeout = (!a.isLocal && a.status === 'orange' && Math.round((nowTime - a.startA) / 60000) >= 15);
             const bIsTimeout = (!b.isLocal && b.status === 'orange' && Math.round((nowTime - b.startA) / 60000) >= 15);
-
             if (aIsTimeout && !bIsTimeout) return -1;
             if (!aIsTimeout && bIsTimeout) return 1;
-
             return b.sortTime - a.sortTime;
         });
 
         all.forEach(item => {
             const isAnnulato = String(item.causale).includes("ANNULATO");
-            
-            let waitMin = item.isLocal ? item.tA : (item.startB ? Math.round((item.startB-item.startA)/60000) : Math.round((now-item.startA)/60000));
+            let waitMin = item.isLocal ? item.tA : Math.round((now-item.startA)/60000);
             let workMin = item.isLocal ? item.tD : (item.startB ? Math.round((now-item.startB)/60000) : 0);
-            let totalMin = waitMin + workMin;
             
             let statusLabel, colorClass, statusKey;
             if(item.status === 'orange') { statusLabel = 'ATTESA'; colorClass = 'orange'; statusKey = 'waiting'; }
@@ -280,27 +269,26 @@
             else { statusLabel = 'FINE'; colorClass = 'black'; statusKey = 'completed'; }
             
             const card = document.createElement('div');
-            // 如果是取消，加入特殊的 css 类
             card.className = `card st-${isAnnulato ? 'annulato' : statusKey}`;
-            
             if(!item.isLocal && item.status === 'orange' && waitMin >= 15) card.classList.add('timeout-critical');
 
             if (isAnnulato) {
-                // 取消任务的简化单行模板
                 card.innerHTML = `
                     <div class="card-left">
                         <div class="card-linea" style="font-size: 18px;">${item.id}</div>
                     </div>
                     <div class="card-center" style="border:none; text-align: center;">
-                        <div style="font-size: 11px; font-weight: 800; color: var(--text-sec); letter-spacing: 1px;">
+                        <div style="font-size: 11px; font-weight: 800; color: var(--text-sec); letter-spacing: 1px; margin-bottom: 2px;">
                             ANNULATO DA OPERATORE
+                        </div>
+                        <div style="font-size: 10px; font-weight: 600; color: #aeaeae;">
+                            Inizio: ${item.startTimeStr}
                         </div>
                     </div>
                     <div class="card-right" style="min-width: 50px;">
                         <div style="font-size: 10px; font-weight: 700;">${item.startTimeStr}</div>
                     </div>`;
             } else {
-                // 正常任务模板（移除了删除按钮 card-del）
                 card.innerHTML = `
                     <div class="card-left">
                         <div class="card-badge bg-${colorClass}">${statusLabel}</div>
@@ -316,27 +304,11 @@
                     </div>
                     <div class="card-right">
                         <div class="total-label">Totale</div>
-                        <div class="total-val">${totalMin}m</div>
+                        <div class="total-val">${waitMin + workMin}m</div>
                     </div>`;
             }
             list.appendChild(card);
         });
-    }
-
-    // handleManualDel 仅保留供历史记录调用，主页已移除入口
-    function handleManualDel(id, st, isLocal, currentStatus) {
-        const isUnfinished = (currentStatus === 'orange' || currentStatus === 'red' || currentStatus === 'finishing');
-        if(!confirm(isUnfinished ? "Interrompere l'intervento?" : "Eliminare questa registrazione?")) return;
-        if (isLocal) {
-            const idx = logs.findIndex(l => l.st === st);
-            if(idx !== -1) logs[idx].hideFromBoard = true;
-        } else {
-            const item = cloudData[id];
-            if (item && item.startA === st) {
-                archiveTask(id, { ...item, status: 'completed', endT: Date.now(), causale: isUnfinished ? "(INTERROTTO)" : "(MANUALE)" });
-            }
-        }
-        saveState(); renderCombinedCards();
     }
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
@@ -346,17 +318,12 @@
         const container = document.getElementById('logContainer'); 
         container.innerHTML = '';
         const todayStr = new Date().toLocaleDateString('it-IT');
-
         dayHistory.sort((a,b)=>b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
             const dayLogs = logs.filter(l => l.day === day).sort((a,b)=>b.st-a.st);
             const countA = dayLogs.filter(l => l.t === "Turno A").length;
             const countB = dayLogs.filter(l => l.t === "Turno B").length;
-
             const isToday = (day === todayStr);
             const section = document.createElement('div');
-            const displayStyle = isToday ? 'block' : 'none';
-            const arrowIcon = isToday ? '▼' : '▶';
-
             section.innerHTML = `
                 <div class="day-header" onclick="toggleDay(this)">
                     <div>
@@ -365,10 +332,10 @@
                     </div>
                     <div class="day-stats-box">
                         A: <b>${countA}</b> | B: <b>${countB}</b>
-                        <span class="arrow-icon" style="margin-left:10px">${arrowIcon}</span>
+                        <span class="arrow-icon" style="margin-left:10px">${isToday ? '▼' : '▶'}</span>
                     </div>
                 </div>
-                <div class="day-content" style="display: ${displayStyle}">
+                <div class="day-content" style="display: ${isToday ? 'block' : 'none'}">
                     <table>
                         <thead>
                             <tr>
@@ -417,7 +384,6 @@
         if(!confirm("Cancellare tutti i dati dell'archivio?")) return;
         logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards();
     }
-
     document.getElementById('curYear').innerText = new Date().getFullYear();
 </script>
 </body>
