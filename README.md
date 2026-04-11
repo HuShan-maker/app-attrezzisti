@@ -40,6 +40,6 @@ Un tabellone unico mostra chi aspetta e chi sta già riparando. Se una chiamata 
 * **Archivio**: I dati storici si cancellano automaticamente ogni 30 giorni.
 
 ---
-**© 2026 HU SHAN · Link Diretto **
+**© 2026 HU SHAN · Link Diretto**
 ---
 *Più velocità in linea, più rispetto per il lavoro di tutti.*
