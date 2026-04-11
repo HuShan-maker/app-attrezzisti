@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Controllo v8.6.9</title>
+    <title>C - Tabellone v8.7.3</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -21,7 +21,8 @@
         }
 
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; flex-shrink: 0; }
-        .title-area h1 { font-size: 20px; font-weight: 900; margin: 0; letter-spacing: -0.5px; text-transform: uppercase; }
+        /* 标题：用意大利语表达“生产线维修实时状态” */
+        .title-area h1 { font-size: 19px; font-weight: 900; margin: 0; letter-spacing: -0.5px; text-transform: uppercase; line-height: 1.1; }
         
         .turno-badge { 
             font-size: 11px; font-weight: 800; color: #8e8e93; 
@@ -95,7 +96,7 @@
 
     <div class="header">
         <div class="title-area">
-            <h1>LINK DIRETTO-C</h1>
+            <h1>STATO INTERVENTI<br>IN TEMPO REALE</h1>
             <div id="turnoDisp" class="turno-badge">--</div>
         </div>
         <button class="reg-btn" onclick="showHistory()">Archivio</button>
@@ -107,7 +108,7 @@
         <button class="fb-read-btn" onclick="showFeedback()">Leggi Feedback 🎓</button>
     </div>
 
-    <div class="footer-text">© <span id="curYear"></span> HU SHAN · ALL RIGHTS RESERVED</div>
+    <div class="footer-text">© <span id="curYear"></span> HU SHAN · LINK DIRETTO</div>
 
     <div id="historyPage">
         <div class="v-nav">
@@ -179,18 +180,12 @@
     }
     autoCleanOldRecords();
 
-    // 修复点：监听 feedback_pending，确保存入本地时带上 A 端传来的所有数据
     db.ref('feedback_pending').on('child_added', (snapshot) => {
         const data = snapshot.val();
         const key = snapshot.key;
-        
-        // 关键：把 data（包含 attrezzista, punteggio, messaggio, turno, data, timestamp）完整存入
         feedbackLogs.unshift(data); 
         localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
-        
-        // 保存本地后删除 Firebase 数据
         db.ref('feedback_pending/' + key).remove();
-        
         if(document.getElementById('feedbackPage').style.display === 'flex') renderFeedback();
     });
 
@@ -300,7 +295,6 @@
             const isAnnulato = String(item.causale).includes("ANNULATO");
             let waitMin = item.isLocal ? item.tA : Math.round((now-item.startA)/60000);
             let workMin = item.isLocal ? item.tD : (item.startB ? Math.round((now-item.startB)/60000) : 0);
-            
             let statusLabel, colorClass, statusKey;
             if(item.status === 'orange') { statusLabel = 'ATTESA'; colorClass = 'orange'; statusKey = 'waiting'; }
             else if(item.status === 'red' || item.status === 'finishing') { statusLabel = 'LAVORO'; colorClass = 'red'; statusKey = 'working'; }
@@ -333,11 +327,9 @@
         const container = document.getElementById('feedbackContainer');
         container.innerHTML = '';
         if(feedbackLogs.length === 0) { container.innerHTML = '<div style="text-align:center;padding:50px;color:#8e8e93;">Nessun feedback presente.</div>'; return; }
-        
         feedbackLogs.forEach(fb => {
             const div = document.createElement('div');
             div.className = 'fb-card';
-            // 关键：这里确保读取 fb.turno（从 A 端发送的数据包中抓取）
             div.innerHTML = `<div class="fb-head"><div class="fb-name">👤 ${fb.attrezzista}</div><div class="fb-score">⭐ ${fb.punteggio}/5</div></div><div class="fb-msg">"${fb.messaggio || "-"}"</div><div class="fb-meta"><span>${fb.turno || '-'}</span><span>${fb.data}</span></div>`;
             container.appendChild(div);
         });
