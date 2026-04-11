@@ -41,4 +41,5 @@ Un tabellone unico mostra chi aspetta e chi sta già riparando. Se una chiamata 
 
 ---
 **© 2026 HU SHAN · Link Diretto v8.4.5**
+---
 *Più velocità in linea, più rispetto per il lavoro di tutti.*
