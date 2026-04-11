@@ -1,36 +1,44 @@
-# 📱 SCAD
-### Sistema Chiamata Attrezzista Diretta
+# ⚡️ Link Diretto
+### La linea corta tra Produzione e Attrezzisti
 
-**Velocità · Comunicazione · Rispetto**
-
-SCAD è l'app creata per collegare **direttamente** l'operaio con l'attrezzista. Niente intermediari: se c'è un problema, l'attrezzista lo sa in un secondo.
+**Link Diretto** è l'app creata per far parlare l'operaio direttamente con l'attrezzista. Elimina i passaggi inutili e taglia i tempi di attesa: se c'è un problema, l'attrezzista lo sa in un secondo.
 
 ---
 
 ### 🔒 Privacy & Sicurezza
-*Tranquillità totale per il tuo smartphone*
+*Il tuo cellulare è al sicuro, zero rischi*
 
-* **Dati protetti**: L'app **NON** ha accesso ai tuoi contatti, alle tue foto o ai tuoi messaggi.
-* **Solo lavoro**: Il sistema vede esclusivamente il numero della linea e il tipo di guasto.
-* **Trasparenza**: L'app usa internet solo per inviare il segnale di chiamata. I tuoi dati privati restano tuoi.
+Sappiamo che molti si preoccupano per i propri dati personali. Ecco la verità:
+
+* **Nessun Accesso**: L'app **NON** ha i permessi per guardare le tue foto, i tuoi contatti o i tuoi messaggi privati.
+* **Solo Lavoro**: Il sistema trasmette esclusivamente il numero della linea e il tipo di guasto (es. Faro, Cambio).
+* **Trasparenza**: Il tuo telefono serve solo da "telecomando" per inviare il segnale. Nessun dato personale viene rubato o memorizzato.
 
 ---
 
 ### ⚒️ Come funziona il Sistema
 
-#### **A: Operaio (Chiamata Diretta)**
-* **Zero perdite di tempo**: Scegli il problema e premi il tasto. Non serve più urlare o cercare qualcuno.
-* **Stato Live**: 
-    * 🟠 **Arancione**: L'attrezzista ha ricevuto il messaggio.
-    * 🔴 **Rosso**: L'attrezzista sta sistemando.
+#### **A: Per l'Operaio (Richiesta)**
+Non serve più urlare o girare per il reparto a cercare qualcuno.
+* Scegli la linea e il problema.
+* Premi il tasto: l'avviso arriva istantaneo sul telefono dell'attrezzista.
+* Risparmia tempo e fatica ogni giorno.
 
-#### **B: Attrezzista (Intervento Rapido)**
-* **Notifica Istantanea**: Il tuo telefono suona: sai già dove andare e cosa portare.
-* **Gestione Facile**: Prendi il lavoro con un click e chiudi quando hai finito. Massima efficienza, zero stress.
+#### **B: Per l'Attrezzista (Intervento)**
+* Ricevi una notifica flash: sai già dove andare e cosa serve.
+* Prendi il lavoro con un click (così tutti sanno che ci sei tu).
+* Chiudi l'intervento quando hai finito.
 
 #### **C: Dashboard (Monitoraggio)**
-* **Controllo Totale**: Un tabellone mostra chi aspetta e chi lavora.
-* **Emergenza**: Se una chiamata resta ferma 15 minuti, il sistema lampeggia.
+Un tabellone unico mostra chi aspetta e chi sta già riparando. Se una chiamata resta ferma per 15 minuti, il sistema lampeggia per chiedere supporto.
 
 ---
-*© 2026 HU SHAN · All Rights Reserved*
+
+### 🚀 Note Pratiche
+* **Icona App**: Usa la funzione "Aggiungi a Home" di Safari per avere l'icona pronta sul desktop.
+* **Connessione**: L'app ha bisogno di Wi-Fi o 4G attivo per inviare il segnale.
+* **Archivio**: I dati storici si cancellano automaticamente ogni 30 giorni.
+
+---
+**© 2026 HU SHAN · Link Diretto v8.4.5**
+*Più velocità in linea, più rispetto per il lavoro di tutti.*
