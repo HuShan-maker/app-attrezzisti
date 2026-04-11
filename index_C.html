@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Tabellone v8.8.0</title>
+    <title>C - Tabellone v8.8.1</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -168,7 +168,6 @@
     }
     autoCleanOldRecords();
 
-    // 自动班次计算保底逻辑
     function calculateTurnoByTimestamp(ts) {
         const date = new Date(ts);
         const hour = date.getHours() + (date.getMinutes() / 60);
@@ -203,6 +202,17 @@
         let needsSave = false;
         Object.keys(cloudData).forEach(id => {
             const item = cloudData[id];
+            
+            // --- 核心修复：自动清理跨班次任务逻辑 ---
+            const taskTurno = item.turno || calculateTurnoByTimestamp(item.startA);
+            if (taskTurno !== currentTurno && (item.status === 'orange' || item.status === 'red')) {
+                 item.status = 'completed';
+                 item.causale = (item.causale || "-") + " [CHIUSURA TURNO]";
+                 item.techName = item.techName || "SISTEMA";
+                 item.endT = Date.now();
+            }
+            // ------------------------------------
+
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
                 archiveTask(id, item); needsSave = true;
             }
