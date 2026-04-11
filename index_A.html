@@ -6,13 +6,13 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>A - Operatore v8.5</title>
+    <title>A - Operatore v8.5.5</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
     <style>
-        :root { --bg: #ffffff; --orange: #ff9500; --red: #ff3b30; --gray: #f2f2f7; --black: #000000; }
+        :root { --bg: #ffffff; --orange: #ff9500; --red: #ff3b30; --gray: #f2f2f7; --black: #000000; --blue: #007aff; }
         * { -webkit-user-select: none; user-select: none; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         body { 
@@ -24,6 +24,13 @@
 
         .header { text-align: center; width: 100%; margin-top: 5px; }
         h1 { font-size: 16px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* 新增：Crescita Tecnica 按钮样式 */
+        .feedback-entry-btn {
+            background: var(--blue); color: white; border: none; padding: 8px 15px;
+            border-radius: 10px; font-size: 11px; font-weight: 800; margin-top: 8px;
+            text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(0,122,255,0.2);
+        }
 
         .input-container { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 5px 0; }
         .linea-row { display: flex; align-items: center; gap: 10px; }
@@ -70,14 +77,25 @@
             cursor: pointer; display: none; transition: all 0.2s ease;
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
         }
-        #cancelBtn:active { background: #f2f2f7; transform: scale(0.95); }
         
+        /* 反馈弹窗样式 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .modal-content { background: #fff; width: 90%; max-width: 350px; border-radius: 30px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
+        .modal-h2 { font-size: 18px; font-weight: 900; text-align: center; margin: 0; color: var(--blue); }
+        .f-label { font-size: 12px; font-weight: 800; color: #8e8e93; margin-bottom: -10px; margin-left: 5px; }
+        .f-select, .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; -webkit-user-select: text; user-select: text; }
+        .f-submit { background: var(--black); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 14px; margin-top: 10px; }
+        .f-close { color: #8e8e93; font-size: 12px; font-weight: 700; text-align: center; margin-top: 5px; }
+
         .copy-text { font-size: 11px; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-    <div class="header"><h1>LINEA DI PRODUZIONE</h1></div>
+    <div class="header">
+        <h1>LINEA DI PRODUZIONE</h1>
+        <button class="feedback-entry-btn" onclick="handleFeedbackOpen()">🎓 Crescita Tecnica</button>
+    </div>
 
     <div class="input-container">
         <div class="linea-row">
@@ -105,6 +123,26 @@
         <button id="cancelBtn" onclick="cancelCall()">Annulla Chiamata</button>
     </div>
 
+    <div id="fModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-h2">CRESCITA TECNICA</h2>
+            <div class="f-label">ATTREZZISTA</div>
+            <select id="fName" class="f-select">
+                <option value="Shan">Shan</option>
+                <option value="Martina">Martina</option>
+                <option value="Mirco">Mirco</option>
+                <option value="Almir">Almir</option>
+                <option value="Nortine">Nortine</option>
+            </select>
+            <div class="f-label">COMPETENZA (1-5)</div>
+            <input type="number" id="fScore" class="f-input" min="1" max="5" placeholder="Valuta da 1 a 5">
+            <div class="f-label">CONSIGLI / NOTE</div>
+            <textarea id="fNote" class="f-textarea" rows="3" placeholder="Come possiamo migliorare?"></textarea>
+            <button class="f-submit" onclick="submitFeedback()">INVIA FEEDBACK</button>
+            <div class="f-close" onclick="document.getElementById('fModal').style.display='none'">CHIUDI</div>
+        </div>
+    </div>
+
     <div class="copy-text">© <span id="curYear"></span> HU SHAN · ALL RIGHTS RESERVED</div>
 
 <script>
@@ -118,8 +156,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    document.getElementById('curYear').innerText = new Date().getFullYear();
-
     const mainBtn = document.getElementById('mainBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const statusText = document.getElementById('statusText');
@@ -128,8 +164,46 @@
     const causaleSelect = document.getElementById('causaleSelect');
     const turnoLabel = document.getElementById('turnoLabel');
 
-    let lastKnownStatus = null; 
+    // 反馈时间控制
+    function handleFeedbackOpen() {
+        const now = new Date();
+        const hour = now.getHours();
+        const min = now.getMinutes();
+        const currentTime = hour + (min / 60);
 
+        const isTimeA = (currentTime >= 12 && currentTime <= 14.25); // 12:00 - 14:15
+        const isTimeB = (currentTime >= 20 && currentTime <= 22.25); // 20:00 - 22:15
+
+        if (isTimeA || isTimeB) {
+            document.getElementById('fModal').style.display = 'flex';
+        } else {
+            alert("FUNZIONE NON ATTIVA.\n\nIl feedback è disponibile negli orari:\n- 12:00 - 14:15\n- 20:00 - 22:15");
+        }
+    }
+
+    function submitFeedback() {
+        const name = document.getElementById('fName').value;
+        const score = document.getElementById('fScore').value;
+        const note = document.getElementById('fNote').value;
+
+        if(!score || score < 1 || score > 5) { alert("Inserisci un punteggio tra 1 e 5!"); return; }
+
+        db.ref('feedback_crescita').push({
+            attrezzista: name,
+            punteggio: score,
+            messaggio: note,
+            timestamp: Date.now(),
+            linea: lineaInput.value || "N/A",
+            data: new Date().toLocaleDateString('it-IT')
+        }).then(() => {
+            alert("Feedback inviato con successo! Grazie.");
+            document.getElementById('fModal').style.display = 'none';
+            document.getElementById('fScore').value = "";
+            document.getElementById('fNote').value = "";
+        });
+    }
+
+    // 原始业务逻辑保持不变
     function getActiveTurno() {
         const now = new Date();
         const hour = now.getHours() + (now.getMinutes() / 60);
@@ -153,11 +227,9 @@
             const data = snapshot.val();
             if (!data || data.status === 'completed') {
                 if (id === savedLinea) { localStorage.removeItem('myActiveCall'); }
-                lastKnownStatus = null; 
                 resetUI();
             } else {
                 if (id === savedLinea) {
-                    lastKnownStatus = data.status; 
                     lineaInput.disabled = true; 
                     causaleSelect.disabled = true;
                     if (data.status === 'orange') {
@@ -236,6 +308,7 @@
         }
     }
 
+    document.getElementById('curYear').innerText = new Date().getFullYear();
     const pLinea = localStorage.getItem('persistentLinea');
     if(pLinea) lineaInput.value = pLinea;
     const lastActive = localStorage.getItem('myActiveCall');
