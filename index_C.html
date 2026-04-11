@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Controllo v8.4.4</title>
+    <title>C - Controllo v8.4.5</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -45,9 +45,20 @@
         .card.st-completed { border-color: var(--black); }
         .card.st-annulato { min-height: 55px !important; background: #fafafa; border-color: #e5e5ea; opacity: 0.8; }
 
-        .card-left { display: flex; flex-direction: column; gap: 6px; flex: 0.7; min-width: 80px; justify-content: center; align-items: flex-start; }
+        /* 修改：确保容器垂直居中 */
+        .card-left { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            flex: 0.7; 
+            min-width: 80px; 
+            justify-content: center; 
+            align-items: flex-start; 
+        }
         .card-badge { font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; color: #fff; letter-spacing: 0.3px; white-space: nowrap; }
-        .card-linea { font-size: 22px; font-weight: 700; color: var(--text-main); line-height: 1; margin-left: 2px; }
+        
+        /* 修改：加入 margin-top 微调，抵消上方标签空间，实现视觉居中 */
+        .card-linea { font-size: 22px; font-weight: 700; color: var(--text-main); line-height: 1; margin-left: 2px; margin-top: -3px; }
 
         .card-center { flex: 2; padding-left: 10px; display: flex; flex-direction: column; gap: 3px; justify-content: center; border-right: 1px solid #f2f2f7; }
         .card-stats { font-size: 12px; font-weight: 500; color: var(--text-sec); line-height: 1.4; white-space: nowrap; }
@@ -56,6 +67,9 @@
         .card-right { flex: 0.6; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-left: 10px; min-width: 70px; }
         .total-label { font-size: 8px; font-weight: 700; color: var(--text-sec); text-transform: uppercase; margin-bottom: 2px; }
         .total-val { font-size: 18px; font-weight: 700; color: var(--black); line-height: 1; }
+
+        .timeout-critical { animation: pulseWarning 0.8s infinite; border-color: var(--orange) !important; background: #fff9f0; }
+        @keyframes pulseWarning { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         #historyPage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 500; flex-direction: column; padding-top: env(safe-area-inset-top); }
         .v-nav { display: flex; align-items: center; justify-content: space-between; height: 55px; padding: 0 20px; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; }
@@ -268,9 +282,10 @@
             if(!item.isLocal && item.status === 'orange' && waitMin >= 15) card.classList.add('timeout-critical');
 
             if (isAnnulato) {
+                // 取消任务的简化模板：号码 margin 设为 0 以保证绝对居中
                 card.innerHTML = `
                     <div class="card-left">
-                        <div class="card-linea" style="font-size: 18px; color: var(--text-sec);">${item.id}</div>
+                        <div class="card-linea" style="font-size: 18px; color: var(--text-sec); margin: 0;">${item.id}</div>
                     </div>
                     <div class="card-center" style="border:none; text-align: center;">
                         <div style="font-size: 11px; font-weight: 600; color: var(--text-sec); letter-spacing: 1px;">
@@ -312,20 +327,8 @@
         const todayStr = new Date().toLocaleDateString('it-IT');
         dayHistory.sort((a,b)=>b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
             const dayLogs = logs.filter(l => l.day === day).sort((a,b)=>b.st-a.st);
-            
-            // --- 核心修改：同时排除 ANNULATO 和 Chiusura turno (换班关闭) ---
-            const countA = dayLogs.filter(l => 
-                l.t === "Turno A" && 
-                !String(l.c).includes("ANNULATO") && 
-                !String(l.c).includes("Chiusura turno")
-            ).length;
-
-            const countB = dayLogs.filter(l => 
-                l.t === "Turno B" && 
-                !String(l.c).includes("ANNULATO") && 
-                !String(l.c).includes("Chiusura turno")
-            ).length;
-
+            const countA = dayLogs.filter(l => l.t === "Turno A" && !String(l.c).includes("ANNULATO") && !String(l.c).includes("Chiusura turno")).length;
+            const countB = dayLogs.filter(l => l.t === "Turno B" && !String(l.c).includes("ANNULATO") && !String(l.c).includes("Chiusura turno")).length;
             const isToday = (day === todayStr);
             const section = document.createElement('div');
             section.innerHTML = `
