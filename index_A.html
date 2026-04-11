@@ -224,7 +224,7 @@
     function cancelCall() {
         const id = localStorage.getItem('myActiveCall');
         if (!id) return;
-        if (confirm("Annulare la chiamata per linea " + id.toUpperCase() + "?")) {
+        if (confirm("Annullare la chiamata per linea " + id.toUpperCase() + "?")) {
             db.ref('active_calls/' + id).update({
                 status: 'completed',
                 endT: Date.now(),
