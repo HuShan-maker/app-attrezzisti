@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>LINK DIRETTO-A v8.6.3</title>
+    <title>LINK DIRETTO-A v8.6.4</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -19,13 +19,11 @@
             font-family: -apple-system, sans-serif; background: var(--bg); 
             margin: 0; display: flex; flex-direction: column; align-items: center;
             height: 100vh; overflow: hidden;
-            /* 整体布局上移 */
-            justify-content: flex-start;
-            padding: calc(10px + env(safe-area-inset-top)) 20px env(safe-area-inset-bottom) 20px;
+            padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
         }
 
-        /* 顶部标题：置顶并缩小间距 */
-        .header { text-align: center; width: 100%; margin-bottom: 25px; }
+        /* 顶部标题：位置稍微固定 */
+        .header { text-align: center; width: 100%; flex-shrink: 0; margin-top: 10px; }
         h1 { font-size: 18px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
 
         .feedback-entry-btn {
@@ -34,13 +32,14 @@
             text-transform: uppercase; letter-spacing: 0.5px;
         }
 
-        /* 主容器：限制宽度并保持紧凑 */
+        /* 核心内容区：重新回归垂直居中 */
         .main-container {
-            display: flex; flex-direction: column; align-items: center;
-            gap: 20px; width: 100%; max-width: 320px;
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; /* 关键：确保内容在中间 */
+            gap: 25px; width: 100%; max-width: 320px;
         }
 
-        /* 输入卡片：加宽以适应 508bis */
+        /* 输入卡片：适配 508bis */
         .input-card { 
             background: #fff; padding: 15px; border-radius: 25px; width: 100%;
             box-shadow: 0 10px 30px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 12px;
@@ -48,7 +47,6 @@
 
         .linea-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        /* 增加宽度确保 508bis 完全显示 */
         input { 
             width: 140px; height: 50px; border-radius: 15px; 
             border: 3px solid var(--gray); font-size: 22px; font-weight: 900; 
@@ -60,7 +58,7 @@
         .turno-tag { 
             font-size: 9px; font-weight: 800; color: #8e8e93; text-transform: uppercase; 
             background: var(--gray); height: 50px; padding: 0 10px; border-radius: 12px; 
-            display: flex; align-items: center; justify-content: center; min-width: 60px;
+            display: flex; align-items: center; justify-content: center; min-width: 65px;
         }
 
         #causaleSelect {
@@ -94,11 +92,16 @@
             padding: 10px 25px; border-radius: 15px; display: none;
         }
         
+        /* 模态框样式 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
         .modal-content { background: #fff; width: 90%; max-width: 340px; border-radius: 30px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
         .modal-h2 { font-size: 18px; font-weight: 900; text-align: center; margin: 0; }
         .f-label { font-size: 11px; font-weight: 800; color: #8e8e93; margin-bottom: -10px; margin-left: 5px; text-transform: uppercase; }
-        .f-select, .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; -webkit-user-select: text; user-select: text; }
+        
+        /* 修复：Feedback 名字字体设为黑色 */
+        .f-select { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; color: #000000 !important; -webkit-appearance: none; }
+        
+        .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; -webkit-user-select: text; user-select: text; }
         .f-submit { background: var(--black); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 14px; margin-top: 10px; }
         .f-close { color: #8e8e93; font-size: 12px; font-weight: 700; text-align: center; margin-top: 5px; }
 
@@ -189,6 +192,7 @@
         }
     }
 
+    // 修复：提示语改为 Feedback inviato!
     function submitFeedback() {
         const name = document.getElementById('fName').value;
         const score = document.getElementById('fScore').value;
@@ -202,7 +206,7 @@
             attrezzista: name, punteggio: score, messaggio: note,
             timestamp: Date.now(), linea: lineaInput.value || "N/A", data: new Date().toLocaleDateString('it-IT')
         }).then(() => {
-            alert("Feedback inviato! In attesa di conferma.");
+            alert("Feedback inviato!");
             document.getElementById('fModal').style.display = 'none';
             document.getElementById('fScore').value = ""; document.getElementById('fNote').value = "";
             btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
