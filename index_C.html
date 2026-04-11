@@ -384,7 +384,7 @@
 
     function deleteDay(e, day) {
         e.stopPropagation();
-        if(!confirm("Eliminare record del " + day + "?")) return;
+        if(!confirm("Cancellare i dati del " + day + "?")) return;
         logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; });
         dayHistory = dayHistory.filter(d => d !== day);
         saveState(); renderLogs(); renderCombinedCards();
