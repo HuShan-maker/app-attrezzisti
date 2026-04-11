@@ -1,15 +1,17 @@
 {
-  "name": "EssilorLuxottica",
-  "short_name": "P3 Reg",
+  "name": "Link Diretto Service Portal",
+  "short_name": "Link Diretto",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "orientation": "portrait",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
   "icons": [
     {
       "src": "icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
