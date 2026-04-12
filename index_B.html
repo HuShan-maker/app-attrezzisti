@@ -1,3 +1,5 @@
+重新来修改 我要的是你别给我乱删除代码 按下面B段代码修改
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -175,36 +177,46 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 服务器时间同步 ---
+    // --- 服务器时间同步核心变量 ---
     let serverTimeOffset = 0;
     db.ref(".info/serverTimeOffset").on("value", (snap) => {
         serverTimeOffset = snap.val() || 0;
     });
 
-    // --- 班次逻辑 ---
+    // --- 2. 班次逻辑 (基于总周数累加，确保跨年自动衔接) ---
     function getRealTimeTurno() {
+        // 使用本地时间校准后的真实时间
         const now = new Date(Date.now() + serverTimeOffset);
         const hour = now.getHours() + (now.getMinutes() / 60);
+        
+        // 设定基准日期：2025年12月29日（2026年第1周的周一）
         const baseDate = new Date(2025, 11, 29); 
+        
+        // 计算从基准点到现在一共过去了多少毫秒，换算成绝对累加的周数
         const msPerWeek = 7 * 24 * 60 * 60 * 1000;
         const totalWeeks = Math.floor((now - baseDate) / msPerWeek) + 1;
+
+        // 根据总周数的奇偶性判定
         const isSingleWeek = totalWeeks % 2 !== 0; 
         const isAfternoon = (hour >= 14.25); 
+
+        // 班次判定逻辑：单数周下午是 A，双数周下午是 B
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
     }
+
 
     let myShift = localStorage.getItem('deviceShift') || "";
     if (!myShift) {
         let valid = false;
         while (!valid) {
-            let choice = prompt("Configurazione Iniziale: Sei Turno A o B?");
+            let choice = prompt("Configurazione Iniziale: Sei Turno A o B? (Inserire A oppure B)");
             if (choice) {
                 choice = choice.toUpperCase().trim();
                 if (choice === "A" || choice === "B") {
                     myShift = "Turno " + choice;
                     localStorage.setItem('deviceShift', myShift);
                     valid = true;
-                }
+                } else { alert("Inserire solo A o B!"); }
             }
         }
     }
@@ -228,42 +240,67 @@
     let act = {}; 
     let logs = JSON.parse(localStorage.getItem('logs_v7') || '[]');
     let dayHistory = JSON.parse(localStorage.getItem('dayHistory_v7') || '[]');
-    let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, isInitialLoad = true; 
+    let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
+    let isInitialLoad = true; 
 
+    // --- 新增：30天自动清理逻辑 ---
     function autoCleanOldRecords() {
         const now = new Date(Date.now() + serverTimeOffset);
-        const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(now.getDate() - 30);
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        
         let needsSave = false;
-        dayHistory = dayHistory.filter(dayStr => {
-            const [d, m, y] = dayStr.split('/'); const recordDate = new Date(y, m - 1, d);
-            if (recordDate < thirtyDaysAgo) { needsSave = true; return false; } return true;
+
+        // 1. 过滤 dayHistory
+        const updatedDayHistory = dayHistory.filter(dayStr => {
+            const [d, m, y] = dayStr.split('/');
+            const recordDate = new Date(y, m - 1, d);
+            if (recordDate < thirtyDaysAgo) {
+                needsSave = true;
+                return false;
+            }
+            return true;
         });
-        logs = logs.filter(l => {
-            const [d, m, y] = l.day.split('/'); const recordDate = new Date(y, m - 1, d);
-            if (recordDate < thirtyDaysAgo) { needsSave = true; return false; } return true;
+
+        // 2. 过滤 logs
+        const updatedLogs = logs.filter(l => {
+            const [d, m, y] = l.day.split('/');
+            const recordDate = new Date(y, m - 1, d);
+            if (recordDate < thirtyDaysAgo) {
+                needsSave = true;
+                return false;
+            }
+            return true;
         });
-        if (needsSave) saveState();
+
+        if (needsSave) {
+            logs = updatedLogs;
+            dayHistory = updatedDayHistory;
+            saveState();
+        }
     }
+
+    // 初始化时执行清理
     autoCleanOldRecords();
 
+    // --- 4. 核心监听器 ---
     db.ref('active_calls').on('value', (snapshot) => {
         const rawData = snapshot.val() || {};
         const currentSystemTurno = getRealTimeTurno();
+        let needsLocalArchive = false;
 
         Object.keys(rawData).forEach(id => {
             const item = rawData[id];
-            // --- 核心修改：班次强制关闭时的记录补齐 ---
             if (item.turno && item.turno !== currentSystemTurno) {
-                // 如果该任务是红色（维修中），且是被“本设备”接收的
-                if (item.status === 'red' && item.takenBy === myDeviceId) {
-                    const now = Date.now() + serverTimeOffset;
-                    // 在个人日志中记录该条维修任务，原因为系统关闭
-                    archiveIntervention(id, "chiuso da sistema", item.startA, item.startD || item.startA, now, currentUserName);
-                }
-                // 从云端数据库彻底清理旧班次任务
+                const now = Date.now() + serverTimeOffset;
+                const tech = item.techName || "AUTO-CLOSE";
+                archiveIntervention(id, item.causale + " (Fine Turno)", item.startA, item.startD || item.startA, now, tech);
                 db.ref('active_calls/' + id).remove();
+                needsLocalArchive = true;
             }
         });
+
+        if(needsLocalArchive) saveState();
 
         act = rawData;
         if (isInitialLoad) {
@@ -271,15 +308,18 @@
             for(let p=1; p<=5; p++) {
                 pianoData[p].forEach(id => {
                     const it = act[id];
-                    if(it && it.status === 'red') redP = p;
-                    if(it && it.status === 'orange' && it.startA < oldest) { oldest = it.startA; orangeP = p; }
+                    if(it) {
+                        if(it.status === 'red') redP = p;
+                        if(it.status === 'orange' && it.startA < oldest) { oldest = it.startA; orangeP = p; }
+                    }
                 });
             }
-            const isW = (myShift === currentSystemTurno);
-            curPiano = isW ? (redP || orangeP || 1) : 1;
+            curPiano = redP || orangeP || 1;
             isInitialLoad = false;
         }
-        renderGrid(); updateGlobalBadges(); applyTheme();
+        renderGrid(); 
+        updateGlobalBadges(); 
+        applyTheme();
     });
 
     function saveState() { 
@@ -287,15 +327,23 @@
         localStorage.setItem('dayHistory_v7', JSON.stringify(dayHistory)); 
     }
 
+    // --- 5. 归档逻辑 ---
     function handleMachineClick(id) {
         const sTime = firebase.database.ServerValue.TIMESTAMP;
         if (!act[id]) return; 
         if (act[id].status === 'orange') {
-            db.ref('active_calls/' + id).update({ status: 'red', startD: sTime, startB: sTime, takenBy: myDeviceId, techName: currentUserName });
+            db.ref('active_calls/' + id).update({ 
+                status: 'red', 
+                startD: sTime, 
+                startB: sTime, 
+                takenBy: myDeviceId,
+                techName: currentUserName 
+            });
         } 
         else if (act[id].status === 'red' && act[id].takenBy === myDeviceId) {
             const item = act[id];
-            archiveIntervention(id, item.causale || "-", item.startA, item.startD || item.startA, Date.now() + serverTimeOffset, currentUserName);
+            const now = Date.now() + serverTimeOffset;
+            archiveIntervention(id, item.causale || "-", item.startA, item.startD || item.startA, now, currentUserName);
             if (id === 'FUORI') { db.ref('active_calls/FUORI').remove(); }
             else { db.ref('active_calls/' + id).update({ status: 'completed', endT: sTime }); }
         }
@@ -303,16 +351,15 @@
 
     function archiveIntervention(id, causale, startA, startD, endT, tech) {
         const nowServer = new Date(endT);
-        const dStr = nowServer.toLocaleDateString('it-IT');
         const newLog = { 
-            i: id, day: dStr, 
+            i: id, day: nowServer.toLocaleDateString('it-IT'), 
             s: new Date(startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
             tA: Math.round((startD - startA) / 60000), 
             tD: Math.round((endT - startD) / 60000), 
             st: startA, c: causale, tech: tech
         };
         logs.push(newLog);
-        if(!dayHistory.includes(dStr)) dayHistory.push(dStr);
+        if(!dayHistory.includes(newLog.day)) dayHistory.push(newLog.day);
         saveState();
     }
 
@@ -323,47 +370,79 @@
             document.getElementById('fuoriModal').style.display = 'flex';
             setTimeout(() => document.getElementById('fuoriCausaleInput').focus(), 150);
         } else if (!fs || fs.status === 'completed') {
-            db.ref('active_calls/FUORI').set({ status: 'red', startA: sTime, startB: sTime, startD: sTime, takenBy: myDeviceId, techName: currentUserName, turno: getRealTimeTurno() });
+            db.ref('active_calls/FUORI').set({ 
+                status: 'red', 
+                startA: sTime, 
+                startB: sTime, 
+                startD: sTime, 
+                takenBy: myDeviceId,
+                techName: currentUserName,
+                turno: getRealTimeTurno() 
+            });
         }
     }
 
     function saveFuoriCausale() {
         const val = document.getElementById('fuoriCausaleInput').value.trim() || "Attività Extra";
-        const fs = act['FUORI']; const now = Date.now() + serverTimeOffset;
+        const fs = act['FUORI']; 
+        const now = Date.now() + serverTimeOffset;
         archiveIntervention('FUORI', val, fs.startA, fs.startD || fs.startA, now, currentUserName);
         db.ref('active_calls/FUORI').remove();
-        document.getElementById('fuoriCausaleInput').value = ""; document.getElementById('fuoriModal').style.display = 'none';
+        document.getElementById('fuoriCausaleInput').value = "";
+        document.getElementById('fuoriModal').style.display = 'none';
         renderGrid();
     }
 
+    // --- 6. UI 渲染 (隐私保护增强) ---
     function renderGrid() {
         const gd = document.getElementById('g'); gd.innerHTML = '';
         const turnoLabel = document.getElementById('turnoDisp');
         const contentArea = document.getElementById('dynamicContent');
+        
         const systemTurno = getRealTimeTurno();
         const isWorkingTime = (myShift === systemTurno);
+        
         turnoLabel.innerText = myShift;
-        if (isWorkingTime) { contentArea.classList.remove('shift-lock-ui'); turnoLabel.classList.add('turno-on'); } 
-        else { contentArea.classList.add('shift-lock-ui'); turnoLabel.classList.remove('turno-on'); }
+        if (isWorkingTime) { 
+            contentArea.classList.remove('shift-lock-ui'); 
+            turnoLabel.classList.add('turno-on'); 
+        } else { 
+            contentArea.classList.add('shift-lock-ui'); 
+            turnoLabel.classList.remove('turno-on'); 
+        }
+
         const allOrangeIds = Object.keys(act).filter(key => key !== 'FUORI' && act[key].status === 'orange').sort((a, b) => act[a].startA - act[b].startA);
         const c = themeConfig[curPiano];
+        
         pianoData[curPiano].forEach(i => {
             const wrap = document.createElement('div'); wrap.className = 'btn-wrap';
             const b = document.createElement('button'); 
+            
+            // 核心隐私修改：如果不属于我的上班时间，实时状态 s 强制设为 null
             const s = isWorkingTime ? act[i] : null; 
+            
             b.className = 'btn-machine'; b.innerText = i;
             if (s && (s.status === 'orange' || s.status === 'red')) {
                 if (s.status === 'orange') { b.classList.add('waiting'); b.style.color = "#ffffff"; } 
                 else { if (s.takenBy === myDeviceId) { b.classList.add('or'); b.style.color = "#ffffff"; } else { b.classList.add('locked-btn'); } }
-            } else { b.style.color = c; b.style.backgroundColor = 'var(--btn-gray)'; }
+            } else { 
+                b.style.color = c; 
+                b.style.backgroundColor = 'var(--btn-gray)'; 
+            }
+            
             b.onclick = () => isWorkingTime && handleMachineClick(i); 
             wrap.appendChild(b);
+            
+            // 只有上班时才显示橙色角标
             if (isWorkingTime && s && s.status === 'orange') {
-                const badge = document.createElement('div'); badge.className = 'badge'; badge.innerText = allOrangeIds.indexOf(i) + 1; wrap.appendChild(badge);
+                const qNum = allOrangeIds.indexOf(i) + 1;
+                const badge = document.createElement('div'); badge.className = 'badge'; badge.innerText = qNum; wrap.appendChild(badge);
             }
             gd.appendChild(wrap);
         });
-        const f = document.getElementById('btn-fuori'), fs = isWorkingTime ? act['FUORI'] : null;
+        
+        const f = document.getElementById('btn-fuori');
+        const fs = isWorkingTime ? act['FUORI'] : null;
         f.className = (fs && fs.status === 'red') ? 'fuori-btn or' : 'fuori-btn';
         if (!(fs && fs.status === 'red')) f.style.color = c;
     }
@@ -372,6 +451,7 @@
         const isW = (myShift === getRealTimeTurno());
         for (let p = 1; p <= 5; p++) {
             const btn = document.getElementById(`p-btn-${p}`);
+            // 只有上班时才计算红/橙色总数徽章
             const count = isW ? pianoData[p].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'red')).length : 0;
             const oldBadge = btn.querySelector('.p-badge');
             if (oldBadge) oldBadge.remove();
@@ -384,7 +464,8 @@
         const c=themeConfig[curPiano]; 
         document.querySelectorAll('.p-btn').forEach((b,i)=>{ 
             const isTarget = (i+1 === curPiano);
-            b.style.backgroundColor = isTarget ? c : '#f2f2f7'; b.style.color = isTarget ? '#fff' : '#8e8e93';
+            b.style.backgroundColor = isTarget ? c : '#f2f2f7'; 
+            b.style.color = isTarget ? '#fff' : '#8e8e93';
             b.classList.toggle('active', isTarget); 
         }); 
         document.getElementById('floorColor').value = c; renderGrid(); 
@@ -392,27 +473,31 @@
     function updateThemeColor(c) { themeConfig[curPiano]=c; localStorage.setItem('pianoThemes',JSON.stringify(themeConfig)); applyTheme(); }
 
     function renderLogs() {
-        const container = document.getElementById('logContainer'); container.innerHTML = '';
+        const container = document.getElementById('logContainer');
+        const expandedDays = new Set();
+        container.querySelectorAll('.day-section:not(.collapsed) span').forEach(el => expandedDays.add(el.innerText.trim()));
+        container.innerHTML = '';
         const oggi = new Date(Date.now() + serverTimeOffset).toLocaleDateString('it-IT');
         const groups = {}; dayHistory.forEach(d => groups[d] = []);
         logs.forEach((l, idx) => { if (groups[l.day]) groups[l.day].push({ ...l, originalIndex: idx }); });
         Object.keys(groups).sort((a,b) => b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
-            const section = document.createElement('div'); const isCollapsed = (day !== oggi);
+            const section = document.createElement('div');
+            const isCollapsed = expandedDays.size === 0 ? (day !== oggi) : !expandedDays.has(day);
             section.className = 'day-section' + (isCollapsed ? ' collapsed' : '');
             const dayLogs = groups[day].sort((a, b) => b.st - a.st);
             section.innerHTML = `
                 <div class="day-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                    <div class="day-header-left"><span>${day}</span></div>
+                    <div class="day-header-left"><div class="day-del-btn" onclick="openDayDelConfirm(event, '${day}')">×</div><span>${day}</span></div>
                 </div>
                 <div class="day-content">
                     <table>
-                        <thead><tr><th>LINEA</th><th>INIZIO</th><th class="col-time">A & D</th><th>CAUSALE</th><th>×</th></tr></thead>
+                        <thead><tr><th>LINEA</th><th>INIZIO</th><th class="col-time">A & D</th><th>CAUSALE</th><th><span class="undo-btn" onclick="performUndo(event)">↺</span></th></tr></thead>
                         <tbody>${dayLogs.map(l => `<tr>
                             <td><b>${l.i === 'FUORI' ? 'F. LINEA' : l.i}</b></td>
                             <td>${l.s}</td>
                             <td class="col-time"><div class="time-cell"><span class="t-a">A: ${l.tA}m</span><span class="t-d">D: ${l.tD}m</span></div></td>
                             <td><span class="editable-causale" onclick="handleCausaleClick(${l.originalIndex})">${l.c}</span></td>
-                            <td style="color:red;font-weight:900" onclick="deleteRow(${l.originalIndex})">×</td>
+                            <td class="del-row" onclick="deleteRow(${l.originalIndex})">×</td>
                         </tr>`).join('')}</tbody>
                     </table>
                 </div>`;
@@ -420,7 +505,11 @@
         });
     }
 
-    function deleteRow(index) { if(confirm("Eliminare riga?")) { logs.splice(index,1); saveState(); renderLogs(); } }
+    function handleCausaleClick(index) { clickCount++; if(clickCount===1) clickTimer=setTimeout(()=>clickCount=0,350); else { clearTimeout(clickTimer); clickCount=0; editIndex = index; document.getElementById('editCausaleInput').value=logs[index].c; document.getElementById('editModal').style.display='flex'; setTimeout(()=>document.getElementById('editCausaleInput').focus(),150); } }
+    function confirmEdit() { logs[editIndex].c=document.getElementById('editCausaleInput').value.trim()||"-"; saveState(); document.getElementById('editModal').style.display='none'; renderLogs(); }
+    function performUndo(e) { e.stopPropagation(); if(undoStack.length){ let last=undoStack.pop(); logs=last.l; dayHistory=last.h; saveState(); renderLogs(); } }
+    function deleteRow(index) { undoStack.push({l:JSON.parse(JSON.stringify(logs)), h:[...dayHistory]}); logs.splice(index,1); saveState(); renderLogs(); }
+    function openDayDelConfirm(e, day) { e.stopPropagation(); document.getElementById('dayConfirmModal').style.display='flex'; document.getElementById('confirmDayDelBtn').onclick=()=>{ undoStack.push({l:JSON.parse(JSON.stringify(logs)), h:[...dayHistory]}); logs=logs.filter(l=>l.day!==day); dayHistory=dayHistory.filter(d=>d!==day); saveState(); document.getElementById('dayConfirmModal').style.display='none'; renderLogs(); }; }
     function handleNameClick() { nameClickCount++; if(nameClickCount === 2) { document.getElementById('nameInput').value = currentUserName; document.getElementById('nameModal').style.display = 'flex'; setTimeout(() => document.getElementById('nameInput').focus(), 150); nameClickCount = 0; } else { setTimeout(() => { nameClickCount = 0; }, 350); } }
     function saveName() { let n=document.getElementById('nameInput').value.trim(); if(n){ currentUserName = n; localStorage.setItem('userName',n); document.getElementById('userNameDisp').innerText=n; document.getElementById('regNameDisp').innerText=n; } document.getElementById('nameModal').style.display='none'; }
     function showMemoria() { renderLogs(); document.getElementById('v').style.display='flex'; }
@@ -447,15 +536,19 @@
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
     applyTheme();
     
+      // --- 核心刷新逻辑修改 ---
     setInterval(() => {
-        const currentRealTurno = getRealTimeTurno(); 
+        const currentRealTurno = getRealTimeTurno(); // 永远基于服务器偏移校准的时间
         const displayedTurno = document.getElementById('turnoDisp')?.innerText;
         const isActuallyMyShift = (myShift === currentRealTurno);
 
         if (isActuallyMyShift) {
+            // 如果设备属于当前工作班次：正常刷新 UI，不重载页面
             renderGrid();
             updateGlobalBadges();
         } else {
+            // 如果设备不属于当前班次：每 5 秒强制重载页面
+            // 这会卡死任何试图通过修改本地时间来激活按钮的行为，并让“休息中”的设备无法操作
             console.log("Sicurezza: Refresh forzato per turno non attivo.");
             window.location.reload(true);
         }
