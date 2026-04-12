@@ -252,14 +252,15 @@
 
         Object.keys(rawData).forEach(id => {
             const item = rawData[id];
-            // 班次切换判定逻辑
+            // --- 核心修改：班次强制关闭时的记录补齐 ---
             if (item.turno && item.turno !== currentSystemTurno) {
-                // 如果是本设备接手的正在维修的任务(red)，在系统清理前存入本地Registro
+                // 如果该任务是红色（维修中），且是被“本设备”接收的
                 if (item.status === 'red' && item.takenBy === myDeviceId) {
                     const now = Date.now() + serverTimeOffset;
-                    archiveIntervention(id, "CHIUSURA TURNO", item.startA, item.startD || item.startA, now, currentUserName);
+                    // 在个人日志中记录该条维修任务，原因为系统关闭
+                    archiveIntervention(id, "chiuso da sistema", item.startA, item.startD || item.startA, now, currentUserName);
                 }
-                // 从数据库彻底删除过期班次任务
+                // 从云端数据库彻底清理旧班次任务
                 db.ref('active_calls/' + id).remove();
             }
         });
@@ -462,4 +463,3 @@
 </script>
 </body>
 </html>
-
