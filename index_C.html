@@ -88,15 +88,21 @@
         }
         .fb-read-btn:active { transform: scale(0.95); opacity: 0.7; }
 
-        /* 修改：按钮上移，增加 margin-bottom */
+        /* 修改：按钮缩小宽度，并大幅增加 margin-bottom 以避开苹果 Home 杆 */
         .fb-clear-btn {
-            width: 80%; max-width: 200px; padding: 10px; 
-            border-radius: 12px; border: none; 
-            background: #e5e5ea; color: #000000; 
-            font-weight: 800; font-size: 11px;
-            text-transform: uppercase; cursor: pointer;
+            width: 60%; 
+            max-width: 160px; 
+            padding: 10px; 
+            border-radius: 12px; 
+            border: none; 
+            background: #e5e5ea; 
+            color: #000000; 
+            font-weight: 800; 
+            font-size: 11px;
+            text-transform: uppercase; 
+            cursor: pointer;
             transition: 0.2s;
-            margin-bottom: 40px; /* 增加底部间距，避开 iPhone Home Indicator */
+            margin-bottom: 80px; 
         }
         .fb-clear-btn:active { transform: scale(0.95); opacity: 0.8; }
 
@@ -217,21 +223,17 @@
         Object.keys(cloudData).forEach(id => {
             const item = cloudData[id];
             
-            // --- 核心修改：班次自动清空逻辑 ---
             const taskTurno = item.turno || calculateTurnoByTimestamp(item.startA);
             const taskDay = new Date(item.startA).toLocaleDateString('it-IT');
 
-            // 如果班次不匹配 或者 日期不是今天（针对跨凌晨情况）
             if (taskTurno !== currentTurno || taskDay !== todayStr) {
-                // 将未完成任务强制归档并物理删除
                 item.status = 'completed';
                 item.causale = "CHIUSURA TURNO";
                 item.techName = "SISTEMA";
                 item.endT = Date.now();
-                item.hideFromBoard = true; // 视觉隐藏标记
+                item.hideFromBoard = true; 
                 db.ref('active_calls/' + id).remove(); 
             }
-            // --------------------------------
 
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
                 archiveTask(id, item); needsSave = true;
@@ -319,7 +321,6 @@
         });
     }
 
-    // --- 自动刷新补丁：解决 PWA 冻结不更新问题 ---
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
             const currentTurno = getRealTimeTurno();
@@ -388,8 +389,7 @@
     function deleteDay(e, day) { e.stopPropagation(); if(!confirm("Cancellare i dati del " + day + "?")) return; logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; }); dayHistory = dayHistory.filter(d => d !== day); saveState(); renderLogs(); renderCombinedCards(); }
     function clearAll() { if(!confirm("Cancellare tutti i dati dell'archivio?")) return; logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards(); }
     document.getElementById('curYear').innerText = new Date().getFullYear();
-    // 在 <script> 标签的末尾添加这段代码
-// 每 30 秒强制重新渲染一次卡片，确保 Attesa/Durata 时间在走动
+
 setInterval(() => {
     console.log("Heartbeat: Aggiornamento tempi in corso...");
     if (typeof renderCombinedCards === "function") {
