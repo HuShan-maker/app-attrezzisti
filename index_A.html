@@ -204,7 +204,7 @@
         db.ref('feedback_pending').push({
             attrezzista: name, punteggio: score, messaggio: note,
             timestamp: Date.now(), linea: lineaInput.value || "N/A", data: new Date().toLocaleDateString('it-IT'),
-            turno: turnoLabel.innerText 
+            turno: getActiveTurno() // 使用实时函数
         }).then(() => {
             alert("Feedback inviato!");
             document.getElementById('fModal').style.display = 'none';
@@ -221,16 +221,26 @@
     function getActiveTurno() {
         const now = new Date();
         const hour = now.getHours() + (now.getMinutes() / 60);
-        const baseDate = new Date(2025, 11, 29); 
+        // 修正基准时间为周一凌晨
+        const baseDate = new Date(2025, 11, 29, 0, 0, 0); 
         const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-        const totalWeeks = Math.floor((now - baseDate) / msPerWeek) + 1;
+        const diff = now.getTime() - baseDate.getTime();
+        const totalWeeks = Math.floor(diff / msPerWeek) + 1;
         const isAfternoon = (hour >= 14.25); 
         const isSingleWeek = totalWeeks % 2 !== 0; 
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
     }
 
-    function updateShift() { turnoLabel.innerText = getActiveTurno(); }
-    updateShift(); setInterval(updateShift, 60000);
+    // 核心修复：定时检查并更新，且在 sendCall 时再次实时调用
+    function updateShift() { 
+        const current = getActiveTurno();
+        if (turnoLabel.innerText !== current) {
+            turnoLabel.innerText = current;
+            console.log("Turno aggiornato: " + current);
+        }
+    }
+    updateShift(); 
+    setInterval(updateShift, 10000); // 10秒检查一次，更灵敏
 
     function startListening() {
         const id = lineaInput.value.trim().toLowerCase();
@@ -261,8 +271,6 @@
         mainBtn.className = "main-btn status-none"; statusText.innerText = "Chiamare Attrezzista"; btnIcon.innerText = "⚡️";
         mainBtn.classList.remove('locked'); cancelBtn.style.display = "none";
         lineaInput.disabled = false; 
-        
-        // 关键修改：重置下拉菜单到默认选项
         causaleSelect.disabled = false;
         causaleSelect.selectedIndex = 0; 
     }
@@ -278,6 +286,7 @@
             if (snapshot.exists() && snapshot.val().status !== 'completed') {
                 alert("ATTENZIONE: Linea " + id.toUpperCase() + " è già attiva!"); return; 
             }
+            // 这里必须再次实时调用函数
             const currentTurno = getActiveTurno();
             db.ref('active_calls/' + id).set({
                 startA: Date.now(), status: 'orange', causale: causale, turno: currentTurno
