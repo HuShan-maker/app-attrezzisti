@@ -37,7 +37,7 @@
             transition: background 0.3s;
         }
         .turno-on { background: var(--green) !important; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
-        /* 核心锁死样式：强制禁止点击 */
+        /* 核心锁死样式 */
         .shift-lock-ui { opacity: 0.6; pointer-events: none !important; filter: grayscale(1); }
 
         .h { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 35px; }
@@ -45,14 +45,12 @@
         .user-subtitle { font-size: 14px; color: #8e8e93; font-weight: 600; margin-top: 5px; height: 25px; display: flex; align-items: center; cursor: pointer; min-width: 50px; }
         .reg-btn { background: #000; color: #fff; font-size: 11px; border: none; padding: 0 14px; border-radius: 9px; font-weight: 700; text-transform: uppercase; height: 25px; display: flex; align-items: center; }
         
-        /* 钢琴按钮 */
         .pianos { display: flex; gap: 5px; margin-bottom: 25px; padding: 12px 0 8px 0; overflow: visible; }
         .p-btn { flex: 1; background: var(--btn-gray); color: #8e8e93; border: none; padding: 10px 0; border-radius: 12px; font-weight: 700; font-size: 10px; transition: 0.2s; position: relative; }
         .p-btn.active { color: #fff !important; }
         .p-badge { position: absolute; top: -5px; right: -5px; background: var(--red); width: 13px; height: 13px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; animation: badgePulse 1.5s infinite; border: 2px solid white; }
         @keyframes badgePulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* 网格动画 */
         #g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; }
         .slide-left { transform: translateX(-30px); opacity: 0; }
         .slide-right { transform: translateX(30px); opacity: 0; }
@@ -176,15 +174,14 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 2. 物理时间偏移 (关键逻辑) ---
+    // --- 2. 物理时间校准：唯一真理 ---
     let serverTimeOffset = 0;
     db.ref(".info/serverTimeOffset").on("value", (snap) => {
         serverTimeOffset = snap.val() || 0;
     });
 
-    // --- 3. 班次逻辑 (彻底移除 new Date() 的依赖) ---
+    // --- 3. 班次逻辑 (严格基于服务器绝对偏移) ---
     function getRealTimeTurno() {
-        // 使用物理时间，无视手机手动设置的时间
         const now = new Date(Date.now() + serverTimeOffset);
         const hour = now.getHours() + (now.getMinutes() / 60);
         const baseDate = new Date(2025, 11, 29); 
@@ -268,7 +265,6 @@
     }
 
     function handleMachineClick(id) {
-        // 关键锁死：只要物理时间不对，点击瞬间强刷 UI 并拦截
         if (!isNowMyWorkTime()) {
             renderGrid(); 
             return;
@@ -450,25 +446,33 @@
     document.getElementById('curYear').innerText = new Date().getFullYear();
     applyTheme();
     
-    // --- 暴力锁死逻辑核心 (针对桌面书签优化) ---
+    // --- 4. 终极自救监听：唤醒、获取焦点、可见性切换 全方位重绘判定 ---
     let lastRenderedWorkStatus = isNowMyWorkTime();
+    let lastKnownMinute = new Date(Date.now() + serverTimeOffset).getMinutes();
 
-    // 唤醒、获取焦点、可见性切换 全方位重绘判定
+    // 绝杀：监听各种唤醒事件
     ['visibilitychange', 'focus', 'pageshow'].forEach(ev => {
         window.addEventListener(ev, () => {
-            console.log("Wake Up: Syncing shift with server time...");
-            lastRenderedWorkStatus = isNowMyWorkTime();
-            renderGrid();
-            updateGlobalBadges();
-            applyTheme();
+            // 当重新获得焦点时，强制校准一次 Offset
+            db.ref(".info/serverTimeOffset").once("value", (snap) => {
+                serverTimeOffset = snap.val() || 0;
+                lastRenderedWorkStatus = isNowMyWorkTime();
+                renderGrid();
+                updateGlobalBadges();
+                applyTheme();
+            });
         });
     });
 
     setInterval(() => {
+        const nowServer = new Date(Date.now() + serverTimeOffset);
+        const currentMinute = nowServer.getMinutes();
         const currentWorkStatus = isNowMyWorkTime();
-        // 只要发现物理班次不对，立刻强刷
-        if (currentWorkStatus !== lastRenderedWorkStatus) {
+
+        // 纠偏逻辑：只要班次状态变了 OR 分钟变了
+        if (currentWorkStatus !== lastRenderedWorkStatus || currentMinute !== lastKnownMinute) {
             lastRenderedWorkStatus = currentWorkStatus;
+            lastKnownMinute = currentMinute;
             renderGrid();
             updateGlobalBadges();
             applyTheme();
