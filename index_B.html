@@ -500,23 +500,21 @@
         const contentArea = document.getElementById('dynamicContent');
         const turnoLabel = document.getElementById('turnoDisp');
 
+        // 核心改动：在判定状态时，不仅切换 CSS，还要强制刷新 Grid 的渲染
         if (isActuallyMyShift) {
-            // 如果在班次内：确保 UI 是亮起的
             if (contentArea.classList.contains('shift-lock-ui')) {
                 contentArea.classList.remove('shift-lock-ui');
                 turnoLabel.classList.add('turno-on');
-                renderGrid(); // 重新渲染一次恢复按钮颜色
+                renderGrid(); // 强制刷新 Grid 状态
             }
         } else {
-            // 如果不在班次：确保 UI 立即锁死变灰，且禁止点击
             if (!contentArea.classList.contains('shift-lock-ui')) {
                 contentArea.classList.add('shift-lock-ui');
                 turnoLabel.classList.remove('turno-on');
-                // 这里故意不重载页面，只让它变灰点不动，保护当前 Registro 视图
+                renderGrid(); // 强制刷新 Grid 状态，这会让按钮变灰
             }
         }
-    }, 1000); // 1秒检查一次，极速感应修改时间
+    }, 1000); 
 </script>
 </body>
 </html>
-
