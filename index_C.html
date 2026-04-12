@@ -88,7 +88,7 @@
         }
         .fb-read-btn:active { transform: scale(0.95); opacity: 0.7; }
 
-        /* 修改：按钮缩小宽度，并大幅增加 margin-bottom 以避开苹果 Home 杆 */
+        /* 统一的底部清除按钮样式：窄宽度、上移避开苹果 Home 杆 */
         .fb-clear-btn {
             width: 60%; 
             max-width: 160px; 
@@ -134,8 +134,8 @@
             <div style="width:28px"></div>
         </div>
         <div id="logContainer"></div>
-        <div style="padding:15px;">
-            <button style="width:100%; padding:14px; border-radius:12px; border:none; background:#f2f2f7; color:var(--red); font-weight:700;" onclick="clearAll()">SVUOTA ARCHIVIO</button>
+        <div style="padding:15px; display: flex; justify-content: center;">
+            <button class="fb-clear-btn" style="color:var(--red);" onclick="clearAll()">SVUOTA ARCHIVIO</button>
         </div>
     </div>
 
@@ -389,13 +389,7 @@
     function deleteDay(e, day) { e.stopPropagation(); if(!confirm("Cancellare i dati del " + day + "?")) return; logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; }); dayHistory = dayHistory.filter(d => d !== day); saveState(); renderLogs(); renderCombinedCards(); }
     function clearAll() { if(!confirm("Cancellare tutti i dati dell'archivio?")) return; logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards(); }
     document.getElementById('curYear').innerText = new Date().getFullYear();
-
-setInterval(() => {
-    console.log("Heartbeat: Aggiornamento tempi in corso...");
-    if (typeof renderCombinedCards === "function") {
-        renderCombinedCards(); 
-    }
-}, 30000); 
+    setInterval(() => { if (typeof renderCombinedCards === "function") { renderCombinedCards(); } }, 30000); 
 </script>
 </body>
 </html>
