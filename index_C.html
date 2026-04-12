@@ -388,6 +388,14 @@
     function deleteDay(e, day) { e.stopPropagation(); if(!confirm("Cancellare i dati del " + day + "?")) return; logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; }); dayHistory = dayHistory.filter(d => d !== day); saveState(); renderLogs(); renderCombinedCards(); }
     function clearAll() { if(!confirm("Cancellare tutti i dati dell'archivio?")) return; logs = []; dayHistory = []; processedStarts.clear(); saveState(); renderLogs(); renderCombinedCards(); }
     document.getElementById('curYear').innerText = new Date().getFullYear();
+    // 在 <script> 标签的末尾添加这段代码
+// 每 30 秒强制重新渲染一次卡片，确保 Attesa/Durata 时间在走动
+setInterval(() => {
+    console.log("Heartbeat: Aggiornamento tempi in corso...");
+    if (typeof renderCombinedCards === "function") {
+        renderCombinedCards(); 
+    }
+}, 30000); 
 </script>
 </body>
 </html>
