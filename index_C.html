@@ -88,7 +88,7 @@
         }
         .fb-read-btn:active { transform: scale(0.95); opacity: 0.7; }
 
-        /* 重点修改：Svuota Feedback 按钮样式 */
+        /* 修改：按钮上移，增加 margin-bottom */
         .fb-clear-btn {
             width: 80%; max-width: 200px; padding: 10px; 
             border-radius: 12px; border: none; 
@@ -96,6 +96,7 @@
             font-weight: 800; font-size: 11px;
             text-transform: uppercase; cursor: pointer;
             transition: 0.2s;
+            margin-bottom: 40px; /* 增加底部间距，避开 iPhone Home Indicator */
         }
         .fb-clear-btn:active { transform: scale(0.95); opacity: 0.8; }
 
@@ -139,7 +140,7 @@
             <div style="width:28px"></div>
         </div>
         <div id="feedbackContainer"></div>
-        <div style="padding:15px; display: flex; justify-content: center;">
+        <div style="padding:15px 15px 0 15px; display: flex; justify-content: center;">
             <button class="fb-clear-btn" onclick="clearFeedback()">SVUOTA FEEDBACK</button>
         </div>
     </div>
@@ -271,7 +272,6 @@
         const now = Date.now(); const todayStr = new Date().toLocaleDateString('it-IT');
         const currentTurno = getRealTimeTurno();
 
-        // 渲染过滤：只显示今天、本班次且未被隐藏的卡片
         const localToDisplay = logs.filter(l => l.day === todayStr && l.t === currentTurno && !l.hideFromBoard).map(l => ({
             id: l.i, status: 'completed', startA: l.st, endT: l.et, causale: l.c, techName: l.tech, tA: l.tA, tD: l.tD, isLocal: true, sortTime: l.et || l.st, startTimeStr: l.s
         }));
@@ -324,7 +324,6 @@
         if (document.visibilityState === "visible") {
             const currentTurno = getRealTimeTurno();
             const todayStr = new Date().toLocaleDateString('it-IT');
-            // 检查主页上是否残留了旧班次的数据，如果有，强制刷新
             const hasObsolete = logs.some(l => (l.day !== todayStr || l.t !== currentTurno) && !l.hideFromBoard);
             if(hasObsolete) {
                 console.log("Cambio turno rilevato al risveglio. Refresh...");
@@ -336,10 +335,8 @@
     setInterval(() => {
         const d = new Date();
         const hm = d.getHours() + ":" + d.getMinutes();
-        // 14:15 和 00:00 强制刷新
         if (hm === "14:15" || hm === "0:0") window.location.reload(true);
     }, 30000);
-    // ------------------------------------------
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
     function closeHistory() { document.getElementById('historyPage').style.display = 'none'; }
