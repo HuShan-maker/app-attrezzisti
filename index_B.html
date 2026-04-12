@@ -493,16 +493,22 @@
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
     applyTheme();
     
-    // --- 最终解决方案：分钟级自我核对监听器 ---
-    let lastCheckMinute = new Date(Date.now() + serverTimeOffset).getMinutes();
+     // --- 暴力状态纠偏监听器 ---
+    let lastRenderedWorkStatus = isNowMyWorkTime();
+    let lastKnownMinute = new Date(Date.now() + serverTimeOffset).getMinutes();
 
     setInterval(() => {
-        // 使用物理时间进行对比
         const nowServer = new Date(Date.now() + serverTimeOffset);
         const currentMinute = nowServer.getMinutes();
+        const currentWorkStatus = isNowMyWorkTime();
 
-        if (currentMinute !== lastCheckMinute) {
-            lastCheckMinute = currentMinute;
+        // 纠正逻辑：只要 1.班次状态变了 OR 2.分钟变了（确保时间在走）
+        // 如果 UI 显示的状态和物理时间计算的状态不一致，强行刷新渲染。
+        if (currentWorkStatus !== lastRenderedWorkStatus || currentMinute !== lastKnownMinute) {
+            console.log("Sync UI...");
+            lastRenderedWorkStatus = currentWorkStatus;
+            lastKnownMinute = currentMinute;
+            
             renderGrid();
             updateGlobalBadges();
             applyTheme();
