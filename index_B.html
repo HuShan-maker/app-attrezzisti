@@ -493,25 +493,34 @@
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
     applyTheme();
     
-    // --- 最终修复逻辑：彻底取消重载，改为静默实时监控 ---
+    // --- 最终修复逻辑：监控系统时间篡改 ---
+    let lastCalculatedTurno = getRealTimeTurno();
+
     setInterval(() => {
         const currentRealTurno = getRealTimeTurno(); 
-        const isActuallyMyShift = (myShift === currentRealTurno);
         const contentArea = document.getElementById('dynamicContent');
         const turnoLabel = document.getElementById('turnoDisp');
 
-        // 核心改动：在判定状态时，不仅切换 CSS，还要强制刷新 Grid 的渲染
+        // 如果手动改了系统时间导致班次变化，立即强制重绘
+        if (currentRealTurno !== lastCalculatedTurno) {
+            console.log("Sistema: Cambio turno o orario rilevato. Sync...");
+            lastCalculatedTurno = currentRealTurno;
+            renderGrid();
+            updateGlobalBadges();
+            applyTheme();
+        }
+
+        const isActuallyMyShift = (myShift === currentRealTurno);
+
         if (isActuallyMyShift) {
             if (contentArea.classList.contains('shift-lock-ui')) {
                 contentArea.classList.remove('shift-lock-ui');
                 turnoLabel.classList.add('turno-on');
-                renderGrid(); // 强制刷新 Grid 状态
             }
         } else {
             if (!contentArea.classList.contains('shift-lock-ui')) {
                 contentArea.classList.add('shift-lock-ui');
                 turnoLabel.classList.remove('turno-on');
-                renderGrid(); // 强制刷新 Grid 状态，这会让按钮变灰
             }
         }
     }, 1000); 
