@@ -3,7 +3,7 @@
  * Version: p3-fast-v22 (升级版本号以强制刷新)
  */
 
-const CACHE_NAME = 'link-diretto-v22'; 
+const CACHE_NAME = 'link-diretto-v23'; 
 
 const ASSETS = [
   '/',                // 根路径
