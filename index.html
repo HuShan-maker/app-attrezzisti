@@ -30,6 +30,7 @@
 
         .menu { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 16px; }
         
+        /* 保持你原本漂亮的选项样式 */
         .option {
             background: #fff; border-radius: 22px; padding: 18px 22px;
             text-decoration: none; display: flex; align-items: center;
@@ -92,26 +93,34 @@
     <div class="footer-text">© <span id="curYear"></span> HU SHAN · ALL RIGHTS RESERVED</div>
 
     <script>
-        // --- 开发者/分流 核心逻辑 ---
+        // --- 核心分流与 PWA 保持逻辑 ---
         const params = new URLSearchParams(window.location.search);
         const role = params.get('role');
 
-        if (role === 'a') {
-            window.location.replace('index_A.html');
-        } else if (role === 'b') {
-            window.location.replace('index_B.html');
-        } else if (role === 'c') {
-            window.location.replace('index_C.html');
+        if (role) {
+            // 如果链接带参数，延迟跳转，给 Safari 识别 PWA 配置文件的时间
+            setTimeout(() => {
+                if (role === 'a') {
+                    window.location.replace('index_A.html');
+                } else if (role === 'b') {
+                    window.location.replace('index_B.html');
+                } else if (role === 'c') {
+                    window.location.replace('index_C.html');
+                }
+            }, 800); // 800ms 足够识别 manifest，且不会让用户等得心烦
         } else {
-            // 如果没有 role 参数，说明是你在调试，展示漂亮的三段入口
+            // 如果没有 role 参数，说明是你在调试或直接访问，展示三段入口
             document.getElementById('devMenu').style.display = 'flex';
         }
 
         document.getElementById('curYear').innerText = new Date().getFullYear();
 
+        // 注册 Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js');
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('PWA: Service Worker OK'))
+                    .catch(err => console.log('PWA: Service Worker Error', err));
             });
         }
     </script>
