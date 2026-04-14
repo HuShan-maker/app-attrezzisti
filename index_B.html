@@ -269,6 +269,45 @@
 
     db.ref('active_calls').on('value', (snapshot) => {
         act = snapshot.val() || {};
+        
+        // --- 新增：自动定位功能 ---
+        if (isInitialLoad && Object.keys(act).length > 0) {
+            let targetPiano = null;
+            
+            // 1. 优先定位到自己正在处理的任务 (红色)
+            for (let p = 1; p <= 5; p++) {
+                if (pianoData[p].some(id => act[id] && act[id].status === 'red' && act[id].takenBy === myDeviceId)) {
+                    targetPiano = p;
+                    break;
+                }
+            }
+            
+            // 2. 如果没接任务，定位到全场第一个等待的任务 (橙色)
+            if (!targetPiano) {
+                // 先把所有橙色呼叫拿出来按时间排个序
+                const orangeCalls = Object.keys(act)
+                    .filter(id => act[id].status === 'orange' && id !== 'FUORI')
+                    .sort((a, b) => act[a].startA - act[b].startA);
+                
+                if (orangeCalls.length > 0) {
+                    const firstId = orangeCalls[0];
+                    for (let p = 1; p <= 5; p++) {
+                        if (pianoData[p].includes(firstId)) {
+                            targetPiano = p;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (targetPiano) {
+                curPiano = targetPiano;
+            }
+            isInitialLoad = false;
+        } else if (isInitialLoad) {
+            isInitialLoad = false; // 即使没任务，也标记初始加载完成
+        }
+
         renderGrid(); 
         updateGlobalBadges(); 
         applyTheme();
@@ -527,3 +566,4 @@
 </script>
 </body>
 </html>
+
