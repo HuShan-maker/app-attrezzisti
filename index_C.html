@@ -43,12 +43,11 @@
         .card.st-waiting { border-color: var(--orange); }
         .card.st-working { border-color: var(--red); }
         .card.st-completed { border-color: var(--black); }
-        /* 修改：取消卡片样式 - 淡灰色并变扁 */
-        .card.st-annulato { min-height: 55px !important; background: #f2f2f7; border: 1px solid #d1d1d6; opacity: 0.7; box-shadow: none; }
+        /* 取消卡片：全背景灰色 */
+        .card.st-annulato { min-height: 55px !important; background: #d1d1d6 !important; border: 1px solid #aeaeaf !important; opacity: 0.8; box-shadow: none; }
 
         .card-left { display: flex; flex-direction: column; gap: 6px; flex: 0.7; min-width: 80px; justify-content: center; align-items: flex-start; }
         .card-badge { font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; color: #fff; letter-spacing: 0.3px; white-space: nowrap; }
-        /* 颜色辅助类 */
         .bg-orange { background-color: var(--orange); }
         .bg-red { background-color: var(--red); }
         .bg-black { background-color: var(--black); }
@@ -327,7 +326,6 @@
         const now = Date.now(); const todayStr = new Date().toLocaleDateString('it-IT');
         const currentTurno = getRealTimeTurno();
 
-        // 核心修改：使用 Map 过滤同一时间戳的任务，防止重复
         const uniqueItemsMap = new Map();
 
         const cloudItems = Object.keys(cloudData).filter(id => {
@@ -345,7 +343,6 @@
         });
 
         logs.filter(l => l.day === todayStr && l.t === currentTurno && !l.hideFromBoard).forEach(l => {
-            // 如果云端已经有了（即还在活跃列表中），则不显示本地存档版本，防止重复
             if (!uniqueItemsMap.has(l.st)) {
                 uniqueItemsMap.set(l.st, {
                     id: l.i, status: 'completed', startA: l.st, endT: l.et, causale: l.c, techName: l.tech, tA: l.tA, tD: l.tD, isLocal: true, sortTime: l.et || l.st, startTimeStr: l.s
@@ -353,10 +350,12 @@
             }
         });
 
-        // 排序逻辑：取消任务始终置底
         const all = Array.from(uniqueItemsMap.values()).sort((a, b) => {
-            const aAnn = String(a.causale).includes("ANNULATO"); const bAnn = String(b.causale).includes("ANNULATO");
+            // 排序逻辑：取消卡片绝对置底
+            const aAnn = String(a.causale).toUpperCase().includes("ANNULATO"); 
+            const bAnn = String(b.causale).toUpperCase().includes("ANNULATO");
             if (aAnn && !bAnn) return 1; if (!aAnn && bAnn) return -1;
+            
             const bTo = (!b.isLocal && b.status === 'orange' && Math.round((Date.now() - b.startA) / 60000) >= 15);
             const aTo = (!a.isLocal && a.status === 'orange' && Math.round((Date.now() - a.startA) / 60000) >= 15);
             if (aTo && !bTo) return -1; if (!aTo && bTo) return 1;
@@ -364,7 +363,7 @@
         });
 
         all.forEach(item => {
-            const isAnnulato = String(item.causale).includes("ANNULATO");
+            const isAnnulato = String(item.causale).toUpperCase().includes("ANNULATO");
             let waitMin = item.isLocal ? item.tA : Math.round((now-item.startA)/60000);
             let workMin = item.isLocal ? item.tD : (item.startB ? Math.round((now-item.startB)/60000) : 0);
             let statusL, colorC, statusK;
@@ -375,9 +374,9 @@
             card.className = `card st-${isAnnulato ? 'annulato' : statusK}`;
             if(!item.isLocal && item.status === 'orange' && waitMin >= 15) card.classList.add('timeout-critical');
             if (isAnnulato) {
-                card.innerHTML = `<div class="card-left"><div class="card-linea" style="font-size: 18px; color: var(--text-sec);">${item.id}</div></div>
-                    <div class="card-center" style="border:none; text-align: center;"><div style="font-size: 11px; font-weight: 700; color: var(--text-sec);">ANNULLATO DA OPERATORE</div></div>
-                    <div class="card-right" style="min-width: 50px;"><div style="font-size: 10px; color: var(--text-sec);">${item.startTimeStr}</div></div>`;
+                card.innerHTML = `<div class="card-left"><div class="card-linea" style="font-size: 18px; color: #48484a;">${item.id}</div></div>
+                    <div class="card-center" style="border:none; text-align: center;"><div style="font-size: 11px; font-weight: 800; color: #48484a;">ANNULLATO DA OPERATORE</div></div>
+                    <div class="card-right" style="min-width: 50px;"><div style="font-size: 10px; color: #48484a; font-weight:700;">${item.startTimeStr}</div></div>`;
             } else {
                 card.innerHTML = `<div class="card-left"><div class="card-badge bg-${colorC}">${statusL}</div><div class="card-linea" style="margin-bottom: 20px;">${item.id}</div></div>
                     <div class="card-center"><div class="card-stats">Inizio: <b>${item.startTimeStr}</b><br>Attesa: <b>${waitMin}m</b> | Durata: <b>${workMin}m</b><br>Causale: <b>${item.causale||"-"}</b><br>Tecnico: <b>${item.techName||item.takenBy||"-"}</b></div></div>
