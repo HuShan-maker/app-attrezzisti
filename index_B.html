@@ -52,31 +52,27 @@
         .p-badge { position: absolute; top: -5px; right: -5px; background: var(--red); width: 13px; height: 13px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; animation: badgePulse 1.5s infinite; border: 2px solid white; }
         @keyframes badgePulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* 网格动画 */
+        /* 网格布局 */
         #g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; }
         .slide-left { transform: translateX(-30px); opacity: 0; }
         .slide-right { transform: translateX(30px); opacity: 0; }
         
         .btn-wrap { position: relative; width: 100%; aspect-ratio: 1/1; }
-        .btn-machine { 
-            width: 100%; height: 100%; border: none; border-radius: 24px; 
-            font-weight: 800; font-size: 17px; background: var(--btn-gray); transition: all 0.3s;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
+        .btn-machine { width: 100%; height: 100%; border: none; border-radius: 24px; font-weight: 800; font-size: 17px; background: var(--btn-gray); transition: all 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .badge { position: absolute; top: -4px; right: -4px; width: 22px; height: 22px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
         .or { background: var(--red) !important; color: #fff !important; animation: pulseRed 1.5s infinite; box-shadow: 0 0 15px rgba(255,59,48,0.4) !important; }
         .locked-btn { background: var(--locked-gray-red) !important; color: rgba(255, 255, 255, 0.8) !important; opacity: 0.8; pointer-events: none; }
         .waiting { background: var(--orange) !important; color: #fff !important; animation: pulseOrange 1.5s infinite; box-shadow: 0 0 15px rgba(255,149,0,0.3) !important; }
         
-        /* 换单专用紫色 */
+        /* 紫色换单卡片 */
         .cambio { background: var(--purple) !important; color: #fff !important; box-shadow: 0 0 15px rgba(88, 86, 214, 0.4) !important; }
         .modello-tag { font-size: 9px; opacity: 0.9; margin-top: 2px; background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 4px; font-weight: 700; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         @keyframes pulseRed { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); opacity: 0.8; } }
         @keyframes pulseOrange { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.96); opacity: 0.7; } }
 
-        /* 底部对齐网格按钮的大小 */
+        /* 底部大按钮区域 */
         .bottom-area { 
             display: grid; 
             grid-template-columns: repeat(4, 1fr); 
@@ -84,19 +80,17 @@
             margin-top: 20px; 
             padding-bottom: 30px; 
         }
-        .info-search-btn { 
-            grid-column: span 1; 
-            aspect-ratio: 1/1; 
-            background: var(--btn-gray); border: none; border-radius: 24px; 
-            font-size: 14px; font-weight: 800; text-transform: uppercase; transition: 0.3s; 
+        .info-search-btn, .fuori-btn { 
+            grid-column: span 2; 
+            width: 100%; 
+            aspect-ratio: 2/0.95; /* 调整比例使其高度与上方16格对齐 */
+            border: none; border-radius: 24px; 
+            background: var(--btn-gray); font-weight: 800; 
+            text-transform: uppercase; transition: 0.3s; 
+            display: flex; align-items: center; justify-content: center;
         }
-        .fuori-btn { 
-            grid-column: span 1; 
-            aspect-ratio: 1/1; 
-            background: var(--btn-gray); border: none; border-radius: 24px; 
-            font-size: 10px; font-weight: 800; text-transform: uppercase; transition: 0.3s; 
-            line-height: 1.1;
-        }
+        .info-search-btn { font-size: 16px; }
+        .fuori-btn { font-size: 13px; }
         
         .color-picker-wrap { position: fixed; right: 20px; bottom: 40px; z-index: 50; width: 40px; height: 40px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3); }
         #floorColor { width: 24px; height: 24px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer; }
@@ -106,8 +100,8 @@
         .back-arrow { font-size: 30px; cursor: pointer; padding: 10px; line-height: 1; }
         .v-h2 { font-size: 13px; font-weight: 900; text-transform: uppercase; margin: 0; text-align: center; white-space: nowrap; letter-spacing: -0.2px; }
         
-        /* 大尺寸技术资料弹窗样式 */
-        #techModal .modal-content { width: 92%; max-width: 450px; padding: 30px 20px; border-radius: 35px; text-align: left; position: relative;}
+        /* 大弹窗样式 */
+        #techModal .modal-content { width: 92%; max-width: 450px; padding: 30px 20px; border-radius: 35px; text-align: left; position: relative; }
         .tech-title { font-size: 20px; font-weight: 900; color: var(--purple); text-align: center; margin-bottom: 5px; text-transform: uppercase; }
         .eye-count { font-size: 10px; color: var(--red); font-weight: 800; text-align: center; display: block; margin-bottom: 20px; text-transform: uppercase; }
         .tech-row { margin-bottom: 15px; border-bottom: 1px solid #f2f2f7; padding-bottom: 8px; }
@@ -117,7 +111,6 @@
         #confirmModal, #editModal, #nameModal, #dayConfirmModal, #fuoriModal, #techModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 400; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-content { background: #fff; width: 85%; padding: 25px; border-radius: 30px; text-align: center; }
         .modal-btn { background: #000; color: #fff; padding: 15px; border-radius: 15px; font-weight: 700; width: 100%; font-size: 16px; border: none; margin-top: 10px; }
-        .modal-input { width: 100%; padding: 15px; text-align: center; border-radius: 12px; border: 1px solid #ddd; outline: none; font-size: 16px; margin-bottom: 10px; }
     </style>
 </head>
 <body class="p1">
@@ -151,7 +144,7 @@
     <div id="techModal">
         <div class="modal-content">
             <div class="tech-title" id="techTitle">SCHEDA TECNICA</div>
-            <span class="eye-count" id="observerCount">Occhi su questo modello: 0</span>
+            <span class="eye-count" id="observerCount">OCCHI SUL MODELLO: 0</span>
             <div id="techBody"></div>
             <button class="modal-btn" id="takeJobBtn" style="background:var(--purple)">PRENDI IN CARICO</button>
             <button class="modal-btn" style="background:var(--btn-gray); color:#000; margin-top:10px;" id="closeTechBtn">CHIUDI</button>
@@ -181,6 +174,7 @@
     </div>
 
 <script>
+    // --- 1. Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyAUBXn_liUqQJtp1hucwsuERhZ4oxCdBPg",
         authDomain: "luxottica-app.firebaseapp.com",
@@ -269,20 +263,18 @@
         applyTheme();
     });
 
-    // 换单技术资料大窗口逻辑 + 多人观察计数
+    // 换单技术详情+多人观察逻辑
     function openTechModal(lineId, modello) {
         if (!modello) return;
         const observerRef = db.ref(`maintenance/observers/${modello}/${myDeviceId}`);
         const allObserversRef = db.ref(`maintenance/observers/${modello}`);
         
-        // 1. 设置自己在观察
         observerRef.set(true);
         observerRef.onDisconnect().remove();
 
-        // 2. 监听总观察人数
         allObserversRef.on('value', snap => {
             const count = snap.numChildren();
-            document.getElementById('observerCount').innerText = `Occhi su questo modello: ${count}`;
+            document.getElementById('observerCount').innerText = `OCCHI SUL MODELLO: ${count}`;
         });
 
         db.ref('model_db/' + modello).once('value').then(snap => {
@@ -296,17 +288,16 @@
             
             if (info) {
                 body.innerHTML = `
-                    <div class="tech-row"><div class="tech-label">Programma Macchina</div><div class="tech-value">${info.programma || '-'}</div></div>
-                    <div class="tech-row"><div class="tech-label">Posaggi / Morse</div><div class="tech-value">${info.posaggio || '-'}</div></div>
-                    <div class="tech-row"><div class="tech-label">Utensili (Dispenser)</div><div class="tech-value">${info.tools || '-'}</div></div>
-                    <div class="tech-row"><div class="tech-label">Note Importanti</div><div class="tech-value" style="color:var(--red)">${info.note || '-'}</div></div>
+                    <div class="tech-row"><div class="tech-label">Programma</div><div class="tech-value">${info.programma || '-'}</div></div>
+                    <div class="tech-row"><div class="tech-label">Posaggi</div><div class="tech-value">${info.posaggio || '-'}</div></div>
+                    <div class="tech-row"><div class="tech-label">Utensili</div><div class="tech-value">${info.tools || '-'}</div></div>
+                    <div class="tech-row"><div class="tech-label">Note</div><div class="tech-value" style="color:var(--red)">${info.note || '-'}</div></div>
                 `;
             } else {
-                body.innerHTML = `<div style="padding:20px; color:#8e8e93; text-align:center;">Dati non trovati nel database.</div>`;
+                body.innerHTML = `<div style="padding:20px; color:#8e8e93; text-align:center;">Dati non trovati.</div>`;
             }
 
-            const currentTask = act[lineId];
-            if (lineId && currentTask && currentTask.status === 'orange') {
+            if (lineId && act[lineId] && act[lineId].status === 'orange') {
                 btn.style.display = 'block';
                 btn.onclick = () => {
                     const sTime = firebase.database.ServerValue.TIMESTAMP;
@@ -318,16 +309,9 @@
                         modal.style.display = 'none';
                     });
                 };
-            } else {
-                btn.style.display = 'none';
-            }
+            } else { btn.style.display = 'none'; }
 
-            closeBtn.onclick = () => {
-                observerRef.remove();
-                allObserversRef.off();
-                modal.style.display = 'none';
-            };
-            
+            closeBtn.onclick = () => { observerRef.remove(); allObserversRef.off(); modal.style.display = 'none'; };
             modal.style.display = 'flex';
         });
     }
@@ -337,16 +321,12 @@
         const sTime = firebase.database.ServerValue.TIMESTAMP;
         if (!act[id]) return; 
         const task = act[id];
-        
         if (task.causale === 'Cambio' && task.status === 'orange') {
             openTechModal(id, task.modello);
             return;
         }
-
         if (task.status === 'orange') {
-            db.ref('active_calls/' + id).update({ 
-                status: 'red', startD: sTime, startB: sTime, takenBy: myDeviceId, techName: currentUserName 
-            });
+            db.ref('active_calls/' + id).update({ status: 'red', startD: sTime, startB: sTime, takenBy: myDeviceId, techName: currentUserName });
         } 
         else if (task.status === 'red' && task.takenBy === myDeviceId) {
             const now = Date.now() + serverTimeOffset;
@@ -369,19 +349,13 @@
         const newLog = { 
             i: id, day: nowServer.toLocaleDateString('it-IT'), 
             s: new Date(startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
-            tA: Math.round((startD - startA) / 60000), tD: Math.round((endT - startD) / 60000), 
-            st: startA, c: causale, tech: tech
+            tA: Math.round((startD - startA) / 60000), tD: Math.round((endT - startD) / 60000), st: startA, c: causale, tech: tech
         };
         logs.push(newLog);
         if(!dayHistory.includes(newLog.day)) dayHistory.push(newLog.day);
         saveState();
         if (id !== 'FUORI') {
-            db.ref(`history/${dateKey}/${id}_${endT}`).set({
-                id: id, startA: startA, startD: startD, endT: endT,
-                causale: causale, techName: tech, status: 'completed',
-                turno: getRealTimeTurno(),
-                modello: act[id]?.modello || ""
-            });
+            db.ref(`history/${dateKey}/${id}_${endT}`).set({ id, startA, startD, endT, causale, techName: tech, status: 'completed', turno: getRealTimeTurno(), modello: act[id]?.modello || "" });
         }
     }
 
@@ -413,35 +387,27 @@
         const turnoLabel = document.getElementById('turnoDisp');
         const contentArea = document.getElementById('dynamicContent');
         const isWorkingTime = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
-        
         turnoLabel.innerText = myShift;
         if (isWorkingTime) { contentArea.classList.remove('shift-lock-ui'); turnoLabel.classList.add('turno-on'); } 
         else { contentArea.classList.add('shift-lock-ui'); turnoLabel.classList.remove('turno-on'); }
-
         const allOrangeIds = Object.keys(act).filter(key => key !== 'FUORI' && act[key].status === 'orange').sort((a, b) => act[a].startA - act[b].startA);
         const c = themeConfig[curPiano];
-        
         pianoData[curPiano].forEach(i => {
             const wrap = document.createElement('div'); wrap.className = 'btn-wrap';
             const b = document.createElement('button'); 
             const s = isWorkingTime ? act[i] : null; 
-            b.className = 'btn-machine'; 
+            b.className = 'btn-machine'; b.innerText = i;
             if (s && (s.status === 'orange' || s.status === 'red')) {
                 if (s.status === 'orange') { 
-                    if (s.causale === 'Cambio') {
-                        b.classList.add('cambio');
-                        b.innerHTML = `<span>${i}</span><span class="modello-tag">${s.modello || ''}</span>`;
-                    } else { b.classList.add('waiting'); b.innerText = i; }
+                    if (s.causale === 'Cambio') { b.classList.add('cambio'); b.innerHTML = `<span>${i}</span><span class="modello-tag">${s.modello || ''}</span>`; } 
+                    else { b.classList.add('waiting'); }
                     b.style.color = "#ffffff"; 
-                } 
-                else { 
-                    if (s.takenBy === myDeviceId) { 
-                        b.classList.add('or'); 
-                        if (s.causale === 'Cambio') { b.innerHTML = `<span>${i}</span><span class="modello-tag">${s.modello || ''}</span>`; } else { b.innerText = i; }
-                        b.style.color = "#ffffff"; 
-                    } else { b.classList.add('locked-btn'); b.innerText = i; } 
+                } else { 
+                    if (s.takenBy === myDeviceId) { b.classList.add('or'); if (s.causale === 'Cambio') { b.innerHTML = `<span>${i}</span><span class="modello-tag">${s.modello || ''}</span>`; } } 
+                    else { b.classList.add('locked-btn'); }
+                    b.style.color = "#ffffff"; 
                 }
-            } else { b.innerText = i; b.style.color = c; b.style.backgroundColor = 'var(--btn-gray)'; }
+            } else { b.style.color = c; b.style.backgroundColor = 'var(--btn-gray)'; }
             b.onclick = () => isWorkingTime && handleMachineClick(i); 
             wrap.appendChild(b);
             if (isWorkingTime && s && s.status === 'orange') {
@@ -449,12 +415,7 @@
             }
             gd.appendChild(wrap);
         });
-        
-        const f = document.getElementById('btn-fuori');
-        const fs = isWorkingTime ? act['FUORI'] : null;
-        f.className = (fs && fs.status === 'red') ? 'fuori-btn or' : 'fuori-btn';
-        if (!(fs && fs.status === 'red')) f.style.color = c;
-        // 同步底部按钮文字颜色
+        document.getElementById('btn-fuori').style.color = (act['FUORI'] && act['FUORI'].status === 'red') ? '#fff' : c;
         document.getElementById('btn-info').style.color = c;
     }
 
