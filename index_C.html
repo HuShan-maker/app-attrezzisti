@@ -44,8 +44,8 @@
         .card.st-working { border-color: var(--red); }
         .card.st-completed { border-color: var(--black); }
         
-        /* 协调浅灰色取消卡片 */
-        .card.st-annulato { 
+        /* 修改点 1: CSS 类名改为两个 L 确保匹配 */
+        .card.st-annullato { 
             min-height: 55px !important; 
             background: #e5e5ea !important; 
             border: 1px solid #d1d1d6 !important; 
@@ -73,7 +73,6 @@
         .timeout-critical { animation: pulseWarning 0.8s infinite; border-color: var(--orange) !important; background: #fff9f0; }
         @keyframes pulseWarning { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        /* 主页底部容器居中 */
         .home-footer { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0; flex-shrink: 0; }
 
         #historyPage, #feedbackPage { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 500; flex-direction: column; padding-top: env(safe-area-inset-top); }
@@ -120,7 +119,6 @@
             margin-bottom: 60px; 
         }
 
-        /* 修改后的 Archivio 页面底部清理按钮样式 */
         .history-footer { padding: 15px; display: flex; justify-content: center; border-top: 1px solid #f2f2f7; background: #fff; }
         .btn-clear-old {
             background: #fff; color: var(--red); border: 1.5px solid var(--red); 
@@ -341,7 +339,6 @@
         const now = Date.now(); const todayStr = new Date().toLocaleDateString('it-IT');
         const currentTurno = getRealTimeTurno();
 
-        // 引入 Map 进行排重
         const uniqueItemsMap = new Map();
 
         const cloudItems = Object.keys(cloudData).filter(id => {
@@ -376,13 +373,16 @@
             const isAnnulato = String(item.causale).toUpperCase().includes("ANNULL");
             let waitMin = item.isLocal ? item.tA : Math.round((now-item.startA)/60000);
             let workMin = item.isLocal ? item.tD : (item.startB ? Math.round((now-item.startB)/60000) : 0);
+            
+            // 修改点 2: 将这里的状态变量统一为 annullato (两个L)
             let statusL, colorC, statusK;
             if(item.status === 'orange') { statusL = 'ATTESA'; colorC = 'orange'; statusK = 'waiting'; }
             else if(item.status === 'red' || item.status === 'finishing') { statusL = 'LAVORO'; colorC = 'red'; statusK = 'working'; }
             else { statusL = 'FINE'; colorC = 'black'; statusK = 'completed'; }
             
             const card = document.createElement('div');
-            card.className = `card st-${isAnnulato ? 'annulato' : statusK}`;
+            // 修改点 3: 这里也统一为 annullato
+            card.className = `card st-${isAnnulato ? 'annullato' : statusK}`;
             if(!item.isLocal && item.status === 'orange' && waitMin >= 15) card.classList.add('timeout-critical');
             
             if (isAnnulato) {
@@ -410,7 +410,6 @@
             const countA = dayLogs.filter(l => l.t === "Turno A" && !String(l.c).toUpperCase().includes("ANNULL") && !String(l.c).includes("CHIUSURA")).length;
             const countB = dayLogs.filter(l => l.t === "Turno B" && !String(l.c).toUpperCase().includes("ANNULL") && !String(l.c).includes("CHIUSURA")).length;
             
-            // 权限限制：今天和昨天不显示 X
             const canDelete = (day !== todayStr && day !== yesterdayStr);
             
             const section = document.createElement('div');
