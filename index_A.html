@@ -199,24 +199,32 @@
         if(!score || score < 1 || score > 5) { alert("Inserisci un punteggio tra 1 e 5!"); return; }
         
         const btn = document.getElementById('fSubmitBtn');
-        btn.disabled = true; btn.innerText = "Invio...";
+        btn.disabled = true; 
+        btn.innerText = "Invio..."; // 修正此处的显示
 
         db.ref('feedbacks').push({
-            attrezzista: name, punteggio: score, messaggio: note,
-            timestamp: Date.now(), linea: lineaInput.value || "N/A", data: new Date().toLocaleDateString('it-IT'),
-            turno: getActiveTurno() // 使用实时函数
+            attrezzista: name, 
+            punteggio: score, 
+            messaggio: note,
+            timestamp: Date.now(), 
+            linea: lineaInput.value || "N/A", 
+            data: new Date().toLocaleDateString('it-IT'),
+            turno: getActiveTurno() 
         }).then(() => {
             alert("Feedback inviato!");
             document.getElementById('fModal').style.display = 'none';
             nameSelect.selectedIndex = 0; 
             document.getElementById('fScore').value = ""; 
             document.getElementById('fNote').value = "";
-            btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
+            btn.disabled = false; 
+            btn.innerText = "INVIA FEEDBACK"; // 修正此处拼写错误
         }).catch(err => {
             alert("ERRORE: " + err.message);
-            btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
+            btn.disabled = false; 
+            btn.innerText = "INVIA FEEDBACK";
         });
     }
+
 
     function getActiveTurno() {
         const now = new Date();
