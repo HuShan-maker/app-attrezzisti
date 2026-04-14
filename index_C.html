@@ -43,8 +43,9 @@
         .card.st-waiting { border-color: var(--orange); }
         .card.st-working { border-color: var(--red); }
         .card.st-completed { border-color: var(--black); }
-        /* 取消卡片：全背景灰色 */
-        .card.st-annulato { min-height: 55px !important; background: #d1d1d6 !important; border: 1px solid #aeaeaf !important; opacity: 0.8; box-shadow: none; }
+        
+        /* 强制取消卡片背景为深灰色，且边框变淡 */
+        .card.st-annulato { min-height: 55px !important; background: #8e8e93 !important; border: 1px solid #c7c7cc !important; opacity: 1 !important; box-shadow: none !important; }
 
         .card-left { display: flex; flex-direction: column; gap: 6px; flex: 0.7; min-width: 80px; justify-content: center; align-items: flex-start; }
         .card-badge { font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; color: #fff; letter-spacing: 0.3px; white-space: nowrap; }
@@ -351,14 +352,18 @@
         });
 
         const all = Array.from(uniqueItemsMap.values()).sort((a, b) => {
-            // 排序逻辑：取消卡片绝对置底
-            const aAnn = String(a.causale).toUpperCase().includes("ANNULATO"); 
-            const bAnn = String(b.causale).toUpperCase().includes("ANNULATO");
-            if (aAnn && !bAnn) return 1; if (!aAnn && bAnn) return -1;
+            // 精准判定：只要包含 "ANNULATO" 无论大小写，权重设为 999 强制置底
+            const aIsAnn = String(a.causale).toUpperCase().includes("ANNULATO"); 
+            const bIsAnn = String(b.causale).toUpperCase().includes("ANNULATO");
             
+            if (aIsAnn && !bIsAnn) return 1; 
+            if (!aIsAnn && bIsAnn) return -1;
+            
+            // 正常的超时优先逻辑
             const bTo = (!b.isLocal && b.status === 'orange' && Math.round((Date.now() - b.startA) / 60000) >= 15);
             const aTo = (!a.isLocal && a.status === 'orange' && Math.round((Date.now() - a.startA) / 60000) >= 15);
             if (aTo && !bTo) return -1; if (!aTo && bTo) return 1;
+            
             return b.sortTime - a.sortTime;
         });
 
@@ -367,16 +372,27 @@
             let waitMin = item.isLocal ? item.tA : Math.round((now-item.startA)/60000);
             let workMin = item.isLocal ? item.tD : (item.startB ? Math.round((now-item.startB)/60000) : 0);
             let statusL, colorC, statusK;
+            
             if(item.status === 'orange') { statusL = 'ATTESA'; colorC = 'orange'; statusK = 'waiting'; }
             else if(item.status === 'red' || item.status === 'finishing') { statusL = 'LAVORO'; colorC = 'red'; statusK = 'working'; }
             else { statusL = 'FINE'; colorC = 'black'; statusK = 'completed'; }
+
             const card = document.createElement('div');
+            // 如果是取消，强制加上 st-annulato 类
             card.className = `card st-${isAnnulato ? 'annulato' : statusK}`;
+
             if(!item.isLocal && item.status === 'orange' && waitMin >= 15) card.classList.add('timeout-critical');
+            
             if (isAnnulato) {
-                card.innerHTML = `<div class="card-left"><div class="card-linea" style="font-size: 18px; color: #48484a;">${item.id}</div></div>
-                    <div class="card-center" style="border:none; text-align: center;"><div style="font-size: 11px; font-weight: 800; color: #48484a;">ANNULLATO DA OPERATORE</div></div>
-                    <div class="card-right" style="min-width: 50px;"><div style="font-size: 10px; color: #48484a; font-weight:700;">${item.startTimeStr}</div></div>`;
+                // 取消卡片的具体内容
+                card.innerHTML = `
+                    <div class="card-left"><div class="card-linea" style="font-size: 18px; color: #fff;">${item.id}</div></div>
+                    <div class="card-center" style="border:none; text-align: center;">
+                        <div style="font-size: 11px; font-weight: 800; color: #fff; letter-spacing:0.5px;">ANNULLATO DA OPERATORE</div>
+                    </div>
+                    <div class="card-right" style="min-width: 50px;">
+                        <div style="font-size: 10px; color: #eee; font-weight:700;">${item.startTimeStr}</div>
+                    </div>`;
             } else {
                 card.innerHTML = `<div class="card-left"><div class="card-badge bg-${colorC}">${statusL}</div><div class="card-linea" style="margin-bottom: 20px;">${item.id}</div></div>
                     <div class="card-center"><div class="card-stats">Inizio: <b>${item.startTimeStr}</b><br>Attesa: <b>${waitMin}m</b> | Durata: <b>${workMin}m</b><br>Causale: <b>${item.causale||"-"}</b><br>Tecnico: <b>${item.techName||item.takenBy||"-"}</b></div></div>
