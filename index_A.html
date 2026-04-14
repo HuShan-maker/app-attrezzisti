@@ -201,7 +201,7 @@
         const btn = document.getElementById('fSubmitBtn');
         btn.disabled = true; btn.innerText = "Invio...";
 
-        db.ref('feedback_pending').push({
+        db.ref('feedbacks').push({
             attrezzista: name, punteggio: score, messaggio: note,
             timestamp: Date.now(), linea: lineaInput.value || "N/A", data: new Date().toLocaleDateString('it-IT'),
             turno: getActiveTurno() // 使用实时函数
@@ -307,7 +307,7 @@
 
     function cancelCall() {
     const id = localStorage.getItem('myActiveCall');
-    if (!id || !confirm("Annullare la chiamata for linea " + id.toUpperCase() + "?")) return;
+    if (!id || !confirm("Annullare la chiamata per linea " + id.toUpperCase() + "?")) return;
 
     const now = Date.now();
     const dateKey = new Date().toISOString().split('T')[0];
