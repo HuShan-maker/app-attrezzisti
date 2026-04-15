@@ -92,14 +92,25 @@
             overflow-y: auto; 
             -webkit-overflow-scrolling: touch;
         }
+        /* --- 修改：任务信息行布局，添加中间虚线和靠左对齐 --- */
         .info-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             font-size: 13px;
             font-weight: 800;
-            padding-bottom: 4px;
-            border-bottom: 1px dashed rgba(0,0,0,0.05);
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .info-row span:first-child { 
+            width: 35%; /* 左侧线号宽度 */
+            text-align: right; 
+            padding-right: 15px;
+            border-right: 1.5px dashed rgba(0,0,0,0.15); /* 中间虚线 */
+        }
+        .info-row span:last-child { 
+            flex: 1; 
+            text-align: left; /* 原因靠左 */
+            padding-left: 15px; 
         }
         .info-row:last-child { border-bottom: none; }
         .clickable-modello { color: var(--blue); text-decoration: underline; cursor: pointer; }
@@ -126,6 +137,8 @@
         .m-half-btn { flex: 1; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 12px; border: none; text-transform: uppercase; color: #fff; transition: 0.2s; }
         .btn-crea-action { background: var(--green); }
         .btn-agg-action { background: #000; }
+        /* 按钮禁用状态样式 */
+        .btn-disabled { background: #ccc !important; opacity: 0.6 !important; pointer-events: none !important; }
 
         .color-picker-wrap { 
             position: fixed; 
@@ -407,6 +420,7 @@
         const cBtn = document.getElementById('mCreaBtn');
         const aBtn = document.getElementById('mAggiornaBtn');
         cBtn.innerText = "Crea Cartiglio";
+        cBtn.classList.remove('btn-disabled'); // 恢复 Crea 按钮
         aBtn.innerText = "Aggiorna Dati";
         cBtn.style.opacity = "1";
         aBtn.style.opacity = "1";
@@ -415,6 +429,7 @@
     async function handleModelloSearch(val) {
         if(mEditMode) return;
         const id = val.trim().toUpperCase();
+        const cBtn = document.getElementById('mCreaBtn');
         if(!id) { resetModForm(); return; }
 
         const snap = await db.ref(`modelli_db/${id}/current`).once('value');
@@ -429,13 +444,18 @@
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
 
+            // --- 修改：如果已存在，禁用 Crea 按钮 ---
+            cBtn.innerText = "GIA' CREATO";
+            cBtn.classList.add('btn-disabled');
+
             let html = "";
             if(historySnap.exists()){
                 const historyList = Object.values(historySnap.val()).reverse(); 
                 historyList.forEach(h => {
                     const dateStr = new Date(h.at).toLocaleDateString();
                     if(h.type === 'crea'){
-                        html += `<div class="history-item"><span style="color:var(--green)">[CREA]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
+                        // --- 修改：CREA 换成 CREATO ---
+                        html += `<div class="history-item"><span style="color:var(--green)">[CREATO]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
                     } else {
                         const diffArr = [];
                         if(h.diff) {
@@ -449,6 +469,9 @@
             document.getElementById('mHistoryBox').innerHTML = html;
         } else {
             resetModForm(false);
+            // --- 修改：如果不存在，恢复 Crea 按钮 ---
+            cBtn.innerText = "Crea Cartiglio";
+            cBtn.classList.remove('btn-disabled');
             document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
         }
     }
@@ -476,7 +499,6 @@
         }
     }
 
-    // --- 核心优化：改进差异检查逻辑 ---
     async function saveModello(id, type) {
         const newData = {
             macchina: document.getElementById('m_mac').value.trim(),
@@ -499,7 +521,6 @@
                 const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "";
                 const newVal = newData[k] ? String(newData[k]).trim() : "";
                 
-                // 修正逻辑：如果旧值为空/横杠且新值不为空，应准确记录 DA - A 新值
                 if(newVal !== oldVal) {
                     diffObj[k] = { 
                         old: (oldVal === "" || oldVal === "-") ? "-" : oldVal, 
@@ -507,7 +528,6 @@
                     };
                 }
             });
-            // 如果比对后没有任何字段发生变化，则不生成差异对象
             if (Object.keys(diffObj).length === 0) diffObj = null;
         }
 
