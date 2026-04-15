@@ -40,9 +40,14 @@
         .turno-on { background: var(--green) !important; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
         .shift-lock-ui { opacity: 0.6; pointer-events: none; filter: grayscale(1); }
 
-        .h { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 35px; }
+        /* 修改：让左右两边顶部对齐 */
+        .h { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 35px; }
+        .title-group { display: flex; flex-direction: column; gap: 0; }
         .btn-stack { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
-        h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; line-height: 1.1; display: flex; align-items: center; }
+        
+        /* 修改：调整 H2 确保文字和左边齐平 */
+        h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; line-height: 25px; display: flex; align-items: center; }
+        
         .user-subtitle { font-size: 14px; color: #8e8e93; font-weight: 600; margin-top: 5px; height: 25px; display: flex; align-items: center; cursor: pointer; min-width: 50px; }
         .reg-btn { background: #000; color: #fff; font-size: 11px; border: none; padding: 0 14px; border-radius: 9px; font-weight: 700; text-transform: uppercase; height: 25px; display: flex; align-items: center; min-width: 100px; justify-content: center;}
         
@@ -168,7 +173,7 @@
             <div id="userNameDisp" class="user-subtitle" onclick="handleNameClick()">Hu_Shan</div>
         </div>
         <div class="btn-stack">
-            <button class="reg-btn" onclick="showModelli()" style="margin-bottom:5px;">info modelli</button>
+            <button class="reg-btn" onclick="showModelli()">info modelli</button>
             <button class="reg-btn" onclick="showMemoria()">registro</button>
         </div>
     </div>
