@@ -93,12 +93,12 @@
 
         .copy-text { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; margin-bottom: 10px; }
 
+        /* 模态框通用样式 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
         .modal-content { background: #fff; width: 90%; max-width: 340px; border-radius: 30px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
         .modal-h2 { font-size: 18px; font-weight: 900; text-align: center; margin: 0; }
         .f-label { font-size: 11px; font-weight: 800; color: #8e8e93; margin-bottom: -10px; margin-left: 5px; text-transform: uppercase; }
-        .f-select { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; color: #000 !important; -webkit-appearance: none; }
-        .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; -webkit-user-select: text; user-select: text; }
+        .f-select, .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; -webkit-user-select: text; user-select: text; }
         .f-submit { background: var(--black); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 14px; margin-top: 10px; }
         .f-close { color: #8e8e93; font-size: 12px; font-weight: 700; text-align: center; margin-top: 5px; }
     </style>
@@ -128,7 +128,7 @@
             </select>
         </div>
 
-        <button id="mainBtn" class="main-btn status-none" onclick="sendCall()">
+        <button id="mainBtn" class="main-btn status-none" onclick="initiateCall()">
             <div id="btnIcon" class="btn-icon">⚡️</div>
             <div id="statusText" class="btn-text">Chiamare Attrezzista</div>
         </button>
@@ -138,6 +138,16 @@
     <button class="feedback-entry-btn" onclick="handleFeedbackOpen()">🎓 Crescita Tecnica</button>
 
     <div class="copy-text">© <span id="curYear"></span> HU SHAN · ALL RIGHTS RESERVED</div>
+
+    <div id="modelloModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-h2">Cambio Modello</h2>
+            <div class="f-label">Inserisci Modello (es. RB4195)</div>
+            <input type="text" id="modelloInput" class="f-input" placeholder="RB0000..." autocomplete="off">
+            <button class="f-submit" onclick="confirmModello()">CONFERMA E CHIAMA</button>
+            <div class="f-close" onclick="document.getElementById('modelloModal').style.display='none'">ANNULLA</div>
+        </div>
+    </div>
 
     <div id="fModal" class="modal">
         <div class="modal-content">
@@ -191,19 +201,17 @@
 
     function submitFeedback() {
         const nameSelect = document.getElementById('fName');
-        const name = nameSelect.value;
         const score = document.getElementById('fScore').value;
         const note = document.getElementById('fNote').value;
-
-        if(!name) { alert("Per favore, seleziona un attrezzista!"); return; }
+        if(!nameSelect.value) { alert("Per favore, seleziona un attrezzista!"); return; }
         if(!score || score < 1 || score > 5) { alert("Inserisci un punteggio tra 1 e 5!"); return; }
         
         const btn = document.getElementById('fSubmitBtn');
         btn.disabled = true; 
-        btn.innerText = "Invio..."; // 修正此处的显示
+        btn.innerText = "Invio...";
 
         db.ref('feedbacks').push({
-            attrezzista: name, 
+            attrezzista: nameSelect.value, 
             punteggio: score, 
             messaggio: note,
             timestamp: Date.now(), 
@@ -216,39 +224,29 @@
             nameSelect.selectedIndex = 0; 
             document.getElementById('fScore').value = ""; 
             document.getElementById('fNote').value = "";
-            btn.disabled = false; 
-            btn.innerText = "INVIA FEEDBACK"; // 修正此处拼写错误
+            btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
         }).catch(err => {
             alert("ERRORE: " + err.message);
-            btn.disabled = false; 
-            btn.innerText = "INVIA FEEDBACK";
+            btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
         });
     }
-
 
     function getActiveTurno() {
         const now = new Date();
         const hour = now.getHours() + (now.getMinutes() / 60);
-        // 修正基准时间为周一凌晨
         const baseDate = new Date(2025, 11, 29, 0, 0, 0); 
         const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-        const diff = now.getTime() - baseDate.getTime();
-        const totalWeeks = Math.floor(diff / msPerWeek) + 1;
+        const totalWeeks = Math.floor((now.getTime() - baseDate.getTime()) / msPerWeek) + 1;
         const isAfternoon = (hour >= 14.25); 
         const isSingleWeek = totalWeeks % 2 !== 0; 
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
     }
 
-    // 核心修复：定时检查并更新，且在 sendCall 时再次实时调用
     function updateShift() { 
         const current = getActiveTurno();
-        if (turnoLabel.innerText !== current) {
-            turnoLabel.innerText = current;
-            console.log("Turno aggiornato: " + current);
-        }
+        if (turnoLabel.innerText !== current) { turnoLabel.innerText = current; }
     }
-    updateShift(); 
-    setInterval(updateShift, 10000); // 10秒检查一次，更灵敏
+    updateShift(); setInterval(updateShift, 10000);
 
     function startListening() {
         const id = lineaInput.value.trim().toLowerCase();
@@ -278,26 +276,47 @@
     function resetUI() {
         mainBtn.className = "main-btn status-none"; statusText.innerText = "Chiamare Attrezzista"; btnIcon.innerText = "⚡️";
         mainBtn.classList.remove('locked'); cancelBtn.style.display = "none";
-        lineaInput.disabled = false; 
-        causaleSelect.disabled = false;
+        lineaInput.disabled = false; causaleSelect.disabled = false;
         causaleSelect.selectedIndex = 0; 
     }
 
-    function sendCall() {
+    // 新增拦截逻辑：判断是否是 Cambio
+    function initiateCall() {
         const id = lineaInput.value.trim().toLowerCase();
         const causale = causaleSelect.value;
         if(!id) { alert("INSERIRE LINEA!"); return; }
         const regex = /^[1-5]0[1-8](bis)?$/;
         if(!regex.test(id)) { alert("LINEA ERRATA!"); return; }
         if(!causale) { alert("SELEZIONA UNA CAUSALE!"); return; }
+
+        if (causale === "Cambio") {
+            // 弹出型号输入框
+            document.getElementById('modelloModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('modelloInput').focus(), 150);
+        } else {
+            sendCall(causale);
+        }
+    }
+
+    // Cambio 确认后的逻辑
+    function confirmModello() {
+        const modello = document.getElementById('modelloInput').value.trim();
+        if (!modello) { alert("INSERIRE MODELLO!"); return; }
+        const fullCausale = "Cambio " + modello.toUpperCase();
+        document.getElementById('modelloModal').style.display = 'none';
+        document.getElementById('modelloInput').value = "";
+        sendCall(fullCausale);
+    }
+
+    function sendCall(finalCausale) {
+        const id = lineaInput.value.trim().toLowerCase();
         db.ref('active_calls/' + id).once('value').then((snapshot) => {
             if (snapshot.exists() && snapshot.val().status !== 'completed') {
                 alert("ATTENZIONE: Linea " + id.toUpperCase() + " è già attiva!"); return; 
             }
-            // 这里必须再次实时调用函数
             const currentTurno = getActiveTurno();
             db.ref('active_calls/' + id).set({
-                startA: Date.now(), status: 'orange', causale: causale, turno: currentTurno
+                startA: Date.now(), status: 'orange', causale: finalCausale, turno: currentTurno
             }).then(() => {
                 localStorage.setItem('myActiveCall', id); startListening();
                 const tKey = currentTurno.replace(" ", "_");
@@ -305,7 +324,7 @@
                     const tokens = snap.val() || {};
                     Object.values(tokens).forEach(t => {
                         if(!t) return;
-                        const barkUrl = `https://api.day.app/${t}/⚠️ LINEA ${id.toUpperCase()}/Causale: ${causale}?sound=alarm&group=Luxottica&isArchive=1`;
+                        const barkUrl = `https://api.day.app/${t}/⚠️ LINEA ${id.toUpperCase()}/Causale: ${finalCausale}?sound=alarm&group=Luxottica&isArchive=1`;
                         fetch(barkUrl, { mode: 'no-cors', keepalive: true }).catch(() => {});
                     });
                 });
@@ -314,31 +333,22 @@
     }
 
     function cancelCall() {
-    const id = localStorage.getItem('myActiveCall');
-    if (!id || !confirm("Annullare la chiamata per linea " + id.toUpperCase() + "?")) return;
-
-    const now = Date.now();
-    const dateKey = new Date().toISOString().split('T')[0];
-
-    // 新增：先获取数据并存入历史路径
-    db.ref('active_calls/' + id).once('value').then(snap => {
-        const data = snap.val();
-        if (data) {
-            db.ref(`history/${dateKey}/${id}_${now}`).set({
-                ...data,
-                status: 'completed',
-                endT: now,
-                causale: "ANNULLATO DA OPERATORE"
+        const id = localStorage.getItem('myActiveCall');
+        if (!id || !confirm("Annullare la chiamata per linea " + id.toUpperCase() + "?")) return;
+        const now = Date.now();
+        const dateKey = new Date().toISOString().split('T')[0];
+        db.ref('active_calls/' + id).once('value').then(snap => {
+            const data = snap.val();
+            if (data) {
+                db.ref(`history/${dateKey}/${id}_${now}`).set({
+                    ...data, status: 'completed', endT: now, causale: "ANNULLATO DA OPERATORE"
+                });
+            }
+            db.ref('active_calls/' + id).remove().then(() => { 
+                localStorage.removeItem('myActiveCall'); resetUI(); 
             });
-        }
-        // 原有逻辑：删除活跃任务
-        db.ref('active_calls/' + id).remove().then(() => { 
-            localStorage.removeItem('myActiveCall'); 
-            resetUI(); 
         });
-    });
-}
-
+    }
 
     document.getElementById('curYear').innerText = new Date().getFullYear();
     const pLinea = localStorage.getItem('persistentLinea');
