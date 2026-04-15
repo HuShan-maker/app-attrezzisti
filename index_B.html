@@ -605,36 +605,46 @@
         
         if (isWorkingTime) {
             infoBox.style.borderColor = c; 
-            infoList.innerHTML = '';
-            
-            // 去重逻辑：记录当前楼层已经渲染过的线号
+            // 关键：先构造所有 HTML，一次性写入，避免 await 导致的渲染错乱
+            let htmlBuffer = '';
             const renderedIds = new Set();
             const activeTasks = pianoData[curPiano].filter(id => act[id] && act[id].status === 'orange');
             
             if (activeTasks.length > 0) {
-                for(const id of activeTasks) {
-                    if (renderedIds.has(id)) continue; // 已处理过该线号则跳过
+                activeTasks.forEach(id => {
+                    if (renderedIds.has(id)) return;
                     renderedIds.add(id);
 
                     const item = act[id];
-                    const row = document.createElement('div');
-                    row.className = 'info-row';
-                    row.style.color = c;
+                    let causaleText = item.causale || "-";
+                    const rowId = `row-info-${id}`;
                     
-                    let finalC = item.causale || "-";
-                    // 核心逻辑：自动检查型号联动
-                    const modMatch = finalC.match(/Cambio\s+([A-Z0-9]+)/i);
-                    if(modMatch){
+                    htmlBuffer += `
+                        <div class="info-row" id="${rowId}" style="color:${c}">
+                            <span>Linea ${id}</span>
+                            <span class="causale-val">${causaleText}</span>
+                        </div>`;
+                });
+                infoList.innerHTML = htmlBuffer;
+
+                // 异步处理型号链接，不阻塞主 UI 渲染
+                activeTasks.forEach(async (id) => {
+                    const item = act[id];
+                    const modMatch = (item.causale || "").match(/Cambio\s+([A-Z0-9]+)/i);
+                    if (modMatch) {
                         const modId = modMatch[1].toUpperCase();
                         const checkSnap = await db.ref(`modelli_db/${modId}`).once('value');
-                        if(checkSnap.exists()){
-                            finalC = finalC.replace(modMatch[1], `<span class="clickable-modello" onclick="quickJump('${modId}')">${modMatch[1]}</span>`);
+                        if (checkSnap.exists()) {
+                            const rowEl = document.getElementById(`row-info-${id}`);
+                            if (rowEl) {
+                                const spanEl = rowEl.querySelector('.causale-val');
+                                if (spanEl) {
+                                    spanEl.innerHTML = item.causale.replace(modMatch[1], `<span class="clickable-modello" onclick="quickJump('${modId}')">${modMatch[1]}</span>`);
+                                }
+                            }
                         }
                     }
-
-                    row.innerHTML = `<span>Linea ${id}</span><span>${finalC}</span>`;
-                    infoList.appendChild(row);
-                }
+                });
             } else {
                 infoList.innerHTML = '<div style="text-align:center; font-size:11px; color:#8e8e93; font-weight:700; padding: 5px 0;">NESSUNA CHIAMATA ATTIVA</div>';
             }
