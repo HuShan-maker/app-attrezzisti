@@ -92,7 +92,6 @@
             overflow-y: auto; 
             -webkit-overflow-scrolling: touch;
         }
-        /* --- 修改：任务信息行布局，添加中间虚线和靠左对齐 --- */
         .info-row {
             display: flex;
             align-items: center;
@@ -102,14 +101,14 @@
             border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         .info-row span:first-child { 
-            width: 35%; /* 左侧线号宽度 */
+            width: 35%; 
             text-align: right; 
             padding-right: 15px;
-            border-right: 1.5px dashed rgba(0,0,0,0.15); /* 中间虚线 */
+            border-right: 1.5px dashed rgba(0,0,0,0.15); 
         }
         .info-row span:last-child { 
             flex: 1; 
-            text-align: left; /* 原因靠左 */
+            text-align: left; 
             padding-left: 15px; 
         }
         .info-row:last-child { border-bottom: none; }
@@ -137,14 +136,14 @@
         .m-half-btn { flex: 1; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 12px; border: none; text-transform: uppercase; color: #fff; transition: 0.2s; }
         .btn-crea-action { background: var(--green); }
         .btn-agg-action { background: #000; }
-        /* 按钮禁用状态样式 */
         .btn-disabled { background: #ccc !important; opacity: 0.6 !important; pointer-events: none !important; }
 
+        /* --- 修改：颜色按钮样式及隐藏逻辑 --- */
         .color-picker-wrap { 
             position: fixed; 
             right: 20px; 
             bottom: env(safe-area-inset-bottom); 
-            z-index: 500; 
+            z-index: 100; /* 调低 z-index，让弹窗和侧边页能盖住它 */
             width: 40px; 
             height: 40px; 
             background: rgba(0,0,0,0.1); 
@@ -155,6 +154,12 @@
             backdrop-filter: blur(5px); 
             border: 1px solid rgba(255,255,255,0.3); 
         }
+        /* 当 Registro (v) 或 Info Modelli (modelli_v1) 显示时，隐藏按钮 */
+        body:has(#v[style*="flex"]) .color-picker-wrap,
+        body:has(#modelli_v1[style*="flex"]) .color-picker-wrap {
+            display: none;
+        }
+
         #floorColor { width: 24px; height: 24px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer; }
         
         #v { background: #fff; display: none; flex-direction: column; z-index: 300; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding-top: calc(15px + env(safe-area-inset-top)); }
@@ -420,7 +425,7 @@
         const cBtn = document.getElementById('mCreaBtn');
         const aBtn = document.getElementById('mAggiornaBtn');
         cBtn.innerText = "Crea Cartiglio";
-        cBtn.classList.remove('btn-disabled'); // 恢复 Crea 按钮
+        cBtn.classList.remove('btn-disabled'); 
         aBtn.innerText = "Aggiorna Dati";
         cBtn.style.opacity = "1";
         aBtn.style.opacity = "1";
@@ -444,7 +449,6 @@
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
 
-            // --- 修改：如果已存在，禁用 Crea 按钮 ---
             cBtn.innerText = "GIA' CREATO";
             cBtn.classList.add('btn-disabled');
 
@@ -454,7 +458,6 @@
                 historyList.forEach(h => {
                     const dateStr = new Date(h.at).toLocaleDateString();
                     if(h.type === 'crea'){
-                        // --- 修改：CREA 换成 CREATO ---
                         html += `<div class="history-item"><span style="color:var(--green)">[CREATO]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
                     } else {
                         const diffArr = [];
@@ -469,7 +472,6 @@
             document.getElementById('mHistoryBox').innerHTML = html;
         } else {
             resetModForm(false);
-            // --- 修改：如果不存在，恢复 Crea 按钮 ---
             cBtn.innerText = "Crea Cartiglio";
             cBtn.classList.remove('btn-disabled');
             document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
