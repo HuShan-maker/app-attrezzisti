@@ -67,9 +67,34 @@
         @keyframes pulseRed { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); opacity: 0.8; } }
         @keyframes pulseOrange { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.96); opacity: 0.7; } }
 
-        .bottom-area { display: flex; justify-content: center; margin-top: 20px; padding-bottom: 30px; }
+        .bottom-area { display: flex; flex-direction: column; align-items: center; margin-top: 20px; padding-bottom: 30px; gap: 15px; }
         .fuori-btn { background: var(--btn-gray); border: none; border-radius: 18px; font-size: 14px; font-weight: 800; height: 65px; width: calc(50% + 6px); text-transform: uppercase; transition: 0.3s; position: relative; }
         
+        /* 新增：任务详情详情提示框样式（支持 10 条以上滚动） */
+        #pianoInfoBox {
+            width: 100%;
+            max-height: 130px; /* 固定高度，容纳约 4-5 条，多出则滚动 */
+            border: 3px solid var(--btn-gray);
+            border-radius: 22px;
+            padding: 12px 15px;
+            transition: border-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto; /* 开启滚动 */
+            -webkit-overflow-scrolling: touch;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 800;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed rgba(0,0,0,0.05);
+        }
+        .info-row:last-child { border-bottom: none; }
+
         .color-picker-wrap { position: fixed; right: 20px; bottom: 40px; z-index: 50; width: 40px; height: 40px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3); }
         #floorColor { width: 24px; height: 24px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer; }
         
@@ -136,7 +161,12 @@
 
     <div id="dynamicContent">
         <div id="g"></div>
-        <div class="bottom-area"><button id="btn-fuori" class="fuori-btn" onclick="toggleFuori()">FUORI LINEA</button></div>
+        <div class="bottom-area">
+            <button id="btn-fuori" class="fuori-btn" onclick="toggleFuori()">FUORI LINEA</button>
+            <div id="pianoInfoBox">
+                <div id="pianoInfoList"></div>
+            </div>
+        </div>
     </div>
 
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
@@ -177,14 +207,14 @@
 
     // --- 核心安全变量 ---
     let serverTimeOffset = 0;
-    let isPermanentlyLocked = false; // 永久锁死开关
+    let isPermanentlyLocked = false; 
 
     db.ref(".info/serverTimeOffset").on("value", (snap) => {
         serverTimeOffset = snap.val() || 0;
-        checkSecurity(); // 每次同步后校验安全
+        checkSecurity(); 
     });
 
-    // --- 2. 班次逻辑 (基于服务器时间) ---
+    // --- 2. 班次逻辑 ---
     function getRealTimeTurno() {
         const now = new Date(Date.now() + serverTimeOffset);
         const hour = now.getHours() + (now.getMinutes() / 60);
@@ -196,11 +226,9 @@
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
     }
 
-    // 安全检查：如果检测到篡改，立即永久锁死
     function checkSecurity() {
         if (isPermanentlyLocked) return;
         const currentTurno = getRealTimeTurno();
-        // 判定：如果计算出的班次与设置的班次不符，视为异常环境（锁死）
         if (myShift !== currentTurno) {
             isPermanentlyLocked = true;
             renderGrid();
@@ -269,45 +297,23 @@
 
     db.ref('active_calls').on('value', (snapshot) => {
         act = snapshot.val() || {};
-        
-        // --- 新增：自动定位功能 ---
         if (isInitialLoad && Object.keys(act).length > 0) {
             let targetPiano = null;
-            
-            // 1. 优先定位到自己正在处理的任务 (红色)
             for (let p = 1; p <= 5; p++) {
                 if (pianoData[p].some(id => act[id] && act[id].status === 'red' && act[id].takenBy === myDeviceId)) {
-                    targetPiano = p;
-                    break;
+                    targetPiano = p; break;
                 }
             }
-            
-            // 2. 如果没接任务，定位到全场第一个等待的任务 (橙色)
             if (!targetPiano) {
-                // 先把所有橙色呼叫拿出来按时间排个序
-                const orangeCalls = Object.keys(act)
-                    .filter(id => act[id].status === 'orange' && id !== 'FUORI')
-                    .sort((a, b) => act[a].startA - act[b].startA);
-                
+                const orangeCalls = Object.keys(act).filter(id => act[id].status === 'orange' && id !== 'FUORI').sort((a, b) => act[a].startA - act[b].startA);
                 if (orangeCalls.length > 0) {
                     const firstId = orangeCalls[0];
-                    for (let p = 1; p <= 5; p++) {
-                        if (pianoData[p].includes(firstId)) {
-                            targetPiano = p;
-                            break;
-                        }
-                    }
+                    for (let p = 1; p <= 5; p++) { if (pianoData[p].includes(firstId)) { targetPiano = p; break; } }
                 }
             }
-            
-            if (targetPiano) {
-                curPiano = targetPiano;
-            }
+            if (targetPiano) curPiano = targetPiano;
             isInitialLoad = false;
-        } else if (isInitialLoad) {
-            isInitialLoad = false; // 即使没任务，也标记初始加载完成
-        }
-
+        } else if (isInitialLoad) { isInitialLoad = false; }
         renderGrid(); 
         updateGlobalBadges(); 
         applyTheme();
@@ -319,13 +325,17 @@
     }
 
     function handleMachineClick(id) {
-        if (isPermanentlyLocked) return; // 永久锁死拦截
+        if (isPermanentlyLocked) return; 
         const sTime = firebase.database.ServerValue.TIMESTAMP;
         if (!act[id]) return; 
+        
+        // --- 确认对话框植入 ---
         if (act[id].status === 'orange') {
-            db.ref('active_calls/' + id).update({ 
-                status: 'red', startD: sTime, startB: sTime, takenBy: myDeviceId, techName: currentUserName 
-            });
+            if (confirm(`Vuoi prendere in carico l'intervento per la linea ${id}?`)) {
+                db.ref('active_calls/' + id).update({ 
+                    status: 'red', startD: sTime, startB: sTime, takenBy: myDeviceId, techName: currentUserName 
+                });
+            }
         } 
         else if (act[id].status === 'red' && act[id].takenBy === myDeviceId) {
             const item = act[id];
@@ -337,40 +347,29 @@
     }
 
     function archiveIntervention(id, causale, startA, startD, endT, tech) {
-    const nowServer = new Date(endT);
-    const dateKey = nowServer.toISOString().split('T')[0]; // 格式如 2026-04-14
-    
-    const newLog = { 
-        i: id, day: nowServer.toLocaleDateString('it-IT'), 
-        s: new Date(startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
-        tA: Math.round((startD - startA) / 60000), 
-        tD: Math.round((endT - startD) / 60000), 
-        st: startA, c: causale, tech: tech
-    };
-    
-    // 原有逻辑：存本地
-    logs.push(newLog);
-    if(!dayHistory.includes(newLog.day)) dayHistory.push(newLog.day);
-    saveState();
-
-    // 新增逻辑：同步到 C 端（如果是 FUORI LINEA 则不发云端）
-    if (id !== 'FUORI') {
-        db.ref(`history/${dateKey}/${id}_${endT}`).set({
-            id: id,
-            startA: startA,
-            startD: startD,
-            endT: endT,
-            causale: causale,
-            techName: tech,
-            status: 'completed',
-            turno: getRealTimeTurno() 
-        });
+        const nowServer = new Date(endT);
+        const dateKey = nowServer.toISOString().split('T')[0];
+        const newLog = { 
+            i: id, day: nowServer.toLocaleDateString('it-IT'), 
+            s: new Date(startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
+            tA: Math.round((startD - startA) / 60000), 
+            tD: Math.round((endT - startD) / 60000), 
+            st: startA, c: causale, tech: tech
+        };
+        logs.push(newLog);
+        if(!dayHistory.includes(newLog.day)) dayHistory.push(newLog.day);
+        saveState();
+        if (id !== 'FUORI') {
+            db.ref(`history/${dateKey}/${id}_${endT}`).set({
+                id: id, startA: startA, startD: startD, endT: endT,
+                causale: causale, techName: tech, status: 'completed',
+                turno: getRealTimeTurno() 
+            });
+        }
     }
-}
-
 
     function toggleFuori() {
-        if (isPermanentlyLocked) return; // 永久锁死拦截
+        if (isPermanentlyLocked) return; 
         const sTime = firebase.database.ServerValue.TIMESTAMP;
         const fs = act['FUORI'];
         if(fs && fs.status === 'red' && fs.takenBy === myDeviceId) {
@@ -399,8 +398,6 @@
         const gd = document.getElementById('g'); gd.innerHTML = '';
         const turnoLabel = document.getElementById('turnoDisp');
         const contentArea = document.getElementById('dynamicContent');
-        
-        // 判定：只要被永久锁死，或者物理班次不对，界面全部灰显
         const isWorkingTime = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         
         turnoLabel.innerText = myShift;
@@ -419,22 +416,15 @@
             const wrap = document.createElement('div'); wrap.className = 'btn-wrap';
             const b = document.createElement('button'); 
             const s = isWorkingTime ? act[i] : null; 
-            
             b.className = 'btn-machine'; b.innerText = i;
             if (s && (s.status === 'orange' || s.status === 'red')) {
                 if (s.status === 'orange') { b.classList.add('waiting'); b.style.color = "#ffffff"; } 
                 else { if (s.takenBy === myDeviceId) { b.classList.add('or'); b.style.color = "#ffffff"; } else { b.classList.add('locked-btn'); } }
-            } else { 
-                b.style.color = c; 
-                b.style.backgroundColor = 'var(--btn-gray)'; 
-            }
-            
+            } else { b.style.color = c; b.style.backgroundColor = 'var(--btn-gray)'; }
             b.onclick = () => isWorkingTime && handleMachineClick(i); 
             wrap.appendChild(b);
-            
             if (isWorkingTime && s && s.status === 'orange') {
-                const qNum = allOrangeIds.indexOf(i) + 1;
-                const badge = document.createElement('div'); badge.className = 'badge'; badge.innerText = qNum; wrap.appendChild(badge);
+                const badge = document.createElement('div'); badge.className = 'badge'; badge.innerText = allOrangeIds.indexOf(i) + 1; wrap.appendChild(badge);
             }
             gd.appendChild(wrap);
         });
@@ -443,6 +433,25 @@
         const fs = isWorkingTime ? act['FUORI'] : null;
         f.className = (fs && fs.status === 'red') ? 'fuori-btn or' : 'fuori-btn';
         if (!(fs && fs.status === 'red')) f.style.color = c;
+
+        // --- 任务详情提示框逻辑植入 ---
+        const infoBox = document.getElementById('pianoInfoBox');
+        const infoList = document.getElementById('pianoInfoList');
+        infoBox.style.borderColor = c; 
+        infoList.innerHTML = '';
+        const activeTasks = pianoData[curPiano].filter(id => act[id] && act[id].status === 'orange');
+        if (activeTasks.length > 0) {
+            activeTasks.forEach(id => {
+                const item = act[id];
+                const row = document.createElement('div');
+                row.className = 'info-row';
+                row.style.color = c;
+                row.innerHTML = `<span>Linea ${id}</span><span>${item.causale || "-"}</span>`;
+                infoList.appendChild(row);
+            });
+        } else {
+            infoList.innerHTML = '<div style="text-align:center; font-size:11px; color:#8e8e93; font-weight:700; padding: 5px 0;">NESSUNA CHIAMATA ATTIVA</div>';
+        }
     }
 
     function updateGlobalBadges() {
@@ -550,20 +559,14 @@
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
     applyTheme();
     
-    // --- 终极每10秒安全监控逻辑 ---
     setInterval(() => {
-        // 重新从服务器获取偏移量（质问服务器真时间）
         db.ref(".info/serverTimeOffset").once("value").then((snap) => {
             serverTimeOffset = snap.val() || 0;
-            checkSecurity(); // 执行安全检查
-            
-            // 常规重绘
+            checkSecurity(); 
             renderGrid();
             updateGlobalBadges();
-            console.log("System Check: Security Scan Completed.");
         });
-    }, 10000); // 严格10秒间隔
+    }, 10000); 
 </script>
 </body>
 </html>
-
