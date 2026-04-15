@@ -138,12 +138,11 @@
         .btn-agg-action { background: #000; }
         .btn-disabled { background: #ccc !important; opacity: 0.6 !important; pointer-events: none !important; }
 
-        /* --- 修改：颜色按钮样式及隐藏逻辑 --- */
         .color-picker-wrap { 
             position: fixed; 
             right: 20px; 
             bottom: env(safe-area-inset-bottom); 
-            z-index: 100; /* 调低 z-index，让弹窗和侧边页能盖住它 */
+            z-index: 100; 
             width: 40px; 
             height: 40px; 
             background: rgba(0,0,0,0.1); 
@@ -154,7 +153,6 @@
             backdrop-filter: blur(5px); 
             border: 1px solid rgba(255,255,255,0.3); 
         }
-        /* 当 Registro (v) 或 Info Modelli (modelli_v1) 显示时，隐藏按钮 */
         body:has(#v[style*="flex"]) .color-picker-wrap,
         body:has(#modelli_v1[style*="flex"]) .color-picker-wrap {
             display: none;
@@ -256,7 +254,7 @@
                 <button id="mAggiornaBtn" class="m-half-btn btn-agg-action" onclick="handleModAction('aggiorna')">Aggiorna Dati</button>
             </div>
         </div>
-        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare i dettagli。</div>
+        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare i细节。</div>
     </div>
 
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
@@ -433,7 +431,8 @@
 
     async function handleModelloSearch(val) {
         if(mEditMode) return;
-        const id = val.trim().toUpperCase();
+        // --- 修改点 2：Info 页面搜索无视空格和大小写 ---
+        const id = val.replace(/\s+/g, '').toUpperCase();
         const cBtn = document.getElementById('mCreaBtn');
         if(!id) { resetModForm(); return; }
 
@@ -480,7 +479,8 @@
 
     function handleModAction(mode) {
         const idInput = document.getElementById('mSearchInput');
-        const id = idInput.value.trim().toUpperCase();
+        // 保存时也统一格式
+        const id = idInput.value.replace(/\s+/g, '').toUpperCase();
         if(!id) { alert("Inserire ID Modello!"); return; }
 
         if(mEditMode === mode) {
@@ -558,7 +558,12 @@
         currentModData = null;
     }
 
-    function quickJump(modId) { showModelli(); document.getElementById('mSearchInput').value = modId; handleModelloSearch(modId); }
+    function quickJump(modId) { 
+        showModelli(); 
+        // 自动填入并触发搜索
+        document.getElementById('mSearchInput').value = modId; 
+        handleModelloSearch(modId); 
+    }
 
     function saveState() { 
         localStorage.setItem('logs_v7', JSON.stringify(logs)); 
@@ -700,12 +705,17 @@
                     renderedIds.add(id);
                     const item = act[id];
                     let finalC = item.causale || "-";
-                    const modMatch = finalC.match(/Cambio\s+([A-Z0-9]+)/i);
+
+                    // --- 修改点 1：主页任务信息栏识别无视空格和大小写 ---
+                    const modMatch = finalC.match(/Cambio\s+([A-Z0-9\s]+)/i);
                     if(modMatch){
-                        const modId = modMatch[1].toUpperCase();
-                        const checkSnap = await db.ref(`modelli_db/${modId}`).once('value');
+                        const rawModId = modMatch[1];
+                        // 提取后去除空格转大写进行数据库比对
+                        const cleanModId = rawModId.replace(/\s+/g, '').toUpperCase();
+                        const checkSnap = await db.ref(`modelli_db/${cleanModId}`).once('value');
                         if(checkSnap.exists()){
-                            finalC = finalC.replace(modMatch[1], `<span class="clickable-modello" onclick="quickJump('${modId}')">${modMatch[1]}</span>`);
+                            // 保持原始显示的文本，但关联清理后的ID
+                            finalC = finalC.replace(rawModId, `<span class="clickable-modello" onclick="quickJump('${cleanModId}')">${rawModId}</span>`);
                         }
                     }
                     htmlBuffer += `<div class="info-row" style="color:${c}"><span>Linea ${id}</span><span>${finalC}</span></div>`;
