@@ -105,8 +105,14 @@
         .m-row { display: flex; justify-content: space-between; align-items: center; background: var(--btn-gray); padding: 12px 15px; border-radius: 15px; }
         .m-label { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; width: 45%; }
         .m-input { width: 50%; border: none; background: transparent; text-align: right; font-size: 14px; font-weight: 800; outline: none; -webkit-user-select: text; user-select: text; }
+        .m-input[readonly] { color: #8e8e93 !important; }
+        .m-input:not([readonly]) { color: var(--blue) !important; }
         .m-history { margin-top: 20px; padding: 15px; border-radius: 18px; background: #f9f9fb; border: 1px solid #eee; font-size: 11px; line-height: 1.5; font-weight: 600; }
-        .m-aggiorna-btn { background: #000; color: #fff; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 14px; border: none; margin-top: 10px; width: 100%; }
+        
+        .m-footer-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .m-half-btn { flex: 1; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 12px; border: none; text-transform: uppercase; color: #fff; transition: 0.2s; }
+        .btn-crea-action { background: var(--green); }
+        .btn-agg-action { background: #000; }
 
         .color-picker-wrap { position: fixed; right: 20px; bottom: 40px; z-index: 50; width: 40px; height: 40px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3); }
         #floorColor { width: 24px; height: 24px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer; }
@@ -193,13 +199,17 @@
         </div>
         <input type="text" id="mSearchInput" class="m-search-box" placeholder="Cerca Modello..." oninput="handleModelloSearch(this.value)">
         <div class="m-form">
-            <div class="m-row"><span class="m-label">Macchina Uso</span><input type="text" id="m_mac" class="m-input" placeholder="-"></div>
-            <div class="m-row"><span class="m-label">Posaggio</span><input type="text" id="m_pos" class="m-input" placeholder="-"></div>
-            <div class="m-row"><span class="m-label">Lama o Fresa</span><input type="text" id="m_lam" class="m-input" placeholder="-"></div>
-            <div class="m-row"><span class="m-label">Angolo Pantoscopico</span><input type="text" id="m_pan" class="m-input" placeholder="-"></div>
-            <div class="m-row"><span class="m-label">Angolo Scarico Asta</span><input type="text" id="m_sca" class="m-input" placeholder="-"></div>
-            <div class="m-row"><span class="m-label">Quota Asta</span><input type="text" id="m_quo" class="m-input" placeholder="-"></div>
-            <button class="m-aggiorna-btn" onclick="aggiornaModello()">AGGIORNA DATI</button>
+            <div class="m-row"><span class="m-label">Macchina Uso</span><input type="text" id="m_mac" class="m-input" placeholder="-" readonly></div>
+            <div class="m-row"><span class="m-label">Posaggio</span><input type="text" id="m_pos" class="m-input" placeholder="-" readonly></div>
+            <div class="m-row"><span class="m-label">Lama o Fresa</span><input type="text" id="m_lam" class="m-input" placeholder="-" readonly></div>
+            <div class="m-row"><span class="m-label">Angolo Pantoscopico</span><input type="text" id="m_pan" class="m-input" placeholder="-" readonly></div>
+            <div class="m-row"><span class="m-label">Angolo Scarico Asta</span><input type="text" id="m_sca" class="m-input" placeholder="-" readonly></div>
+            <div class="m-row"><span class="m-label">Quota Asta</span><input type="text" id="m_quo" class="m-input" placeholder="-" readonly></div>
+            
+            <div class="m-footer-btns">
+                <button id="mCreaBtn" class="m-half-btn btn-crea-action" onclick="handleModAction('crea')">Crea Cartiglio</button>
+                <button id="mAggiornaBtn" class="m-half-btn btn-agg-action" onclick="handleModAction('aggiorna')">Aggiorna Dati</button>
+            </div>
         </div>
         <div id="mHistoryBox" class="m-history">Cerca一款款式查看记录。</div>
     </div>
@@ -309,6 +319,7 @@
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
     let currentModData = null;
+    let mEditMode = null; // 'crea' or 'aggiorna'
 
     function autoCleanOldRecords() {
         const now = new Date(Date.now() + serverTimeOffset);
@@ -364,9 +375,24 @@
 
     // --- Info Modelli Logic ---
     function showModelli() { document.getElementById('modelli_v1').style.display = 'flex'; }
-    function closeModelli() { document.getElementById('modelli_v1').style.display = 'none'; resetModForm(); }
+    function closeModelli() { document.getElementById('modelli_v1').style.display = 'none'; resetModForm(); setModInputsReadOnly(true); resetModButtons(); }
+
+    function setModInputsReadOnly(isReadOnly) {
+        document.querySelectorAll('.m-input').forEach(input => input.readOnly = isReadOnly);
+    }
+
+    function resetModButtons() {
+        mEditMode = null;
+        const cBtn = document.getElementById('mCreaBtn');
+        const aBtn = document.getElementById('mAggiornaBtn');
+        cBtn.innerText = "Crea Cartiglio";
+        aBtn.innerText = "Aggiorna Dati";
+        cBtn.style.opacity = "1";
+        aBtn.style.opacity = "1";
+    }
 
     async function handleModelloSearch(val) {
+        if(mEditMode) return; // 正在编辑时禁用搜索联动
         const id = val.trim().toUpperCase();
         if(!id) { resetModForm(); return; }
         const snap = await db.ref(`modelli_db/${id}/current`).once('value');
@@ -382,31 +408,70 @@
             let txt = `<span style="color:var(--green)">Cartiglio Modello ${id}</span><br>`;
             if(hSnap.exists()){
                 const h = Object.values(hSnap.val())[0];
-                txt += `Ultima modifica: <b>${h.by}</b> il ${new Date(h.at).toLocaleDateString()}<br>Da: ${h.oldSummary} → A: ${h.newSummary}`;
+                const typeText = h.type === 'crea' ? 'Creato da' : 'Aggiornato da';
+                txt += `${typeText}: <b>${h.by}</b> il ${new Date(h.at).toLocaleDateString()}<br>Da: ${h.oldSummary} → A: ${h.newSummary}`;
             } else { txt += `Creato inizialmente da <b>${d.creator || 'Admin'}</b>.`; }
             document.getElementById('mHistoryBox').innerHTML = txt;
         } else {
             resetModForm(false);
-            document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Inserisci i dati e clicca Aggiorna.`;
+            document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
         }
     }
 
-    async function aggiornaModello() {
-        const id = document.getElementById('mSearchInput').value.trim().toUpperCase();
-        if(!id) return;
+    function handleModAction(mode) {
+        const idInput = document.getElementById('mSearchInput');
+        const id = idInput.value.trim().toUpperCase();
+        if(!id) { alert("Inserire ID Modello!"); return; }
+
+        if(mEditMode === mode) {
+            // 执行保存
+            saveModello(id, mode);
+        } else {
+            // 进入编辑模式
+            mEditMode = mode;
+            setModInputsReadOnly(false);
+            const cBtn = document.getElementById('mCreaBtn');
+            const aBtn = document.getElementById('mAggiornaBtn');
+            
+            if(mode === 'crea') {
+                resetModForm(false);
+                cBtn.innerText = "SALVA";
+                aBtn.style.opacity = "0.3";
+            } else {
+                aBtn.innerText = "SALVA";
+                cBtn.style.opacity = "0.3";
+            }
+        }
+    }
+
+    async function saveModello(id, type) {
         const newData = {
-            macchina: document.getElementById('m_mac').value, posaggio: document.getElementById('m_pos').value,
-            lama: document.getElementById('m_lam').value, panto: document.getElementById('m_pan').value,
-            scarico: document.getElementById('m_sca').value, quota: document.getElementById('m_quo').value,
+            macchina: document.getElementById('m_mac').value.trim(),
+            posaggio: document.getElementById('m_pos').value.trim(),
+            lama: document.getElementById('m_lam').value.trim(),
+            panto: document.getElementById('m_pan').value.trim(),
+            scarico: document.getElementById('m_sca').value.trim(),
+            quota: document.getElementById('m_quo').value.trim(),
             at: Date.now(), by: currentUserName
         };
         const nSummary = `${newData.macchina}/${newData.posaggio}/${newData.lama}`;
-        if(currentModData){
-            const oSummary = `${currentModData.macchina}/${currentModData.posaggio}/${currentModData.lama}`;
-            db.ref(`modelli_db/${id}/history`).push({ oldSummary: oSummary, newSummary: nSummary, by: currentUserName, at: Date.now() });
-        } else { newData.creator = currentUserName; }
+        const oSummary = currentModData ? `${currentModData.macchina}/${currentModData.posaggio}/${currentModData.lama}` : "-";
+        
+        await db.ref(`modelli_db/${id}/history`).push({ 
+            type: type, 
+            oldSummary: oSummary, 
+            newSummary: nSummary, 
+            by: currentUserName, 
+            at: Date.now() 
+        });
+
+        if(type === 'crea') newData.creator = currentUserName;
         await db.ref(`modelli_db/${id}/current`).set(newData);
-        alert("Dati Salvati!");
+        
+        alert("Salvato correttamente!");
+        mEditMode = null;
+        setModInputsReadOnly(true);
+        resetModButtons();
         handleModelloSearch(id);
         renderGrid();
     }
@@ -414,7 +479,7 @@
     function resetModForm(full = true) {
         if(full) document.getElementById('mSearchInput').value = "";
         ['m_mac','m_pos','m_lam','m_pan','m_sca','m_quo'].forEach(i => document.getElementById(i).value = "");
-        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare i dettagli.";
+        document.getElementById('mHistoryBox').innerText = "Cerca一款款式查看记录。";
         currentModData = null;
     }
 
