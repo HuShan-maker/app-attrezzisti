@@ -29,26 +29,34 @@
             margin: 0; transition: background 0.4s, opacity 0.4s; overflow-x: hidden; touch-action: pan-y; 
         }
 
-        /* 顶部班次标签 */
+        /* 顶部班次标签 - 恢复胶囊样式并确保平行 */
         .turno-badge { 
             font-size: 11px; font-weight: 800; color: #fff; 
             background: #8e8e93; 
-            padding: 3px 10px; border-radius: 6px; 
-            margin-left: 8px; text-transform: uppercase; vertical-align: middle; 
+            padding: 4px 12px; border-radius: 20px; /* 胶囊圆角 */
+            margin-left: 10px; text-transform: uppercase; 
+            display: inline-flex; align-items: center; justify-content: center;
+            height: 20px; vertical-align: middle;
             transition: background 0.3s;
         }
         .turno-on { background: var(--green) !important; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
         .shift-lock-ui { opacity: 0.6; pointer-events: none; filter: grayscale(1); }
 
-        /* 修改：让左右两边顶部对齐 */
+        /* 头部布局调整 */
         .h { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 35px; }
-        .title-group { display: flex; flex-direction: column; gap: 0; }
+        .title-group { display: flex; flex-direction: column; align-items: flex-start; }
         .btn-stack { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
         
-        /* 修改：调整 H2 确保文字和左边齐平 */
-        h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; line-height: 25px; display: flex; align-items: center; }
+        /* 标题样式：确保与胶囊平行 */
+        h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; line-height: 1; display: flex; align-items: center; }
         
-        .user-subtitle { font-size: 14px; color: #8e8e93; font-weight: 600; margin-top: 5px; height: 25px; display: flex; align-items: center; cursor: pointer; min-width: 50px; }
+        /* 名字样式：上移靠近标题 */
+        .user-subtitle { 
+            font-size: 14px; color: #8e8e93; font-weight: 600; 
+            margin-top: 2px; /* 减小间距，让名字靠上去 */
+            height: 20px; display: flex; align-items: center; cursor: pointer; min-width: 50px; 
+        }
+
         .reg-btn { background: #000; color: #fff; font-size: 11px; border: none; padding: 0 14px; border-radius: 9px; font-weight: 700; text-transform: uppercase; height: 25px; display: flex; align-items: center; min-width: 100px; justify-content: center;}
         
         /* 钢琴按钮 */
