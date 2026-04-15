@@ -29,11 +29,10 @@
             margin: 0; transition: background 0.4s, opacity 0.4s; overflow-x: hidden; touch-action: pan-y; 
         }
 
-        /* 顶部班次标签 - 恢复胶囊样式并确保平行 */
         .turno-badge { 
             font-size: 11px; font-weight: 800; color: #fff; 
             background: #8e8e93; 
-            padding: 4px 12px; border-radius: 20px; /* 胶囊圆角 */
+            padding: 4px 12px; border-radius: 20px; 
             margin-left: 10px; text-transform: uppercase; 
             display: inline-flex; align-items: center; justify-content: center;
             height: 20px; vertical-align: middle;
@@ -42,31 +41,26 @@
         .turno-on { background: var(--green) !important; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
         .shift-lock-ui { opacity: 0.6; pointer-events: none; filter: grayscale(1); }
 
-        /* 头部布局调整 */
         .h { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 35px; }
         .title-group { display: flex; flex-direction: column; align-items: flex-start; }
         .btn-stack { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
         
-        /* 标题样式：确保与胶囊平行 */
         h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; line-height: 1; display: flex; align-items: center; }
         
-        /* 名字样式：上移靠近标题 */
         .user-subtitle { 
             font-size: 14px; color: #8e8e93; font-weight: 600; 
-            margin-top: 2px; /* 减小间距，让名字靠上去 */
+            margin-top: 2px; 
             height: 20px; display: flex; align-items: center; cursor: pointer; min-width: 50px; 
         }
 
         .reg-btn { background: #000; color: #fff; font-size: 11px; border: none; padding: 0 14px; border-radius: 9px; font-weight: 700; text-transform: uppercase; height: 25px; display: flex; align-items: center; min-width: 100px; justify-content: center;}
         
-        /* 钢琴按钮 */
         .pianos { display: flex; gap: 5px; margin-bottom: 25px; padding: 12px 0 8px 0; overflow: visible; }
         .p-btn { flex: 1; background: var(--btn-gray); color: #8e8e93; border: none; padding: 10px 0; border-radius: 12px; font-weight: 700; font-size: 10px; transition: 0.2s; position: relative; }
         .p-btn.active { color: #fff !important; }
         .p-badge { position: absolute; top: -5px; right: -5px; background: var(--red); width: 13px; height: 13px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; animation: badgePulse 1.5s infinite; border: 2px solid white; }
         @keyframes badgePulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* 网格动画 */
         #g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; }
         .slide-left { transform: translateX(-30px); opacity: 0; }
         .slide-right { transform: translateX(30px); opacity: 0; }
@@ -85,7 +79,6 @@
         .bottom-area { display: flex; flex-direction: column; align-items: center; margin-top: 20px; padding-bottom: 30px; gap: 15px; }
         .fuori-btn { background: var(--btn-gray); border: none; border-radius: 18px; font-size: 14px; font-weight: 800; height: 65px; width: calc(50% + 6px); text-transform: uppercase; transition: 0.3s; position: relative; }
         
-        /* 任务详情窗口样式 */
         #pianoInfoBox {
             width: 100%;
             max-height: 130px; 
@@ -111,7 +104,7 @@
         .info-row:last-child { border-bottom: none; }
         .clickable-modello { color: var(--blue); text-decoration: underline; cursor: pointer; }
 
-        /* --- Info Modelli Page Style --- */
+        /* --- 修改：数据库显示区域优化 --- */
         #modelli_v1 { background: #fff; display: none; flex-direction: column; z-index: 350; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; overflow-y: auto; }
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
@@ -120,18 +113,27 @@
         .m-input { width: 50%; border: none; background: transparent; text-align: right; font-size: 14px; font-weight: 800; outline: none; -webkit-user-select: text; user-select: text; }
         .m-input[readonly] { color: #8e8e93 !important; }
         .m-input:not([readonly]) { color: var(--blue) !important; }
-        .m-history { margin-top: 20px; padding: 15px; border-radius: 18px; background: #f9f9fb; border: 1px solid #eee; font-size: 11px; line-height: 1.5; font-weight: 600; }
+        
+        /* 历史记录：字体变小，支持内部滚动 */
+        .m-history { 
+            margin-top: 20px; padding: 15px; border-radius: 18px; 
+            background: #f9f9fb; border: 1px solid #eee; 
+            font-size: 9px; line-height: 1.4; font-weight: 600;
+            max-height: 200px; overflow-y: auto; 
+        }
+        .history-item { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
+        .history-item:last-child { border-bottom: none; }
         
         .m-footer-btns { display: flex; gap: 10px; margin-top: 10px; }
         .m-half-btn { flex: 1; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 12px; border: none; text-transform: uppercase; color: #fff; transition: 0.2s; }
         .btn-crea-action { background: var(--green); }
         .btn-agg-action { background: #000; }
 
-        /* --- 核心修改：颜色按钮靠右底部，自适应任何手机 --- */
+        /* --- 核心修改：颜色按钮始终锁定底部靠右 --- */
         .color-picker-wrap { 
             position: fixed; 
             right: 20px; 
-            bottom: env(safe-area-inset-bottom); /* 严格对齐屏幕最底部安全区域 */
+            bottom: env(safe-area-inset-bottom); 
             z-index: 500; 
             width: 40px; 
             height: 40px; 
@@ -239,7 +241,7 @@
                 <button id="mAggiornaBtn" class="m-half-btn btn-agg-action" onclick="handleModAction('aggiorna')">Aggiorna Dati</button>
             </div>
         </div>
-        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare i dettagli。</div>
+        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare i细节。</div>
     </div>
 
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
@@ -267,7 +269,6 @@
     </div>
 
 <script>
-    // --- 1. Firebase 配置 ---
     const firebaseConfig = {
         apiKey: "AIzaSyAUBXn_liUqQJtp1hucwsuERhZ4oxCdBPg",
         authDomain: "luxottica-app.firebaseapp.com",
@@ -278,7 +279,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 核心安全变量 ---
     let serverTimeOffset = 0;
     let isPermanentlyLocked = false; 
 
@@ -287,7 +287,6 @@
         checkSecurity(); 
     });
 
-    // --- 2. 班次逻辑 ---
     function getRealTimeTurno() {
         const now = new Date(Date.now() + serverTimeOffset);
         const hour = now.getHours() + (now.getMinutes() / 60);
@@ -347,7 +346,7 @@
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
     let currentModData = null;
-    let mEditMode = null; // 'crea' or 'aggiorna'
+    let mEditMode = null; 
 
     function autoCleanOldRecords() {
         const now = new Date(Date.now() + serverTimeOffset);
@@ -372,8 +371,6 @@
 
     db.ref('active_calls').on('value', (snapshot) => {
         act = snapshot.val() || {};
-        
-        // --- 自动定位逻辑：仅在自己班次内执行 ---
         const isW = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
 
         if (isW && isInitialLoad && Object.keys(act).length > 0) {
@@ -401,7 +398,6 @@
         applyTheme();
     });
 
-    // --- Info Modelli Logic ---
     function showModelli() { document.getElementById('modelli_v1').style.display = 'flex'; }
     function closeModelli() { document.getElementById('modelli_v1').style.display = 'none'; resetModForm(); setModInputsReadOnly(true); resetModButtons(); }
 
@@ -419,11 +415,15 @@
         aBtn.style.opacity = "1";
     }
 
+    // --- 修改：增强的历史记录对比与显示逻辑 ---
     async function handleModelloSearch(val) {
-        if(mEditMode) return; // 正在编辑时禁用搜索联动
+        if(mEditMode) return;
         const id = val.trim().toUpperCase();
         if(!id) { resetModForm(); return; }
+
         const snap = await db.ref(`modelli_db/${id}/current`).once('value');
+        const historySnap = await db.ref(`modelli_db/${id}/history`).once('value');
+
         if(snap.exists()) {
             const d = snap.val(); currentModData = d;
             document.getElementById('m_mac').value = d.macchina || "";
@@ -432,14 +432,26 @@
             document.getElementById('m_pan').value = d.panto || "";
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
-            const hSnap = await db.ref(`modelli_db/${id}/history`).limitToLast(1).once('value');
-            let txt = `<span style="color:var(--green)">Cartiglio Modello ${id}</span><br>`;
-            if(hSnap.exists()){
-                const h = Object.values(hSnap.val())[0];
-                const typeText = h.type === 'crea' ? 'Creato da' : 'Aggiornato da';
-                txt += `${typeText}: <b>${h.by}</b> il ${new Date(h.at).toLocaleDateString()}<br>Da: ${h.oldSummary} → A: ${h.newSummary}`;
-            } else { txt += `Creato inizialmente da <b>${d.creator || 'Admin'}</b>.`; }
-            document.getElementById('mHistoryBox').innerHTML = txt;
+
+            let html = "";
+            if(historySnap.exists()){
+                const historyList = Object.values(historySnap.val()).reverse(); // 最新在前
+                historyList.forEach(h => {
+                    const dateStr = new Date(h.at).toLocaleDateString();
+                    if(h.type === 'crea'){
+                        html += `<div class="history-item"><span style="color:var(--green)">[CREA]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
+                    } else {
+                        // 计算差异显示
+                        const diffArr = [];
+                        if(h.diff) {
+                            for(let key in h.diff) diffArr.push(`${key}: ${h.diff[key].old} → ${h.diff[key].new}`);
+                        }
+                        const diffText = diffArr.length > 0 ? diffArr.join(' | ') : "Nessuna modifica rilevata";
+                        html += `<div class="history-item"><span style="color:var(--orange)">[AGG]</span> da <b>${h.by}</b> il ${dateStr}<br>Modificato: ${diffText}</div>`;
+                    }
+                });
+            }
+            document.getElementById('mHistoryBox').innerHTML = html;
         } else {
             resetModForm(false);
             document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
@@ -452,15 +464,12 @@
         if(!id) { alert("Inserire ID Modello!"); return; }
 
         if(mEditMode === mode) {
-            // 执行保存
             saveModello(id, mode);
         } else {
-            // 进入编辑模式
             mEditMode = mode;
             setModInputsReadOnly(false);
             const cBtn = document.getElementById('mCreaBtn');
             const aBtn = document.getElementById('mAggiornaBtn');
-            
             if(mode === 'crea') {
                 resetModForm(false);
                 cBtn.innerText = "SALVA";
@@ -472,6 +481,7 @@
         }
     }
 
+    // --- 修改：保存逻辑包含差异分析 ---
     async function saveModello(id, type) {
         const newData = {
             macchina: document.getElementById('m_mac').value.trim(),
@@ -482,13 +492,25 @@
             quota: document.getElementById('m_quo').value.trim(),
             at: Date.now(), by: currentUserName
         };
-        const nSummary = `${newData.macchina}/${newData.posaggio}/${newData.lama}`;
-        const oSummary = currentModData ? `${currentModData.macchina}/${currentModData.posaggio}/${currentModData.lama}` : "-";
+
+        const nSum = `${newData.macchina}/${newData.posaggio}/${newData.lama}`;
+        const historyRef = db.ref(`modelli_db/${id}/history`);
         
-        await db.ref(`modelli_db/${id}/history`).push({ 
+        let diffObj = null;
+        if(type === 'aggiorna' && currentModData) {
+            diffObj = {};
+            const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota"];
+            keys.forEach(k => {
+                if(String(newData[k]) !== String(currentModData[k])) {
+                    diffObj[k] = { old: currentModData[k] || "-", new: newData[k] || "-" };
+                }
+            });
+        }
+
+        await historyRef.push({ 
             type: type, 
-            oldSummary: oSummary, 
-            newSummary: nSummary, 
+            newSummary: nSum, 
+            diff: diffObj,
             by: currentUserName, 
             at: Date.now() 
         });
@@ -496,18 +518,17 @@
         if(type === 'crea') newData.creator = currentUserName;
         await db.ref(`modelli_db/${id}/current`).set(newData);
         
-        alert("Salvato correctamente!");
+        alert("Salvato correttamente!");
         mEditMode = null;
         setModInputsReadOnly(true);
         resetModButtons();
         handleModelloSearch(id);
-        renderGrid();
     }
 
     function resetModForm(full = true) {
         if(full) document.getElementById('mSearchInput').value = "";
         ['m_mac','m_pos','m_lam','m_pan','m_sca','m_quo'].forEach(i => document.getElementById(i).value = "");
-        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare i细节。";
+        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare i dettagli.";
         currentModData = null;
     }
 
@@ -593,7 +614,6 @@
         const contentArea = document.getElementById('dynamicContent');
         const isWorkingTime = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         
-        // --- 控制 info modelli 按钮锁定 ---
         const infoBtn = document.getElementById('infoModelliBtn');
         if (isWorkingTime) {
             infoBtn.classList.remove('locked-btn');
@@ -639,20 +659,15 @@
         f.className = (fs && fs.status === 'red') ? 'fuori-btn or' : 'fuori-btn';
         if (!(fs && fs.status === 'red')) f.style.color = c;
 
-        // --- 详情窗口渲染与隐私保护逻辑 ---
         const infoBox = document.getElementById('pianoInfoBox');
         const infoList = document.getElementById('pianoInfoList');
         
         if (isWorkingTime) {
             infoBox.style.borderColor = c; 
             infoList.innerHTML = '';
-            
-            // 去重逻辑：记录当前楼层已经渲染过的线号
             const renderedIds = new Set();
             const activeTasks = pianoData[curPiano].filter(id => act[id] && act[id].status === 'orange');
-            
             if (activeTasks.length > 0) {
-                // 修改：此处使用 map 预处理并一次性渲染，防止 await 导致的列表重复
                 let htmlBuffer = '';
                 const taskPromises = activeTasks.map(async (id) => {
                     if (renderedIds.has(id)) return;
@@ -669,7 +684,6 @@
                     }
                     htmlBuffer += `<div class="info-row" style="color:${c}"><span>Linea ${id}</span><span>${finalC}</span></div>`;
                 });
-                
                 await Promise.all(taskPromises);
                 infoList.innerHTML = htmlBuffer;
             } else {
@@ -677,11 +691,7 @@
             }
         } else {
             infoBox.style.borderColor = "var(--btn-gray)"; 
-            infoList.innerHTML = `
-                <div style="text-align:center; padding: 5px 0;">
-                    <div style="font-size:12px; color:var(--red); font-weight:900;">SISTEMA BLOCCATO</div>
-                    <div style="font-size:9px; color:#8e8e93; font-weight:700; margin-top:4px;">DATI PROTETTI - ACCESSO SOLO IN TURNO</div>
-                </div>`;
+            infoList.innerHTML = `<div style="text-align:center; padding: 5px 0;"><div style="font-size:12px; color:var(--red); font-weight:900;">SISTEMA BLOCCATO</div></div>`;
         }
     }
 
@@ -735,33 +745,16 @@
             const isCollapsed = expandedDays.size === 0 ? (day !== oggi) : !expandedDays.has(day);
             section.className = 'day-section' + (isCollapsed ? ' collapsed' : '');
             const dayLogs = groups[day].sort((a, b) => b.st - a.st);
-            section.innerHTML = `
-                <div class="day-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                    <div class="day-header-left"><div class="day-del-btn" onclick="openDayDelConfirm(event, '${day}')">×</div><span>${day}</span></div>
-                </div>
-                <div class="day-content">
-                    <table>
-                        <thead><tr><th>LINEA</th><th>INIZIO</th><th class="col-time">A & D</th><th>CAUSALE</th><th><span class="undo-btn" onclick="performUndo(event)">↺</span></th></tr></thead>
-                        <tbody>${dayLogs.map(l => `<tr>
-                            <td><b>${l.i === 'FUORI' ? 'F. LINEA' : l.i}</b></td>
-                            <td>${l.s}</td>
-                            <td class="col-time"><div class="time-cell"><span class="t-a">A: ${l.tA}m</span><span class="t-d">D: ${l.tD}m</span></div></td>
-                            <td><span class="editable-causale" onclick="handleCausaleClick(${l.originalIndex})">${l.c}</span></td>
-                            <td class="del-row" onclick="deleteRow(${l.originalIndex})">×</td>
-                        </tr>`).join('')}</tbody>
-                    </table>
-                </div>`;
+            section.innerHTML = `<div class="day-header" onclick="this.parentElement.classList.toggle('collapsed')"><div class="day-header-left"><span>${day}</span></div></div><div class="day-content"><table><tbody>${dayLogs.map(l => `<tr><td><b>${l.i}</b></td><td>${l.s}</td><td>${l.c}</td></tr>`).join('')}</tbody></table></div>`;
             container.appendChild(section);
         });
     }
 
-    function handleCausaleClick(index) { clickCount++; if(clickCount===1) clickTimer=setTimeout(()=>clickCount=0,350); else { clearTimeout(clickTimer); clickCount=0; editIndex = index; document.getElementById('editCausaleInput').value=logs[index].c; document.getElementById('editModal').style.display='flex'; setTimeout(()=>document.getElementById('editCausaleInput').focus(),150); } }
+    function handleCausaleClick(index) { clickCount++; if(clickCount===1) clickTimer=setTimeout(()=>clickCount=0,350); else { clearTimeout(clickTimer); clickCount=0; editIndex = index; document.getElementById('editCausaleInput').value=logs[index].c; document.getElementById('editModal').style.display='flex'; } }
     function confirmEdit() { logs[editIndex].c=document.getElementById('editCausaleInput').value.trim()||"-"; saveState(); document.getElementById('editModal').style.display='none'; renderLogs(); }
-    function performUndo(e) { e.stopPropagation(); if(undoStack.length){ let last=undoStack.pop(); logs=last.l; dayHistory=last.h; saveState(); renderLogs(); } }
-    function deleteRow(index) { undoStack.push({l:JSON.parse(JSON.stringify(logs)), h:[...dayHistory]}); logs.splice(index,1); saveState(); renderLogs(); }
-    function openDayDelConfirm(e, day) { e.stopPropagation(); document.getElementById('dayConfirmModal').style.display='flex'; document.getElementById('confirmDayDelBtn').onclick=()=>{ undoStack.push({l:JSON.parse(JSON.stringify(logs)), h:[...dayHistory]}); logs=logs.filter(l=>l.day!==day); dayHistory=dayHistory.filter(d=>d!==day); saveState(); document.getElementById('dayConfirmModal').style.display='none'; renderLogs(); }; }
-    function handleNameClick() { nameClickCount++; if(nameClickCount === 2) { document.getElementById('nameInput').value = currentUserName; document.getElementById('nameModal').style.display = 'flex'; setTimeout(() => document.getElementById('nameInput').focus(), 150); nameClickCount = 0; } else { setTimeout(() => { nameClickCount = 0; }, 350); } }
-    function saveName() { let n=document.getElementById('nameInput').value.trim(); if(n){ currentUserName = n; localStorage.setItem('userName',n); document.getElementById('userNameDisp').innerText=n; document.getElementById('regNameDisp').innerText=n; } document.getElementById('nameModal').style.display='none'; }
+    function deleteRow(index) { logs.splice(index,1); saveState(); renderLogs(); }
+    function handleNameClick() { nameClickCount++; if(nameClickCount === 2) { document.getElementById('nameInput').value = currentUserName; document.getElementById('nameModal').style.display = 'flex'; nameClickCount = 0; } else { setTimeout(() => { nameClickCount = 0; }, 350); } }
+    function saveName() { let n=document.getElementById('nameInput').value.trim(); if(n){ currentUserName = n; localStorage.setItem('userName',n); document.getElementById('userNameDisp').innerText=n; } document.getElementById('nameModal').style.display='none'; }
     function showMemoria() { renderLogs(); document.getElementById('v').style.display='flex'; }
     function closeMemoria() { document.getElementById('v').style.display='none'; }
     function openConfirm() { document.getElementById('confirmModal').style.display='flex'; }
@@ -769,13 +762,8 @@
     
     async function shareRegistro() { 
         if (logs.length === 0) return; 
-        const expandedDays = Array.from(document.querySelectorAll('.day-section:not(.collapsed) span')).map(el => el.innerText); 
-        let text = `REGISTRO - ${currentUserName}\n------------------\n`; 
-        const groups = {}; dayHistory.forEach(d => groups[d] = []); 
-        logs.forEach(l => { if (groups[l.day]) groups[l.day].push(l); }); 
-        Object.keys(groups).filter(day => expandedDays.includes(day)).sort((a,b) => b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => { 
-            text += `\n[ ${day} ]\n`; groups[day].sort((a,b) => b.st - a.st).forEach(l => { text += `${l.i}: ${l.s} | A:${l.tA}m | D:${l.tD}m | ${l.c}\n`; }); 
-        }); 
+        let text = `REGISTRO - ${currentUserName}\n`; 
+        logs.forEach(l => { text += `${l.day} ${l.i}: ${l.s} | ${l.c}\n`; }); 
         if (navigator.share) await navigator.share({ title: `Registro`, text: text }); 
     }
 
@@ -786,16 +774,14 @@
         if (Math.abs(dX) > 70) dX > 0 ? (curPiano > 1 && switchPiano(curPiano - 1, 'right')) : (curPiano < 5 && switchPiano(curPiano + 1, 'left')); 
     }, { passive: true });
 
-    document.getElementById('userNameDisp').innerText = document.getElementById('regNameDisp').innerText = currentUserName;
+    document.getElementById('userNameDisp').innerText = currentUserName;
     document.getElementById('curYear').innerText = new Date(Date.now() + serverTimeOffset).getFullYear();
     applyTheme();
     
     setInterval(() => {
         db.ref(".info/serverTimeOffset").once("value").then((snap) => {
             serverTimeOffset = snap.val() || 0;
-            checkSecurity(); 
-            renderGrid();
-            updateGlobalBadges();
+            checkSecurity(); renderGrid(); updateGlobalBadges();
         });
     }, 10000); 
 </script>
