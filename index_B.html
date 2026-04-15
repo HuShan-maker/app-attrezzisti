@@ -70,10 +70,10 @@
         .bottom-area { display: flex; flex-direction: column; align-items: center; margin-top: 20px; padding-bottom: 30px; gap: 15px; }
         .fuori-btn { background: var(--btn-gray); border: none; border-radius: 18px; font-size: 14px; font-weight: 800; height: 65px; width: calc(50% + 6px); text-transform: uppercase; transition: 0.3s; position: relative; }
         
-        /* 新增：任务详情详情提示框样式（支持 10 条以上滚动） */
+        /* 新增：详情提示框样式（支持 10 条以上滚动） */
         #pianoInfoBox {
             width: 100%;
-            max-height: 130px; /* 固定高度，容纳约 4-5 条，多出则滚动 */
+            max-height: 130px; 
             border: 3px solid var(--btn-gray);
             border-radius: 22px;
             padding: 12px 15px;
@@ -81,7 +81,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            overflow-y: auto; /* 开启滚动 */
+            overflow-y: auto; 
             -webkit-overflow-scrolling: touch;
         }
         .info-row {
@@ -329,7 +329,7 @@
         const sTime = firebase.database.ServerValue.TIMESTAMP;
         if (!act[id]) return; 
         
-        // --- 确认对话框植入 ---
+        // --- 确认对话框：接单时弹出 ---
         if (act[id].status === 'orange') {
             if (confirm(`Vuoi prendere in carico l'intervento per la linea ${id}?`)) {
                 db.ref('active_calls/' + id).update({ 
@@ -434,23 +434,35 @@
         f.className = (fs && fs.status === 'red') ? 'fuori-btn or' : 'fuori-btn';
         if (!(fs && fs.status === 'red')) f.style.color = c;
 
-        // --- 任务详情提示框逻辑植入 ---
+        // --- 详情窗口渲染与隐私保护逻辑 ---
         const infoBox = document.getElementById('pianoInfoBox');
         const infoList = document.getElementById('pianoInfoList');
-        infoBox.style.borderColor = c; 
-        infoList.innerHTML = '';
-        const activeTasks = pianoData[curPiano].filter(id => act[id] && act[id].status === 'orange');
-        if (activeTasks.length > 0) {
-            activeTasks.forEach(id => {
-                const item = act[id];
-                const row = document.createElement('div');
-                row.className = 'info-row';
-                row.style.color = c;
-                row.innerHTML = `<span>Linea ${id}</span><span>${item.causale || "-"}</span>`;
-                infoList.appendChild(row);
-            });
+        
+        if (isWorkingTime) {
+            infoBox.style.borderColor = c; 
+            infoList.innerHTML = '';
+            const activeTasks = pianoData[curPiano].filter(id => act[id] && act[id].status === 'orange');
+            if (activeTasks.length > 0) {
+                activeTasks.forEach(id => {
+                    const item = act[id];
+                    const row = document.createElement('div');
+                    row.className = 'info-row';
+                    row.style.color = c;
+                    // 在上班时间内，显示具体的 Causale
+                    row.innerHTML = `<span>Linea ${id}</span><span>${item.causale || "-"}</span>`;
+                    infoList.appendChild(row);
+                });
+            } else {
+                infoList.innerHTML = '<div style="text-align:center; font-size:11px; color:#8e8e93; font-weight:700; padding: 5px 0;">NESSUNA CHIAMATA ATTIVA</div>';
+            }
         } else {
-            infoList.innerHTML = '<div style="text-align:center; font-size:11px; color:#8e8e93; font-weight:700; padding: 5px 0;">NESSUNA CHIAMATA ATTIVA</div>';
+            // --- 非上班时间 (例如在家里)，隐藏所有隐私原因 ---
+            infoBox.style.borderColor = "var(--btn-gray)"; 
+            infoList.innerHTML = `
+                <div style="text-align:center; padding: 5px 0;">
+                    <div style="font-size:12px; color:var(--red); font-weight:900;">SISTEMA BLOCCATO</div>
+                    <div style="font-size:9px; color:#8e8e93; font-weight:700; margin-top:4px;">DATI PROTETTI - ACCESSO SOLO IN TURNO</div>
+                </div>`;
         }
     }
 
