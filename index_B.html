@@ -104,7 +104,6 @@
         .info-row:last-child { border-bottom: none; }
         .clickable-modello { color: var(--blue); text-decoration: underline; cursor: pointer; }
 
-        /* --- 修改：数据库显示区域优化 --- */
         #modelli_v1 { background: #fff; display: none; flex-direction: column; z-index: 350; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; overflow-y: auto; }
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
@@ -114,7 +113,6 @@
         .m-input[readonly] { color: #8e8e93 !important; }
         .m-input:not([readonly]) { color: var(--blue) !important; }
         
-        /* 历史记录：字体变小，支持内部滚动 */
         .m-history { 
             margin-top: 20px; padding: 15px; border-radius: 18px; 
             background: #f9f9fb; border: 1px solid #eee; 
@@ -129,7 +127,6 @@
         .btn-crea-action { background: var(--green); }
         .btn-agg-action { background: #000; }
 
-        /* --- 核心修改：颜色按钮始终锁定底部靠右 --- */
         .color-picker-wrap { 
             position: fixed; 
             right: 20px; 
@@ -241,7 +238,7 @@
                 <button id="mAggiornaBtn" class="m-half-btn btn-agg-action" onclick="handleModAction('aggiorna')">Aggiorna Dati</button>
             </div>
         </div>
-        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare il cartiglio。</div>
+        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare i dettagli。</div>
     </div>
 
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
@@ -415,7 +412,6 @@
         aBtn.style.opacity = "1";
     }
 
-    // --- 修改：增强的历史记录对比与显示逻辑 ---
     async function handleModelloSearch(val) {
         if(mEditMode) return;
         const id = val.trim().toUpperCase();
@@ -435,13 +431,12 @@
 
             let html = "";
             if(historySnap.exists()){
-                const historyList = Object.values(historySnap.val()).reverse(); // 最新在前
+                const historyList = Object.values(historySnap.val()).reverse(); 
                 historyList.forEach(h => {
                     const dateStr = new Date(h.at).toLocaleDateString();
                     if(h.type === 'crea'){
                         html += `<div class="history-item"><span style="color:var(--green)">[CREA]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
                     } else {
-                        // 计算差异显示
                         const diffArr = [];
                         if(h.diff) {
                             for(let key in h.diff) diffArr.push(`${key}: ${h.diff[key].old} → ${h.diff[key].new}`);
@@ -481,7 +476,7 @@
         }
     }
 
-    // --- 修改：保存逻辑包含差异分析 ---
+    // --- 核心优化：改进差异检查逻辑 ---
     async function saveModello(id, type) {
         const newData = {
             macchina: document.getElementById('m_mac').value.trim(),
@@ -501,10 +496,19 @@
             diffObj = {};
             const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota"];
             keys.forEach(k => {
-                if(String(newData[k]) !== String(currentModData[k])) {
-                    diffObj[k] = { old: currentModData[k] || "-", new: newData[k] || "-" };
+                const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "";
+                const newVal = newData[k] ? String(newData[k]).trim() : "";
+                
+                // 修正逻辑：如果旧值为空/横杠且新值不为空，应准确记录 DA - A 新值
+                if(newVal !== oldVal) {
+                    diffObj[k] = { 
+                        old: (oldVal === "" || oldVal === "-") ? "-" : oldVal, 
+                        new: (newVal === "") ? "-" : newVal 
+                    };
                 }
             });
+            // 如果比对后没有任何字段发生变化，则不生成差异对象
+            if (Object.keys(diffObj).length === 0) diffObj = null;
         }
 
         await historyRef.push({ 
