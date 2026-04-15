@@ -29,9 +29,12 @@
             margin: 0; transition: background 0.4s, opacity 0.4s; overflow-x: hidden; touch-action: pan-y; 
         }
 
+        /* 顶部班次标签 */
         .turno-badge { 
-            font-size: 11px; font-weight: 800; color: #fff; background: #8e8e93; 
-            padding: 3px 10px; border-radius: 6px; margin-left: 8px; text-transform: uppercase; vertical-align: middle; 
+            font-size: 11px; font-weight: 800; color: #fff; 
+            background: #8e8e93; 
+            padding: 3px 10px; border-radius: 6px; 
+            margin-left: 8px; text-transform: uppercase; vertical-align: middle; 
             transition: background 0.3s;
         }
         .turno-on { background: var(--green) !important; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
@@ -41,14 +44,16 @@
         .btn-stack { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
         h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; line-height: 1.1; display: flex; align-items: center; }
         .user-subtitle { font-size: 14px; color: #8e8e93; font-weight: 600; margin-top: 5px; height: 25px; display: flex; align-items: center; cursor: pointer; min-width: 50px; }
-        .reg-btn { background: #000; color: #fff; font-size: 11px; border: none; padding: 0 14px; border-radius: 9px; font-weight: 700; text-transform: uppercase; height: 25px; display: flex; align-items: center; min-width: 100px; justify-content: center; }
+        .reg-btn { background: #000; color: #fff; font-size: 11px; border: none; padding: 0 14px; border-radius: 9px; font-weight: 700; text-transform: uppercase; height: 25px; display: flex; align-items: center; min-width: 100px; justify-content: center;}
         
+        /* 钢琴按钮 */
         .pianos { display: flex; gap: 5px; margin-bottom: 25px; padding: 12px 0 8px 0; overflow: visible; }
         .p-btn { flex: 1; background: var(--btn-gray); color: #8e8e93; border: none; padding: 10px 0; border-radius: 12px; font-weight: 700; font-size: 10px; transition: 0.2s; position: relative; }
         .p-btn.active { color: #fff !important; }
         .p-badge { position: absolute; top: -5px; right: -5px; background: var(--red); width: 13px; height: 13px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; animation: badgePulse 1.5s infinite; border: 2px solid white; }
         @keyframes badgePulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
+        /* 网格动画 */
         #g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; }
         .slide-left { transform: translateX(-30px); opacity: 0; }
         .slide-right { transform: translateX(30px); opacity: 0; }
@@ -67,11 +72,29 @@
         .bottom-area { display: flex; flex-direction: column; align-items: center; margin-top: 20px; padding-bottom: 30px; gap: 15px; }
         .fuori-btn { background: var(--btn-gray); border: none; border-radius: 18px; font-size: 14px; font-weight: 800; height: 65px; width: calc(50% + 6px); text-transform: uppercase; transition: 0.3s; position: relative; }
         
+        /* 任务详情窗口样式 */
         #pianoInfoBox {
-            width: 100%; max-height: 130px; border: 3px solid var(--btn-gray); border-radius: 22px;
-            padding: 12px 15px; transition: border-color 0.3s; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            width: 100%;
+            max-height: 130px; 
+            border: 3px solid var(--btn-gray);
+            border-radius: 22px;
+            padding: 12px 15px;
+            transition: border-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
         }
-        .info-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800; padding-bottom: 4px; border-bottom: 1px dashed rgba(0,0,0,0.05); }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 800;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed rgba(0,0,0,0.05);
+        }
         .info-row:last-child { border-bottom: none; }
         .clickable-modello { color: var(--blue); text-decoration: underline; cursor: pointer; }
 
@@ -85,6 +108,9 @@
         .m-history { margin-top: 20px; padding: 15px; border-radius: 18px; background: #f9f9fb; border: 1px solid #eee; font-size: 11px; line-height: 1.5; font-weight: 600; }
         .m-aggiorna-btn { background: #000; color: #fff; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 14px; border: none; margin-top: 10px; width: 100%; }
 
+        .color-picker-wrap { position: fixed; right: 20px; bottom: 40px; z-index: 50; width: 40px; height: 40px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3); }
+        #floorColor { width: 24px; height: 24px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer; }
+        
         #v { background: #fff; display: none; flex-direction: column; z-index: 300; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding-top: calc(15px + env(safe-area-inset-top)); }
         .v-nav { display: flex; align-items: center; height: 60px; padding: 0 10px; background: #fff; border-bottom: 1px solid #f2f2f7; flex-shrink: 0; position: relative; }
         .v-nav-left { width: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-start; }
@@ -95,6 +121,22 @@
         .v-user-tag { font-size: 11px; color: #8e8e93; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
         
         #logContainer { flex: 1; overflow-y: auto; padding: 3px 15px 15px 15px; -webkit-overflow-scrolling: touch; }
+        .day-header { background: var(--btn-gray); padding: 14px 15px; font-size: 14px; font-weight: 800; color: #000; display: flex; align-items: center; position: sticky; top: 0; z-index: 150; border-radius: 12px; margin-bottom: 15px; min-height: 48px; }
+        .day-del-btn { color: var(--red); font-weight: 900; font-size: 20px; margin-right: 12px; width: 20px; display: none; align-items: center; justify-content: center; line-height: 1; cursor: pointer; }
+        .day-section.collapsed .day-del-btn { display: flex; }
+        .day-header-left { display: flex; align-items: center; flex: 1; }
+        .day-header::after { content: '▼'; font-size: 10px; color: #8e8e93; margin-left: auto; }
+        .day-section.collapsed .day-header::after { content: '▶'; }
+        .day-section.collapsed .day-content { display: none; }
+
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; } 
+        th, td { padding: 12px 2px; text-align: center; font-size: 14px; border-bottom: 1px solid #f2f2f7; vertical-align: middle; }
+        th { color: #8e8e93; font-size: 9px; text-transform: uppercase; background: #fff; position: sticky; top: 48px; z-index: 140; }
+        .col-time { text-align: left !important; padding-left: 8px !important; width: 85px; }
+        .time-cell { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; line-height: 1.1; font-size: 13.5px; font-weight: 800; }
+        .t-a { color: var(--orange); }
+        .t-d { color: var(--red); }
+        
         .v-footer { flex-shrink: 0; background: #fff; padding: 15px; border-top: 1px solid #f2f2f7; z-index: 250; }
         .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 8px; }
         .bottom-action-btn { border: none; padding: 10px 0; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; flex: 1; max-width: 140px; cursor: pointer; }
@@ -120,7 +162,7 @@
             <div id="userNameDisp" class="user-subtitle" onclick="handleNameClick()">Hu_Shan</div>
         </div>
         <div class="btn-stack">
-            <button class="reg-btn" onclick="showModelli()">info modelli</button>
+            <button class="reg-btn" onclick="showModelli()" style="margin-bottom:5px;">info modelli</button>
             <button class="reg-btn" onclick="showMemoria()">registro</button>
         </div>
     </div>
@@ -266,7 +308,7 @@
     let dayHistory = JSON.parse(localStorage.getItem('dayHistory_v7') || '[]');
     let undoStack = [], curPiano = 1, editIndex = -1, clickCount = 0, clickTimer = null, nameClickCount = 0, nameClickTimer = null, touchStartX = 0;
     let isInitialLoad = true; 
-    let currentModData = null; // 用于存储当前搜索到的型号数据
+    let currentModData = null;
 
     function autoCleanOldRecords() {
         const now = new Date(Date.now() + serverTimeOffset);
@@ -336,17 +378,16 @@
             document.getElementById('m_pan').value = d.panto || "";
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
-            
-            const histSnap = await db.ref(`modelli_db/${id}/history`).limitToLast(1).once('value');
-            let hText = `<span style="color:var(--green)">Cartiglio Modello ${id}</span><br>`;
-            if(histSnap.exists()) {
-                const h = Object.values(histSnap.val())[0];
-                hText += `Ultima modifica di <b>${h.by}</b> il ${new Date(h.at).toLocaleDateString()}<br>Da: ${h.oldSummary} → A: ${h.newSummary}`;
-            } else { hText += `Creato inizialmente da <b>${d.creator || 'Admin'}</b>.`; }
-            document.getElementById('mHistoryBox').innerHTML = hText;
+            const hSnap = await db.ref(`modelli_db/${id}/history`).limitToLast(1).once('value');
+            let txt = `<span style="color:var(--green)">Cartiglio Modello ${id}</span><br>`;
+            if(hSnap.exists()){
+                const h = Object.values(hSnap.val())[0];
+                txt += `Ultima modifica: <b>${h.by}</b> il ${new Date(h.at).toLocaleDateString()}<br>Da: ${h.oldSummary} → A: ${h.newSummary}`;
+            } else { txt += `Creato inizialmente da <b>${d.creator || 'Admin'}</b>.`; }
+            document.getElementById('mHistoryBox').innerHTML = txt;
         } else {
             resetModForm(false);
-            document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Inserisci i dati per creare il cartiglio.`;
+            document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Inserisci i dati e clicca Aggiorna.`;
         }
     }
 
@@ -359,17 +400,13 @@
             scarico: document.getElementById('m_sca').value, quota: document.getElementById('m_quo').value,
             at: Date.now(), by: currentUserName
         };
-        const newSummary = `${newData.macchina}/${newData.posaggio}/${newData.lam}`;
-
-        if(currentModData) {
-            const oldSummary = `${currentModData.macchina}/${currentModData.posaggio}/${currentModData.lama}`;
-            db.ref(`modelli_db/${id}/history`).push({ 
-                oldSummary: oldSummary, newSummary: newSummary, by: currentUserName, at: Date.now() 
-            });
+        const nSummary = `${newData.macchina}/${newData.posaggio}/${newData.lama}`;
+        if(currentModData){
+            const oSummary = `${currentModData.macchina}/${currentModData.posaggio}/${currentModData.lama}`;
+            db.ref(`modelli_db/${id}/history`).push({ oldSummary: oSummary, newSummary: nSummary, by: currentUserName, at: Date.now() });
         } else { newData.creator = currentUserName; }
-
         await db.ref(`modelli_db/${id}/current`).set(newData);
-        alert("Dati Aggiornati con successo!");
+        alert("Dati Salvati!");
         handleModelloSearch(id);
         renderGrid();
     }
@@ -497,6 +534,7 @@
         f.className = (fs && fs.status === 'red') ? 'fuori-btn or' : 'fuori-btn';
         if (!(fs && fs.status === 'red')) f.style.color = c;
 
+        // --- 详情窗口渲染与隐私保护逻辑 ---
         const infoBox = document.getElementById('pianoInfoBox');
         const infoList = document.getElementById('pianoInfoList');
         
@@ -505,24 +543,24 @@
             infoList.innerHTML = '';
             const activeTasks = pianoData[curPiano].filter(id => act[id] && act[id].status === 'orange');
             if (activeTasks.length > 0) {
-                for (const id of activeTasks) {
+                for(const id of activeTasks) {
                     const item = act[id];
                     const row = document.createElement('div');
                     row.className = 'info-row';
                     row.style.color = c;
                     
-                    let finalCausale = item.causale || "-";
-                    // 自动检查型号联动
-                    const cambioMatch = finalCausale.match(/Cambio\s+([A-Z0-9]+)/i);
-                    if(cambioMatch) {
-                        const modId = cambioMatch[1].toUpperCase();
+                    let finalC = item.causale || "-";
+                    // 核心逻辑：自动检查型号联动
+                    const modMatch = finalC.match(/Cambio\s+([A-Z0-9]+)/i);
+                    if(modMatch){
+                        const modId = modMatch[1].toUpperCase();
                         const checkSnap = await db.ref(`modelli_db/${modId}`).once('value');
-                        if(checkSnap.exists()) {
-                            finalCausale = finalCausale.replace(cambioMatch[1], `<span class="clickable-modello" onclick="quickJump('${modId}')">${cambioMatch[1]}</span>`);
+                        if(checkSnap.exists()){
+                            finalC = finalC.replace(modMatch[1], `<span class="clickable-modello" onclick="quickJump('${modId}')">${modMatch[1]}</span>`);
                         }
                     }
-                    
-                    row.innerHTML = `<span>Linea ${id}</span><span>${finalCausale}</span>`;
+
+                    row.innerHTML = `<span>Linea ${id}</span><span>${finalC}</span>`;
                     infoList.appendChild(row);
                 }
             } else {
