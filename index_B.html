@@ -118,31 +118,53 @@
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
         
-        /* --- 修复点：确保款式信息行样式正确且闭合 --- */
+                /* 120行：容器高度固定，开启隐藏溢出 */
         .m-row { 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             background: var(--btn-gray); 
             padding: 12px 15px; 
-            border-radius: 15px; 
+            border-radius: 15px;
+            height: 48px; /* 强制固定高度，防止被撑开 */
+            overflow: hidden; 
         }
-        
+
+        /* 122行：标签宽度 */
         .m-label { 
             font-size: 10px; 
             font-weight: 800; 
-            color: #8e8e83; 
+            color: #8e8e93; 
             text-transform: uppercase; 
-            width: 45%; 
+            width: 40%; 
+            flex-shrink: 0; /* 防止标签被挤压 */
         }
+
+        /* 128行：核心滑动补丁 */
         .m-input { 
-            width: 50%; border: none; background: transparent; text-align: right; font-size: 14px; font-weight: 800; outline: none; 
-            /* 开启滑动功能 */
-            display: inline-block; white-space: nowrap; overflow-x: auto; direction: rtl; unicode-bidi: plaintext; -webkit-overflow-scrolling: touch; 
+            width: 60%; 
+            border: none; 
+            background: transparent; 
+            text-align: right; 
+            font-size: 14px; 
+            font-weight: 800; 
+            outline: none; 
+            
+            /* --- 重点：实现手动拖动感 --- */
+            display: block;            /* 必须块状化才能滚动 */
+            white-space: nowrap;       /* 强制不换行 */
+            overflow-x: auto;          /* 开启横向手动滚动 */
+            -webkit-overflow-scrolling: touch; /* 手机弹性滑动感 */
+            padding: 0;
+            margin: 0;
         }
+
+        /* 137行：状态颜色 */
         .m-input[readonly] { color: #8e8e93 !important; }
-        .m-input:not([readonly]) { color: var(--blue) !important; direction: ltr; }
-        .m-input::-webkit-scrollbar { display: none; }
+        .m-input:not([readonly]) { color: var(--blue) !important; }
+
+        /* 140行：隐藏滚动条，保持界面干净 */
+        .m-input::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
         .m-history { 
             margin-top: 20px; padding: 15px; border-radius: 18px; 
