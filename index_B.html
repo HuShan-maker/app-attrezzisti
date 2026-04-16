@@ -629,8 +629,8 @@
     }
 
     async function saveModello(id, type) {
-        // --- 保存确认弹窗 ---
-        if (!confirm("Sei sicuro di voler salvare le modifiche?")) return;
+        const message = (type === 'crea') ? "Vuoi creare questo nuovo modello?" : "Confermi l'aggiornamento dei dati?";
+            if (!confirm(message)) return;
 
         const newData = {
             macchina: document.getElementById('m_mac').value.trim(),
@@ -642,7 +642,7 @@
             at: Date.now(), by: currentUserName
         };
 
-        const nSum = `${newData.macchina}/${newData.posaggio}/${newData.lama}`;
+        const nSum = `${newData.macchina} / ${newData.posaggio} / ${newData.lama} / ${newData.panto}° / ${newData.scarico}° / ${newData.quota}`;
         const historyRef = db.ref(`modelli_db/${id}/history`);
         
         let diffObj = null;
