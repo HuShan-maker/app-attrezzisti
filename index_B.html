@@ -117,17 +117,27 @@
         #modelli_v1 { background: #fff; display: none; flex-direction: column; z-index: 350; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; overflow-y: auto; }
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
-        .m-row { display: flex; justify-content: space-between; align-items: center; background: var(--btn-gray); padding: 12px 15px; border-radius: 15px; }
+        
+        /* --- 修复点：确保款式信息行样式正确且闭合 --- */
+        .m-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: var(--btn-gray); 
+            padding: 12px 15px; 
+            border-radius: 15px; 
+        }
         
         .m-label { 
             font-size: 10px; 
             font-weight: 800; 
-            color: #8e8e93; 
+            color: #8e8e83; 
             text-transform: uppercase; 
-            width: 40%; 
+            width: 45%; 
         }
         .m-input { 
-            width: 58%; border: none; background: transparent; text-align: right; font-size: 14px; font-weight: 800; outline: none; 
+            width: 50%; border: none; background: transparent; text-align: right; font-size: 14px; font-weight: 800; outline: none; 
+            /* 开启滑动功能 */
             display: inline-block; white-space: nowrap; overflow-x: auto; direction: rtl; unicode-bidi: plaintext; -webkit-overflow-scrolling: touch; 
         }
         .m-input[readonly] { color: #8e8e93 !important; }
@@ -256,7 +266,7 @@
                 <button id="mAggiornaBtn" class="m-half-btn btn-agg-action" onclick="handleModAction('aggiorna')">Aggiorna Dati</button>
             </div>
         </div>
-        <div id="mHistoryBox" class="m-history">Cerca un modello for visualizzare il cartiglio。</div>
+        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare il cartiglio。</div>
     </div>
 
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
@@ -555,7 +565,7 @@
     function resetModForm(full = true) {
         if(full) document.getElementById('mSearchInput').value = "";
         ['m_mac','m_pos','m_lam','m_pan','m_sca','m_quo'].forEach(i => document.getElementById(i).value = "");
-        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare i dettagli.";
+        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare i细节。";
         currentModData = null;
     }
 
@@ -625,6 +635,7 @@
         const now = Date.now() + serverTimeOffset;
         archiveIntervention('FUORI', val, fs.startA, fs.startD || fs.startA, now, currentUserName);
         db.ref('active_calls/FUORI').remove();
+        document.getElementById('fuoriCausaleInput').value = "";
         document.getElementById('fuoriModal').style.display = 'none';
         renderGrid();
     }
@@ -635,15 +646,18 @@
         const contentArea = document.getElementById('dynamicContent');
         const isW = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         
+        // --- 修正点：根据 Shift 状态锁定/解锁 Info Modelli 按钮 ---
         const infoBtn = document.getElementById('infoModelliBtn');
-        if (isW) {
-            infoBtn.classList.remove('locked-btn');
-            infoBtn.style.pointerEvents = "auto";
-            infoBtn.style.opacity = "1";
-        } else {
-            infoBtn.classList.add('locked-btn');
-            infoBtn.style.pointerEvents = "none";
-            infoBtn.style.opacity = "0.6";
+        if (infoBtn) {
+            if (isW) {
+                infoBtn.classList.remove('locked-btn');
+                infoBtn.style.pointerEvents = "auto";
+                infoBtn.style.opacity = "1";
+            } else {
+                infoBtn.classList.add('locked-btn');
+                infoBtn.style.pointerEvents = "none";
+                infoBtn.style.opacity = "0.6";
+            }
         }
 
         turnoLabel.innerText = myShift;
