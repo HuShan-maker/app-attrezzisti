@@ -114,10 +114,9 @@
         .info-row:last-child { border-bottom: none; }
         .clickable-modello { color: var(--blue); text-decoration: underline; cursor: pointer; }
 
+        /* --- 款式数据库 UI 彻底重构 (2.0) --- */
         #modelli_v1 { background: #fff; display: none; flex-direction: column; z-index: 350; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; overflow-y: auto; }
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
-        
-        /* 核心改装：内容滑块容器 */
         .m-form { display: flex; flex-direction: column; gap: 10px; }
         
         .m-row { 
@@ -126,66 +125,70 @@
             background: var(--btn-gray); 
             border-radius: 15px;
             height: 52px; 
-            overflow: hidden; /* 核心：裁剪掉滑出的卡片 */
+            overflow: hidden; 
             position: relative;
         }
 
+        /* 标题栏瘦身 + 阴影遮罩 */
         .m-label { 
             font-size: 9px; 
             font-weight: 900; 
             color: #8e8e93; 
             text-transform: uppercase; 
-            width: 38%; 
+            width: 30%; /* 缩窄比例，给右边留出 70% 的窗口 */
             height: 100%;
             display: flex;
             align-items: center;
-            justify-content: flex-end;
-            padding: 0 10px;
-            background: var(--btn-gray); /* 挡住滑过来的卡片 */
+            justify-content: center;
+            padding: 0 5px;
+            background: var(--btn-gray); 
             z-index: 20; 
             flex-shrink: 0;
-            border-right: 1.2px solid rgba(0,0,0,0.1); 
-            text-align: right;
+            text-align: center;
             line-height: 1.1;
+            box-shadow: 4px 0 8px rgba(0,0,0,0.05); /* 侧面投影，强化遮挡感 */
+            border-right: 1px solid rgba(0,0,0,0.05);
         }
 
-        /* 这是窗口，文字在里面滑 */
+        /* 滑块窗口 */
         .m-val-scroll {
             flex: 1;
+            width: 70%;
             height: 100%;
-            overflow-x: scroll; /* 必须是 scroll 激活滑动 */
+            overflow-x: auto;
             display: flex;
             align-items: center;
-            -webkit-overflow-scrolling: touch; /* 手机顺滑 */
+            -webkit-overflow-scrolling: touch; 
             z-index: 10;
-            padding: 0 10px;
+            padding: 0;
         }
         .m-val-scroll::-webkit-scrollbar { display: none; }
 
-        /* 这是那张“长卡片”，手指按在这里划 */
+        /* 物理标签卡片 */
         .m-input-card {
             min-width: 100%; 
-            width: max-content; /* 核心：根据内容自动撑开长度，绝不压缩 */
+            width: max-content; /* 强制内容不折行，撑开卡片 */
+            height: 80%;
             display: flex;
             justify-content: flex-end;
             align-items: center;
+            padding-right: 15px;
+            padding-left: 20px;
         }
 
         .m-input { 
             border: none; 
             background: transparent; 
             text-align: right; 
-            font-size: 15px; 
+            font-size: 14px; 
             font-weight: 800; 
             outline: none; 
             padding: 0;
             color: #000;
-            white-space: nowrap; /* 强制一行 */
-            /* 关键补丁：只读时不截断点击事件，让滑动生效 */
-            pointer-events: none; 
+            white-space: nowrap;
+            pointer-events: none; /* 只读时手指直接滑卡片 */
         }
 
-        /* 更新模式：变蓝、背景微变、允许点击 */
         .m-input:not([readonly]) { 
             color: var(--blue) !important; 
             background: rgba(0,122,255,0.05);
@@ -306,8 +309,8 @@
             <div class="m-row"><span class="m-label">Macchina Uso</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_mac" class="m-input" placeholder="-" readonly></div></div></div>
             <div class="m-row"><span class="m-label">Posaggio</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_pos" class="m-input" placeholder="-" readonly></div></div></div>
             <div class="m-row"><span class="m-label">Lama o Fresa</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_lam" class="m-input" placeholder="-" readonly></div></div></div>
-            <div class="m-row"><span class="m-label">Angolo Pantoscopico</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_pan" class="m-input" placeholder="-" readonly></div></div></div>
-            <div class="m-row"><span class="m-label">Angolo Scarico Asta</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_sca" class="m-input" placeholder="-" readonly></div></div></div>
+            <div class="m-row"><span class="m-label">Angolo Panto</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_pan" class="m-input" placeholder="-" readonly></div></div></div>
+            <div class="m-row"><span class="m-label">Scarico Asta</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_sca" class="m-input" placeholder="-" readonly></div></div></div>
             <div class="m-row"><span class="m-label">Quota Asta</span><div class="m-val-scroll"><div class="m-input-card"><input type="text" id="m_quo" class="m-input" placeholder="-" readonly></div></div></div>
             
             <div class="m-footer-btns">
@@ -479,9 +482,10 @@
     function setModInputsReadOnly(isReadOnly) {
         document.querySelectorAll('.m-input').forEach(input => {
             input.readOnly = isReadOnly;
-            // 重要补丁：
-            input.parentElement.style.pointerEvents = isReadOnly ? "auto" : "none"; 
+            // 补丁：只读模式下允许滑块接收触摸事件，输入框本身不交互
+            input.parentElement.parentElement.style.pointerEvents = "auto";
             input.style.pointerEvents = isReadOnly ? "none" : "auto";
+            input.style.width = isReadOnly ? "auto" : "100%";
         });
     }
 
@@ -514,10 +518,10 @@
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
 
-            // 核心：复位滚动位置到最右侧
+            // 复位卡片滚动位置
             setTimeout(() => {
                 document.querySelectorAll('.m-val-scroll').forEach(el => el.scrollLeft = 10000);
-            }, 60);
+            }, 80);
 
             cBtn.innerText = "GIA' CREATO";
             cBtn.classList.add('btn-disabled');
