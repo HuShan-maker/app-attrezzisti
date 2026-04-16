@@ -145,13 +145,12 @@
             flex-shrink: 0;
             text-align: center;
             line-height: 1.1;
-            white-space: normal; 
+            white-space: normal; /* 允许换行显示 2 行 */
             word-wrap: break-word;
             box-shadow: 4px 0 8px rgba(0,0,0,0.05); 
             border-right: 1px solid rgba(0,0,0,0.05);
         }
 
-        /* 文字内容展示区：禁止滑动，允许换行 */
         .m-val-scroll {
             flex: 1;
             width: 68%;
@@ -164,7 +163,6 @@
             z-index: 10;
         }
 
-        /* 只读模式文本层：支持多行，字体自适应 */
         .m-text-view {
             font-size: 14px; /* 初始字体 */
             font-weight: 800;
@@ -318,7 +316,7 @@
                 <button id="mAggiornaBtn" class="m-half-btn btn-agg-action" onclick="handleModAction('aggiorna')">Aggiorna Dati</button>
             </div>
         </div>
-        <div id="mHistoryBox" class="m-history">Cerca un modello per visualizzare il cartiglio。</div>
+        <div id="mHistoryBox" class="m-history">Cerca un modello为visualizzare i细节。</div>
     </div>
 
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
@@ -462,15 +460,19 @@
         const isW = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         if (isW) {
             let targetP = null;
+            // 优先找自己领取的红色任务
             for (let p = 1; p <= 5; p++) {
                 if (pianoData[p].some(id => act[id] && act[id].status === 'red' && act[id].takenBy === myDeviceId)) { targetP = p; break; }
             }
+            // 其次找排队的橙色任务
             if (!targetP) {
                 const oranges = Object.keys(act).filter(k => k !== 'FUORI' && act[k].status === 'orange').sort((a,b) => act[a].startA - act[b].startA);
                 if (oranges.length > 0) { for (let p = 1; p <= 5; p++) { if (pianoData[p].includes(oranges[0])) { targetP = p; break; } } }
             }
-            if (!targetP && isInitialLoad) targetP = 1;
-            if (targetP) curPiano = targetP;
+            // 只有初始加载或确实有新呼叫Piano变更时才跳，不干扰手动操作
+            if (targetP && (isInitialLoad || (act[pianoData[targetP][0]] && !act[pianoData[curPiano][0]]))) { 
+                curPiano = targetP; 
+            }
         }
         isInitialLoad = false;
         renderGrid(); updateGlobalBadges(); applyTheme();
@@ -485,7 +487,7 @@
         mEditMode = null;
     }
 
-    // --- 核心手术：字体自适应逻辑 ---
+    // --- 核心逻辑：字体自适应 + 自动缩放 ---
     function syncDisplayValues() {
         ['mac','pos','lam','pan','sca','quo'].forEach(k => {
             const input = document.getElementById('m_'+k);
@@ -493,11 +495,11 @@
             const val = input.value || "-";
             view.innerText = val;
             
-            // 自动缩放字体
-            view.style.fontSize = "14px"; // 先设回初始大小
+            // 自动缩放字体逻辑
+            view.style.fontSize = "14px"; 
             let fontSize = 14;
-            // 如果文字总高度超过了限制（框高52px，扣除内边距约42px），则缩小字体
-            while (view.scrollHeight > 42 && fontSize > 8) {
+            // 如果文字高度超过了行高(52px)的限制，自动缩小字体
+            while (view.scrollHeight > 44 && fontSize > 8) {
                 fontSize -= 0.5;
                 view.style.fontSize = fontSize + "px";
             }
@@ -541,7 +543,7 @@
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
 
-            syncDisplayValues(); // 同步文字层并自动缩放字体
+            syncDisplayValues(); 
 
             cBtn.innerText = "GIA' CREATO";
             cBtn.classList.add('btn-disabled');
@@ -596,7 +598,7 @@
     }
 
     async function saveModello(id, type) {
-        // 增加保存确认询问
+        // --- 保存确认弹窗 ---
         if (!confirm("Sei sicuro di voler salvare le modifiche?")) return;
 
         const newData = {
