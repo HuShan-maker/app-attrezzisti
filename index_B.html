@@ -119,7 +119,7 @@
         .m-form { display: flex; flex-direction: column; gap: 10px; }
         .m-row { display: flex; justify-content: space-between; align-items: center; background: var(--btn-gray); padding: 12px 15px; border-radius: 15px; }
         .m-label { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; width: 45%; }
-                .m-input { 
+        .m-input { 
             width: 50%; 
             border: none; 
             background: transparent; 
@@ -129,15 +129,25 @@
             outline: none; 
             -webkit-user-select: text; 
             user-select: text; 
-            /* --- 下面是新增的滑动功能 --- */
-            white-space: nowrap; 
-            overflow-x: auto; 
-            -webkit-overflow-scrolling: touch;
+            /* --- 以下是新增的滑动逻辑，确保不改变容器高宽 --- */
+            white-space: nowrap;       /* 强制文字不换行 */
+            overflow-x: auto !important; /* 开启横向滚动权限 */
+            display: block;            /* 块级化确保滚动生效 */
+            -webkit-overflow-scrolling: touch; /* 丝滑滑动补丁 */
         }
-        .m-input[readonly] { color: #8e8e93 !important; }
-        .m-input:not([readonly]) { color: var(--blue) !important; }
-        /* 隐藏滑动条让界面更干净 */
-        .m-input::-webkit-scrollbar { display: none; }
+        .m-input[readonly] { 
+            color: #8e8e93 !important; 
+        }
+        .m-input:not([readonly]) { 
+            color: var(--blue) !important; 
+        }
+        /* 新增：隐藏滚动条，保持界面整洁 */
+        .m-input::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+
 
         .m-history { 
             margin-top: 20px; padding: 15px; border-radius: 18px; 
