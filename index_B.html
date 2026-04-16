@@ -117,38 +117,42 @@
         #modelli_v1 { background: #fff; display: none; flex-direction: column; z-index: 350; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; overflow-y: auto; }
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
-        .m-row { display: flex; justify-content: space-between; align-items: center; background: var(--btn-gray); padding: 12px 15px; border-radius: 15px; }
-        .m-label { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; width: 45%; }
+        .m-row { display: flex; justify-content: space-between; align-items: center; background: var(--btn-gray); padding: 12px 15px; border-radius: 
+            .m-label { 
+            font-size: 10px; 
+            font-weight: 800; 
+            color: #8e8e93; 
+            text-transform: uppercase; 
+            width: 40%; /* 稍微缩小标签，给右边留更多拖动空间 */
+        }
         .m-input { 
-            width: 50%; 
+            width: 58%; /* 增加显示宽度 */
             border: none; 
             background: transparent; 
             text-align: right; 
             font-size: 14px; 
             font-weight: 800; 
             outline: none; 
-            -webkit-user-select: text; 
-            user-select: text; 
-            /* --- 以下是新增的滑动逻辑，确保不改变容器高宽 --- */
-            white-space: nowrap;       /* 强制文字不换行 */
-            overflow-x: auto !important; /* 开启横向滚动权限 */
-            display: block;            /* 块级化确保滚动生效 */
-            -webkit-overflow-scrolling: touch; /* 丝滑滑动补丁 */
+            
+            /* --- 核心修改：实现丝滑拖动感 --- */
+            display: inline-block;     
+            white-space: nowrap;       /* 强制不换行 */
+            overflow-x: auto;          /* 开启横向溢出 */
+            direction: rtl;            /* 关键点：让内容默认靠右，长出来的往左边藏 */
+            unicode-bidi: plaintext;   /* 配合 direction 使用，防止数字符号乱序 */
+            -webkit-overflow-scrolling: touch; /* 开启 iOS 丝滑滚动弹性 */
         }
         .m-input[readonly] { 
             color: #8e8e93 !important; 
         }
         .m-input:not([readonly]) { 
             color: var(--blue) !important; 
+            direction: ltr; /* 编辑状态时改回正常方向，方便输入 */
         }
-        /* 新增：隐藏滚动条，保持界面整洁 */
-        .m-input::-webkit-scrollbar {
-            display: none;
-            width: 0;
-            height: 0;
+        /* 隐藏滚动条 */
+        .m-input::-webkit-scrollbar { 
+            display: none; 
         }
-
-
         .m-history { 
             margin-top: 20px; padding: 15px; border-radius: 18px; 
             background: #f9f9fb; border: 1px solid #eee; 
