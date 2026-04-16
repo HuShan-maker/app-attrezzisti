@@ -699,27 +699,27 @@
         if (act[id].status === 'orange') {
             if (confirm(`Prendere in carico la linea ${id}?`)) {
                 db.ref('active_calls/' + id).update({ 
-                    status: 'red', startD: sTime, takenBy: myDeviceId, techName: currentUserName 
+                    status: 'red', startB: sTime, takenBy: myDeviceId, techName: currentUserName 
                 });
             }
         } 
         else if (act[id].status === 'red' && act[id].takenBy === myDeviceId) {
             const item = act[id];
             const now = Date.now() + serverTimeOffset;
-            archiveIntervention(id, item.causale || "-", item.startA, item.startD || item.startA, now, currentUserName);
+            archiveIntervention(id, item.causale || "-", item.startA, item.startB || item.startA, now, currentUserName);
             if (id === 'FUORI') { db.ref('active_calls/FUORI').remove(); }
             else { db.ref('active_calls/' + id).update({ status: 'completed', endT: sTime }); }
         }
     }
 
-    function archiveIntervention(id, causale, startA, startD, endT, tech) {
+    function archiveIntervention(id, causale, startA, startB, endT, tech) {
         const nowServer = new Date(endT);
         const dateKey = nowServer.toISOString().split('T')[0];
         const newLog = { 
             i: id, day: nowServer.toLocaleDateString('it-IT'), 
             s: new Date(startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
-            tA: Math.round((startD - startA) / 60000), 
-            tD: Math.round((endT - startD) / 60000), 
+            tA: Math.round((startB - startA) / 60000), 
+            tD: Math.round((endT - startB) / 60000), 
             st: startA, c: causale, tech: tech
         };
         logs.push(newLog);
@@ -727,7 +727,7 @@
         saveState();
         if (id !== 'FUORI') {
             db.ref(`history/${dateKey}/${id}_${endT}`).set({
-                id: id, startA: startA, startD: startD, endT: endT,
+                id: id, startA: startA, startB: startB, endT: endT,
                 causale: causale, techName: tech, status: 'completed',
                 turno: getRealTimeTurno() 
             });
@@ -743,7 +743,7 @@
             setTimeout(() => document.getElementById('fuoriCausaleInput').focus(), 150);
         } else if (!fs || fs.status === 'completed') {
             db.ref('active_calls/FUORI').set({ 
-                status: 'red', startA: sTime, startD: sTime, takenBy: myDeviceId, techName: currentUserName,
+                status: 'red', startA: sTime, startB: sTime, takenBy: myDeviceId, techName: currentUserName,
                 turno: getRealTimeTurno() 
             });
         }
@@ -753,7 +753,7 @@
         const val = document.getElementById('fuoriCausaleInput').value.trim() || "Attività Extra";
         const fs = act['FUORI']; 
         const now = Date.now() + serverTimeOffset;
-        archiveIntervention('FUORI', val, fs.startA, fs.startD || fs.startA, now, currentUserName);
+        archiveIntervention('FUORI', val, fs.startA, fs.startB || fs.startA, now, currentUserName);
         db.ref('active_calls/FUORI').remove();
         document.getElementById('fuoriCausaleInput').value = "";
         document.getElementById('fuoriModal').style.display = 'none';
