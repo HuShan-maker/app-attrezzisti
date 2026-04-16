@@ -114,7 +114,7 @@
         .info-row:last-child { border-bottom: none; }
         .clickable-modello { color: var(--blue); text-decoration: underline; cursor: pointer; }
 
-        /* --- 款式数据库 UI 重构 (精修部分) --- */
+        /* --- 款式数据库 UI 修订 --- */
         #modelli_v1 { background: #fff; display: none; flex-direction: column; z-index: 350; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; overflow-y: auto; }
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
@@ -124,8 +124,7 @@
             align-items: center; 
             background: var(--btn-gray); 
             border-radius: 15px;
-            height: auto; /* 修改：高度自适应 */
-            min-height: 52px; 
+            height: 52px; /* 固定高度 */
             overflow: hidden; 
             position: relative;
         }
@@ -135,7 +134,7 @@
             font-weight: 900; 
             color: #8e8e93; 
             text-transform: uppercase; 
-            width: 32%; /* 稍微加宽一点标题区 */
+            width: 32%; 
             height: 100%;
             display: flex;
             align-items: center;
@@ -146,46 +145,39 @@
             flex-shrink: 0;
             text-align: center;
             line-height: 1.1;
-            white-space: normal; /* 修改：允许换行 */
+            white-space: normal; 
             word-wrap: break-word;
             box-shadow: 4px 0 8px rgba(0,0,0,0.05); 
             border-right: 1px solid rgba(0,0,0,0.05);
         }
 
-        /* 滑块窗口 */
+        /* 文字内容展示区：禁止滑动，允许换行 */
         .m-val-scroll {
             flex: 1;
             width: 68%;
             height: 100%;
-            overflow-x: auto; /* 核心：允许滑动 */
+            overflow: hidden; /* 禁止左右滑动 */
             display: flex;
             align-items: center;
-            -webkit-overflow-scrolling: touch; 
+            justify-content: flex-end; 
+            padding: 0 15px;
             z-index: 10;
-            padding: 0;
-        }
-        .m-val-scroll::-webkit-scrollbar { display: none; }
-
-        /* 标签内容展示区 */
-        .m-input-card {
-            min-width: 100%; 
-            width: max-content; 
-            height: 100%;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            padding-right: 15px;
-            padding-left: 20px;
         }
 
-        /* 只读模式下的文本显示层 (真正解决滑动问题) */
+        /* 只读模式文本层：支持多行，字体自适应 */
         .m-text-view {
-            font-size: 14px;
+            font-size: 14px; /* 初始字体 */
             font-weight: 800;
             color: #000;
-            white-space: nowrap;
-            pointer-events: none;
-            display: block;
+            text-align: right;
+            line-height: 1.1;
+            width: 100%;
+            white-space: normal; /* 允许换行显示 2-3 行 */
+            word-break: break-all;
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* 最多显示3行 */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .m-input { 
@@ -197,13 +189,12 @@
             outline: none; 
             padding: 0;
             color: var(--blue);
-            white-space: nowrap;
-            display: none; /* 默认隐藏，编辑时显示 */
+            width: 100%;
+            display: none; 
         }
 
-        /* 编辑模式下的样式切换 */
         .editing .m-text-view { display: none; }
-        .editing .m-input { display: block; background: rgba(0,122,255,0.05); width: 100%; }
+        .editing .m-input { display: block; background: rgba(0,122,255,0.05); }
 
         .m-history { 
             margin-top: 20px; padding: 15px; border-radius: 18px; 
@@ -315,12 +306,12 @@
         </div>
         <input type="text" id="mSearchInput" class="m-search-box" placeholder="Cerca Modello..." oninput="handleModelloSearch(this.value)">
         <div class="m-form" id="mFormContainer">
-            <div class="m-row"><span class="m-label">Macchina Uso</span><div class="m-val-scroll"><div class="m-input-card"><span class="m-text-view" id="v_mac">-</span><input type="text" id="m_mac" class="m-input" placeholder="-"></div></div></div>
-            <div class="m-row"><span class="m-label">Posaggio</span><div class="m-val-scroll"><div class="m-input-card"><span class="m-text-view" id="v_pos">-</span><input type="text" id="m_pos" class="m-input" placeholder="-"></div></div></div>
-            <div class="m-row"><span class="m-label">Lama o Fresa</span><div class="m-val-scroll"><div class="m-input-card"><span class="m-text-view" id="v_lam">-</span><input type="text" id="m_lam" class="m-input" placeholder="-"></div></div></div>
-            <div class="m-row"><span class="m-label">Angolo Pantoscopico</span><div class="m-val-scroll"><div class="m-input-card"><span class="m-text-view" id="v_pan">-</span><input type="text" id="m_pan" class="m-input" placeholder="-"></div></div></div>
-            <div class="m-row"><span class="m-label">Angolo Scarico Asta</span><div class="m-val-scroll"><div class="m-input-card"><span class="m-text-view" id="v_sca">-</span><input type="text" id="m_sca" class="m-input" placeholder="-"></div></div></div>
-            <div class="m-row"><span class="m-label">Quota Asta</span><div class="m-val-scroll"><div class="m-input-card"><span class="m-text-view" id="v_quo">-</span><input type="text" id="m_quo" class="m-input" placeholder="-"></div></div></div>
+            <div class="m-row"><span class="m-label">Macchina Uso</span><div class="m-val-scroll"><span class="m-text-view" id="v_mac">-</span><input type="text" id="m_mac" class="m-input" placeholder="-"></div></div>
+            <div class="m-row"><span class="m-label">Posaggio</span><div class="m-val-scroll"><span class="m-text-view" id="v_pos">-</span><input type="text" id="m_pos" class="m-input" placeholder="-"></div></div>
+            <div class="m-row"><span class="m-label">Lama o Fresa</span><div class="m-val-scroll"><span class="m-text-view" id="v_lam">-</span><input type="text" id="m_lam" class="m-input" placeholder="-"></div></div>
+            <div class="m-row"><span class="m-label">Angolo Pantoscopico</span><div class="m-val-scroll"><span class="m-text-view" id="v_pan">-</span><input type="text" id="m_pan" class="m-input" placeholder="-"></div></div>
+            <div class="m-row"><span class="m-label">Angolo Scarico Asta</span><div class="m-val-scroll"><span class="m-text-view" id="v_sca">-</span><input type="text" id="m_sca" class="m-input" placeholder="-"></div></div>
+            <div class="m-row"><span class="m-label">Quota Asta</span><div class="m-val-scroll"><span class="m-text-view" id="v_quo">-</span><input type="text" id="m_quo" class="m-input" placeholder="-"></div></div>
             
             <div class="m-footer-btns">
                 <button id="mCreaBtn" class="m-half-btn btn-crea-action" onclick="handleModAction('crea')">Crea Cartiglio</button>
@@ -494,11 +485,22 @@
         mEditMode = null;
     }
 
-    // 修改点：数据同步函数
+    // --- 核心手术：字体自适应逻辑 ---
     function syncDisplayValues() {
-        ['mac','pos','lam','pan','sca','quo'].forEach(key => {
-            const val = document.getElementById('m_'+key).value;
-            document.getElementById('v_'+key).innerText = val || "-";
+        ['mac','pos','lam','pan','sca','quo'].forEach(k => {
+            const input = document.getElementById('m_'+k);
+            const view = document.getElementById('v_'+k);
+            const val = input.value || "-";
+            view.innerText = val;
+            
+            // 自动缩放字体
+            view.style.fontSize = "14px"; // 先设回初始大小
+            let fontSize = 14;
+            // 如果文字总高度超过了限制（框高52px，扣除内边距约42px），则缩小字体
+            while (view.scrollHeight > 42 && fontSize > 8) {
+                fontSize -= 0.5;
+                view.style.fontSize = fontSize + "px";
+            }
         });
     }
 
@@ -539,12 +541,7 @@
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
 
-            syncDisplayValues(); // 同步文字层
-
-            // 复位卡片滚动位置
-            setTimeout(() => {
-                document.querySelectorAll('.m-val-scroll').forEach(el => el.scrollLeft = 10000);
-            }, 80);
+            syncDisplayValues(); // 同步文字层并自动缩放字体
 
             cBtn.innerText = "GIA' CREATO";
             cBtn.classList.add('btn-disabled');
@@ -599,11 +596,8 @@
     }
 
     async function saveModello(id, type) {
-        // === 修改点：增加意大利语确认对话框 ===
-        const confirmMsg = "Sei sicuro di voler salvare le modifiche?";
-        if (!confirm(confirmMsg)) {
-            return;
-        }
+        // 增加保存确认询问
+        if (!confirm("Sei sicuro di voler salvare le modifiche?")) return;
 
         const newData = {
             macchina: document.getElementById('m_mac').value.trim(),
@@ -657,8 +651,8 @@
     function resetModForm(full = true) {
         if(full) document.getElementById('mSearchInput').value = "";
         ['m_mac','m_pos','m_lam','m_pan','m_sca','m_quo'].forEach(i => document.getElementById(i).value = "");
-        syncDisplayValues(); // 同步文字层
-        document.getElementById('mHistoryBox').innerText = "Cerca un modello为visualizzare i细节。";
+        syncDisplayValues(); 
+        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare il cartiglio。";
         currentModData = null;
     }
 
