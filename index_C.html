@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Tabellone v8.9.1</title>
+    <title>C - Tabellone v8.9.2</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -93,7 +93,6 @@
         th, td { padding: 10px 2px; text-align: center; font-size: 11px; border-bottom: 1px solid #f2f2f7; vertical-align: middle; }
         th { font-weight: 700; color: var(--text-sec); text-transform: uppercase; font-size: 9px; }
         
-        /* 排序表头样式 */
         .sortable-th { color: var(--blue) !important; cursor: pointer; text-decoration: underline; }
         .sortable-th:active { opacity: 0.5; }
 
@@ -190,8 +189,6 @@
     let feedbackLogs = JSON.parse(localStorage.getItem('c_feedback_v89') || '[]');
     let processedStarts = new Set(logs.map(l => l.st));
     let cloudData = {};
-    
-    // 用于记录每一天的当前排序方式：'time' (默认), 'linea', 'causale'
     let daySortModes = {}; 
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
@@ -206,49 +203,29 @@
         const todayStr = new Date().toISOString().split('T')[0];
         const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
         const keepDays = [todayStr, yesterdayStr];
-        const lockRef = db.ref('maintenance/lastCleanDate');
-    
-        lockRef.transaction((currentValue) => {
-            if (currentValue === todayStr) return; 
-            return todayStr;
-        }, (error, committed) => {
-            if (committed) {
-                db.ref('history').once('value').then(snap => {
-                    const allHistory = snap.val();
-                    if (allHistory) {
-                        Object.keys(allHistory).forEach(dateFolder => {
-                            if (!keepDays.includes(dateFolder)) {
-                                db.ref(`history/${dateFolder}`).remove();
-                            }
-                        });
-                    }
-                });
-                db.ref('feedbacks').once('value').then(fbSnap => {
-                    const allFb = fbSnap.val();
-                    if (allFb) {
-                        Object.keys(allFb).forEach(key => {
-                            const fbDateStr = allFb[key].data; 
-                            if (fbDateStr !== todayStr && fbDateStr !== yesterdayStr) {
-                                db.ref(`feedbacks/${key}`).remove();
-                            }
-                        });
-                    }
-                });
+        db.ref('maintenance/lastCleanDate').transaction((curr) => { if (curr === todayStr) return; return todayStr; }, (err, comm) => {
+            if (comm) {
+                db.ref('history').once('value').then(snap => { const all = snap.val(); if(all) Object.keys(all).forEach(d => { if(!keepDays.includes(d)) db.ref(`history/${d}`).remove(); }); });
+                db.ref('feedbacks').once('value').then(snap => { const all = snap.val(); if(all) Object.keys(all).forEach(k => { if(!keepDays.includes(all[k].data)) db.ref(`feedbacks/${k}`).remove(); }); });
             }
         });
     }
     
+    // --- 核心修复 1：存档逻辑同步 startB/startD ---
     db.ref('history/' + new Date().toISOString().split('T')[0]).on('child_added', (snapshot) => {
         const item = snapshot.val();
         if (item && item.status === 'completed' && !processedStarts.has(item.startA)) {
+            // 兼容性提取：接单时间
+            const sd = item.startB || item.startD || item.startA;
+            const et = item.endT || Date.now();
             const entry = {
                 i: item.id || snapshot.key.split('_')[0],
                 day: new Date(item.startA).toLocaleDateString('it-IT'),
                 s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                tA: Math.round(((item.startD || item.startA) - item.startA) / 60000),
-                tD: Math.round(((item.endT || Date.now()) - (item.startD || item.startA)) / 60000),
+                tA: Math.round((sd - item.startA) / 60000),
+                tD: Math.round((et - sd) / 60000),
                 st: item.startA, 
-                et: item.endT || Date.now(),
+                et: et,
                 c: item.causale || "-",
                 tech: item.techName || "-",
                 t: item.turno || calculateTurnoByTimestamp(item.startA)
@@ -261,7 +238,6 @@
             if(document.getElementById('historyPage').style.display === 'flex') renderLogs();
         }
     });
-
 
     function autoCleanOldRecords() {
         const thirtyDaysAgo = new Date();
@@ -291,25 +267,18 @@
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
     }
 
-db.ref('feedbacks').on('child_added', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-        const alreadyExists = feedbackLogs.some(f => f.timestamp === data.timestamp);
-        if (!alreadyExists) {
+    db.ref('feedbacks').on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data && !feedbackLogs.some(f => f.timestamp === data.timestamp)) {
             feedbackLogs.unshift(data); 
             const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
             feedbackLogs = feedbackLogs.filter(f => (f.timestamp || 0) > thirtyDaysAgo);
             localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
             if(document.getElementById('feedbackPage').style.display === 'flex') renderFeedback();
         }
-    }
-});
+    });
 
-
-    function getRealTimeTurno() {
-        return calculateTurnoByTimestamp(Date.now());
-    }
-
+    function getRealTimeTurno() { return calculateTurnoByTimestamp(Date.now()); }
     function updateHeaderTurno() { document.getElementById('turnoDisp').innerText = getRealTimeTurno(); }
     updateHeaderTurno(); setInterval(updateHeaderTurno, 60000);
 
@@ -323,16 +292,10 @@ db.ref('feedbacks').on('child_added', (snapshot) => {
             const item = cloudData[id];
             const taskTurno = item.turno || calculateTurnoByTimestamp(item.startA);
             const taskDay = new Date(item.startA).toLocaleDateString('it-IT');
-
             if (taskTurno !== currentTurno || taskDay !== todayStr) {
-                item.status = 'completed';
-                item.causale = "CHIUSURA TURNO";
-                item.techName = "SISTEMA";
-                item.endT = Date.now();
-                item.hideFromBoard = true; 
+                item.status = 'completed'; item.causale = "CHIUSURA TURNO"; item.techName = "SISTEMA"; item.endT = Date.now(); item.hideFromBoard = true; 
                 db.ref('active_calls/' + id).remove(); 
             }
-
             if (item.status === 'completed' && !processedStarts.has(item.startA)) {
                 archiveTask(id, item); needsSave = true;
             }
@@ -343,14 +306,14 @@ db.ref('feedbacks').on('child_added', (snapshot) => {
     });
 
     function archiveTask(id, item) {
-        let startD = item.startD || item.startB || item.startA;
-        let endT = item.endT || Date.now();
+        const sd = item.startB || item.startD || item.startA;
+        const et = item.endT || Date.now();
         const newEntry = {
             i: id, day: new Date(item.startA).toLocaleDateString('it-IT'),
             s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-            tA: Math.round((startD - item.startA) / 60000),
-            tD: Math.round((endT - startD) / 60000),
-            st: item.startA, et: endT,
+            tA: Math.round((sd - item.startA) / 60000),
+            tD: Math.round((et - sd) / 60000),
+            st: item.startA, et: et,
             c: item.causale || "-",
             tech: item.techName || item.takenBy || "-",
             t: item.turno || calculateTurnoByTimestamp(item.startA),
@@ -367,6 +330,7 @@ db.ref('feedbacks').on('child_added', (snapshot) => {
         localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
     }
 
+    // --- 核心修复 2：实时计算锁定逻辑 ---
     function renderCombinedCards() {
         const list = document.getElementById('activeList'); list.innerHTML = '';
         const now = Date.now(); const todayStr = new Date().toLocaleDateString('it-IT');
@@ -375,12 +339,10 @@ db.ref('feedbacks').on('child_added', (snapshot) => {
 
         Object.keys(cloudData).filter(id => {
             const item = cloudData[id];
-            const tDay = new Date(item.startA).toLocaleDateString('it-IT');
-            const tTurno = item.turno || calculateTurnoByTimestamp(item.startA);
-            return tDay === todayStr && tTurno === currentTurno && !item.hideFromBoard;
+            return new Date(item.startA).toLocaleDateString('it-IT') === todayStr && (item.turno || calculateTurnoByTimestamp(item.startA)) === currentTurno && !item.hideFromBoard;
         }).forEach(id => {
             const item = cloudData[id];
-            uniqueItemsMap.set(item.startA, { id: id, ...item, isLocal: false, sortTime: (item.status === 'orange') ? item.startA : (item.startD || item.startB || item.startA), startTimeStr: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+            uniqueItemsMap.set(item.startA, { id: id, ...item, isLocal: false, sortTime: (item.status === 'orange') ? item.startA : (item.startB || item.startD || item.startA), startTimeStr: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
         });
 
         logs.filter(l => l.day === todayStr && l.t === currentTurno && !l.hideFromBoard).forEach(l => {
@@ -401,22 +363,26 @@ db.ref('feedbacks').on('child_added', (snapshot) => {
 
         all.forEach(item => {
             const isAnnulato = String(item.causale).toUpperCase().includes("ANNULL");
-            
-            // 数据兼容性：支持 startD 和 startB
-            let startActionTime = item.startD || item.startB || null; 
             let waitMin, workMin;
 
             if (item.isLocal) {
                 waitMin = item.tA; workMin = item.tD;
             } else {
+                // 核心：支持 B 端所有可能的字段
+                const sd = item.startB || item.startD || null; 
                 if (item.status === 'orange') {
                     waitMin = Math.round((now - item.startA) / 60000);
                     workMin = 0;
+                } else if (item.status === 'completed') {
+                    let et = item.endT || now;
+                    let realSd = sd || item.startA;
+                    waitMin = Math.round((realSd - item.startA) / 60000);
+                    workMin = Math.round((et - realSd) / 60000);
                 } else {
-                    // 状态为红色或正在进行：锁定等待时间，计算工作时间
-                    let sd = startActionTime || now;
-                    waitMin = Math.round((sd - item.startA) / 60000);
-                    workMin = Math.round((now - sd) / 60000);
+                    // 红色工作状态：锁定等待，Durata 随时间涨
+                    let realSd = sd || now;
+                    waitMin = Math.round((realSd - item.startA) / 60000);
+                    workMin = Math.round((now - realSd) / 60000);
                 }
             }
 
@@ -442,7 +408,6 @@ db.ref('feedbacks').on('child_added', (snapshot) => {
         });
     }
 
-    // 排序逻辑处理器
     function setDaySort(day, mode) {
         daySortModes[day] = mode;
         renderLogs();
@@ -458,20 +423,19 @@ db.ref('feedbacks').on('child_added', (snapshot) => {
             let dayLogs = logs.filter(l => l.day === day);
             const sortMode = daySortModes[day] || 'time';
 
-            // 根据选择的模式排序
             if (sortMode === 'linea') {
                 dayLogs.sort((a, b) => String(a.i).localeCompare(String(b.i), undefined, {numeric: true}));
             } else if (sortMode === 'causale') {
                 dayLogs.sort((a, b) => String(a.c).localeCompare(String(b.c)));
             } else {
-                dayLogs.sort((a, b) => b.st - a.st); // 默认时间倒序
+                dayLogs.sort((a, b) => b.st - a.st); 
             }
 
             const countA = dayLogs.filter(l => l.t === "Turno A" && !String(l.c).toUpperCase().includes("ANNULL") && !String(l.c).includes("CHIUSURA")).length;
             const countB = dayLogs.filter(l => l.t === "Turno B" && !String(l.c).toUpperCase().includes("ANNULL") && !String(l.c).includes("CHIUSURA")).length;
             
             const canDelete = (day !== todayStr && day !== yesterdayStr);
-            const isCollapsed = (day !== todayStr && !daySortModes[day]); // 如果没点过排序且不是今天，则收起
+            const isCollapsed = (day !== todayStr && !daySortModes[day]); 
 
             const section = document.createElement('div');
             section.innerHTML = `
