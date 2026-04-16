@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Tabellone v8.9.2</title>
+    <title>C - Tabellone v8.9.8</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -69,8 +69,26 @@
         .total-label { font-size: 8px; font-weight: 700; color: var(--text-sec); text-transform: uppercase; margin-bottom: 2px; }
         .total-val { font-size: 18px; font-weight: 700; color: var(--black); line-height: 1; }
 
-        .timeout-critical { animation: pulseWarning 0.8s infinite; border-color: var(--orange) !important; background: #fff9f0; }
-        @keyframes pulseWarning { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        /* --- 重点：强化警报效果 --- */
+        .timeout-critical { 
+            background: #ff9500 !important; 
+            border: 4px solid #ff3b30 !important; 
+            animation: urgentPulse 1s infinite ease-in-out; 
+            box-shadow: 0 0 25px rgba(255, 59, 48, 0.6);
+            z-index: 10;
+        }
+        .timeout-critical .card-linea, 
+        .timeout-critical .card-stats, 
+        .timeout-critical .card-stats b, 
+        .timeout-critical .total-val, 
+        .timeout-critical .total-label { color: #ffffff !important; }
+        .timeout-critical .card-badge { background-color: #ffffff !important; color: #ff9500 !important; }
+
+        @keyframes urgentPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); border-color: #ffffff !important; }
+            100% { transform: scale(1); }
+        }
 
         .home-footer { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0; flex-shrink: 0; }
 
@@ -189,7 +207,9 @@
     let feedbackLogs = JSON.parse(localStorage.getItem('c_feedback_v89') || '[]');
     let processedStarts = new Set(logs.map(l => l.st));
     let cloudData = {};
-    let daySortModes = {}; 
+    
+    // --- 1. 双向排序配置管理 ---
+    let daySortConfig = {}; 
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
     function closeHistory() { 
@@ -211,11 +231,9 @@
         });
     }
     
-    // --- 核心修复 1：存档逻辑同步 startB/startD ---
     db.ref('history/' + new Date().toISOString().split('T')[0]).on('child_added', (snapshot) => {
         const item = snapshot.val();
         if (item && item.status === 'completed' && !processedStarts.has(item.startA)) {
-            // 兼容性提取：接单时间
             const sd = item.startB || item.startD || item.startA;
             const et = item.endT || Date.now();
             const entry = {
@@ -330,7 +348,6 @@
         localStorage.setItem('c_feedback_v89', JSON.stringify(feedbackLogs));
     }
 
-    // --- 核心修复 2：实时计算锁定逻辑 ---
     function renderCombinedCards() {
         const list = document.getElementById('activeList'); list.innerHTML = '';
         const now = Date.now(); const todayStr = new Date().toLocaleDateString('it-IT');
@@ -339,7 +356,8 @@
 
         Object.keys(cloudData).filter(id => {
             const item = cloudData[id];
-            return new Date(item.startA).toLocaleDateString('it-IT') === todayStr && (item.turno || calculateTurnoByTimestamp(item.startA)) === currentTurno && !item.hideFromBoard;
+            const tDay = new Date(item.startA).toLocaleDateString('it-IT');
+            return tDay === todayStr && (item.turno || calculateTurnoByTimestamp(item.startA)) === currentTurno && !item.hideFromBoard;
         }).forEach(id => {
             const item = cloudData[id];
             uniqueItemsMap.set(item.startA, { id: id, ...item, isLocal: false, sortTime: (item.status === 'orange') ? item.startA : (item.startB || item.startD || item.startA), startTimeStr: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
@@ -364,26 +382,12 @@
         all.forEach(item => {
             const isAnnulato = String(item.causale).toUpperCase().includes("ANNULL");
             let waitMin, workMin;
-
-            if (item.isLocal) {
-                waitMin = item.tA; workMin = item.tD;
-            } else {
-                // 核心：支持 B 端所有可能的字段
+            if (item.isLocal) { waitMin = item.tA; workMin = item.tD; }
+            else {
                 const sd = item.startB || item.startD || null; 
-                if (item.status === 'orange') {
-                    waitMin = Math.round((now - item.startA) / 60000);
-                    workMin = 0;
-                } else if (item.status === 'completed') {
-                    let et = item.endT || now;
-                    let realSd = sd || item.startA;
-                    waitMin = Math.round((realSd - item.startA) / 60000);
-                    workMin = Math.round((et - realSd) / 60000);
-                } else {
-                    // 红色工作状态：锁定等待，Durata 随时间涨
-                    let realSd = sd || now;
-                    waitMin = Math.round((realSd - item.startA) / 60000);
-                    workMin = Math.round((now - realSd) / 60000);
-                }
+                if (item.status === 'orange') { waitMin = Math.round((now - item.startA) / 60000); workMin = 0; }
+                else if (item.status === 'completed') { let et = item.endT || now; let realSd = sd || item.startA; waitMin = Math.round((realSd - item.startA) / 60000); workMin = Math.round((et - realSd) / 60000); }
+                else { let realSd = sd || now; waitMin = Math.round((realSd - item.startA) / 60000); workMin = Math.round((now - realSd) / 60000); }
             }
 
             let statusL, colorC, statusK;
@@ -397,7 +401,7 @@
             
             if (isAnnulato) {
                 card.innerHTML = `<div class="card-left"><div class="card-linea" style="color:#000;">${item.id}</div></div>
-                    <div class="card-center" style="border:none; text-align: center;"><div style="font-size: 11px; font-weight: 800; color:#000;">ANNULLATO DA OPERATORE</div></div>
+                    <div class="card-center" style="border:none; text-align: center;"><div style="font-size: 11px; font-weight: 800; color:#000;">ANNULLATO</div></div>
                     <div class="card-right" style="min-width: 50px;"><div style="font-size: 10px; color: #8e8e93; font-weight:700;">${item.startTimeStr}</div></div>`;
             } else {
                 card.innerHTML = `<div class="card-left"><div class="card-badge bg-${colorC}">${statusL}</div><div class="card-linea" style="margin-bottom: 20px;">${item.id}</div></div>
@@ -408,34 +412,42 @@
         });
     }
 
-    function setDaySort(day, mode) {
-        daySortModes[day] = mode;
+    // --- 1. 双向排序逻辑函数 ---
+    function setDaySort(day, field) {
+        if (!daySortConfig[day]) {
+            daySortConfig[day] = { field: 'time', order: 'desc' };
+        }
+        if (daySortConfig[day].field === field) {
+            daySortConfig[day].order = (daySortConfig[day].order === 'asc' ? 'desc' : 'asc');
+        } else {
+            daySortConfig[day].field = field;
+            daySortConfig[day].order = 'asc';
+        }
         renderLogs();
     }
 
     function renderLogs() {
         const container = document.getElementById('logContainer'); container.innerHTML = '';
-        const now = new Date();
-        const todayStr = now.toLocaleDateString('it-IT');
+        const now = new Date(); const todayStr = now.toLocaleDateString('it-IT');
         const yesterdayStr = new Date(now.getTime() - 86400000).toLocaleDateString('it-IT');
 
         dayHistory.sort((a,b)=>b.split('/').reverse().join('').localeCompare(a.split('/').reverse().join(''))).forEach(day => {
             let dayLogs = logs.filter(l => l.day === day);
-            const sortMode = daySortModes[day] || 'time';
+            const cfg = daySortConfig[day] || { field: 'time', order: 'desc' };
 
-            if (sortMode === 'linea') {
-                dayLogs.sort((a, b) => String(a.i).localeCompare(String(b.i), undefined, {numeric: true}));
-            } else if (sortMode === 'causale') {
-                dayLogs.sort((a, b) => String(a.c).localeCompare(String(b.c)));
-            } else {
-                dayLogs.sort((a, b) => b.st - a.st); 
-            }
+            dayLogs.sort((a, b) => {
+                let res = 0;
+                if (cfg.field === 'linea') res = String(a.i).localeCompare(String(b.i), undefined, {numeric: true});
+                else if (cfg.field === 'causale') res = String(a.c).localeCompare(String(b.c));
+                else res = a.st - b.st;
+                return cfg.order === 'asc' ? res : -res;
+            });
 
-            const countA = dayLogs.filter(l => l.t === "Turno A" && !String(l.c).toUpperCase().includes("ANNULL") && !String(l.c).includes("CHIUSURA")).length;
-            const countB = dayLogs.filter(l => l.t === "Turno B" && !String(l.c).toUpperCase().includes("ANNULL") && !String(l.c).includes("CHIUSURA")).length;
-            
+            const countA = dayLogs.filter(l => l.t === "Turno A" && !String(l.c).toUpperCase().includes("ANNULL")).length;
+            const countB = dayLogs.filter(l => l.t === "Turno B" && !String(l.c).toUpperCase().includes("ANNULL")).length;
             const canDelete = (day !== todayStr && day !== yesterdayStr);
-            const isCollapsed = (day !== todayStr && !daySortModes[day]); 
+            const isCollapsed = (day !== todayStr && !daySortConfig[day]);
+            const getIcon = (f) => (cfg.field === f ? (cfg.order === 'asc' ? ' ↑' : ' ↓') : ' ↕');
 
             const section = document.createElement('div');
             section.innerHTML = `
@@ -447,54 +459,33 @@
                     <table>
                         <thead>
                             <tr>
-                                <th class="sortable-th" onclick="setDaySort('${day}', 'linea')">LINEA ↕</th>
-                                <th>ATTESA</th>
-                                <th>DURATA</th>
-                                <th class="sortable-th" onclick="setDaySort('${day}', 'causale')">CAUSALE ↕</th>
+                                <th class="sortable-th" onclick="setDaySort('${day}', 'linea')">LINEA${getIcon('linea')}</th>
+                                <th>ATTESA</th><th>DURATA</th>
+                                <th class="sortable-th" onclick="setDaySort('${day}', 'causale')">CAUSALE${getIcon('causale')}</th>
                                 <th>NOME</th>
                             </tr>
                         </thead>
-                        <tbody>${dayLogs.map(l => `<tr><td><b>${l.i}</b></td><td>${l.tA}m</td><td>${l.tD}m</td><td style="font-size:9px">${l.c}<br><span style="color:#8e8e93; font-size:8px;">[${l.t || calculateTurnoByTimestamp(l.st)}]</span></td><td>${l.tech}</td></tr>`).join('')}</tbody>
+                        <tbody>${dayLogs.map(l => `<tr><td><b>${l.i}</b></td><td>${l.tA}m</td><td>${l.tD}m</td><td style="font-size:9px">${l.c}<br><span style="color:#8e8e93; font-size:8px;">[${l.t}]</span></td><td>${l.tech}</td></tr>`).join('')}</tbody>
                     </table>
                 </div>`;
             container.appendChild(section);
         });
     }
 
-    function clearOldRecords() {
-        if(!confirm("Vuoi svuotare tutti i record di 2 giorni prima?")) return;
-        const now = new Date();
-        const todayStr = now.toLocaleDateString('it-IT');
-        const yesterdayStr = new Date(now.getTime() - 86400000).toLocaleDateString('it-IT');
-        logs = logs.filter(l => l.day === todayStr || l.day === yesterdayStr);
-        dayHistory = dayHistory.filter(d => d === todayStr || d === yesterdayStr);
-        processedStarts = new Set(logs.map(l => l.st));
-        saveState(); renderLogs(); renderCombinedCards();
-    }
-
+    function clearOldRecords() { if(!confirm("Svuotare record?")) return; const now = new Date(); const tStr = now.toLocaleDateString('it-IT'); const yStr = new Date(now.getTime()-86400000).toLocaleDateString('it-IT'); logs = logs.filter(l => l.day === tStr || l.day === yStr); dayHistory = dayHistory.filter(d => d === tStr || d === yStr); processedStarts = new Set(logs.map(l => l.st)); saveState(); renderLogs(); renderCombinedCards(); }
     function toggleDay(header) { const content = header.nextElementSibling; const arrow = header.querySelector('.arrow-icon'); const isHidden = content.style.display === 'none'; content.style.display = isHidden ? 'block' : 'none'; if(arrow) arrow.innerText = isHidden ? '▼' : '▶'; }
-    function deleteDay(e, day) { e.stopPropagation(); if(!confirm("Eliminare record del " + day + "?")) return; logs = logs.filter(l => { if(l.day === day) processedStarts.delete(l.st); return l.day !== day; }); dayHistory = dayHistory.filter(d => d !== day); saveState(); renderLogs(); renderCombinedCards(); }
-    function clearFeedback() { if(confirm("Cancellare tutti i feedback?")) { feedbackLogs=[]; saveState(); renderFeedback(); } }
-    
+    function deleteDay(e, day) { e.stopPropagation(); if(!confirm("Eliminare?")) return; logs = logs.filter(l => l.day !== day); dayHistory = dayHistory.filter(d => d !== day); processedStarts = new Set(logs.map(l => l.st)); saveState(); renderLogs(); renderCombinedCards(); }
+    function clearFeedback() { if(confirm("Cancellare?")) { feedbackLogs=[]; saveState(); renderFeedback(); } }
     function renderFeedback() {
         const container = document.getElementById('feedbackContainer'); container.innerHTML = '';
-        if (feedbackLogs.length === 0) { container.innerHTML = '<div style="text-align:center;padding:50px;color:#8e8e93;">Nessun feedback presente.</div>'; return; }
+        if (feedbackLogs.length === 0) { container.innerHTML = '<div style="text-align:center;padding:50px;color:#8e8e93;">Nessun feedback.</div>'; return; }
         feedbackLogs.forEach(fb => {
-            const div = document.createElement('div'); div.className = 'fb-card';
-            div.innerHTML = `<div class="fb-head"><div class="fb-name">👤 ${fb.attrezzista}</div><div class="fb-score">⭐ ${fb.punteggio}/5</div></div>
-                <div class="fb-msg">"${fb.messaggio || "-"}"</div>
-                <div class="fb-meta"><span>TURNO: ${fb.turno || "N/A"}</span><span>${fb.data || ""}</span></div>`;
+            const div = document.createElement('div'); div.className = 'fb-card'; div.innerHTML = `<div class="fb-head"><div class="fb-name">👤 ${fb.attrezzista}</div><div class="fb-score">⭐ ${fb.punteggio}/5</div></div><div class="fb-msg">"${fb.messaggio || "-"}"</div><div class="fb-meta"><span>TURNO: ${fb.turno || "N/A"}</span><span>${fb.data || ""}</span></div>`;
             container.appendChild(div);
         });
     }
 
-    window.onload = () => {
-        document.getElementById('curYear').innerText = new Date().getFullYear();
-        updateHeaderTurno();
-        cleanCloudHistory(); 
-        renderCombinedCards();
-    };
-
+    window.onload = () => { document.getElementById('curYear').innerText = new Date().getFullYear(); updateHeaderTurno(); cleanCloudHistory(); renderCombinedCards(); };
     setInterval(() => { renderCombinedCards(); }, 30000); 
 </script>
 </body>
