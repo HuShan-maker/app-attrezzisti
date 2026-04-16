@@ -118,7 +118,7 @@
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
         
-        /* 120行：容器样式 */
+        /* 改装：横向滑动滑道 */
         .m-row { 
             display: flex; 
             justify-content: space-between; 
@@ -139,7 +139,7 @@
             flex-shrink: 0; 
         }
 
-        /* 核心：新增横向滑动容器 */
+        /* 核心补丁：横向滑动容器 */
         .m-val-scroll {
             width: 65%;
             overflow-x: auto;
@@ -158,7 +158,7 @@
             font-weight: 800; 
             outline: none; 
             padding: 0;
-            pointer-events: none; /* 只读时滑动事件穿透 */
+            pointer-events: none; /* 穿透：解决 readonly 标签不响应滑动的问题 */
         }
 
         .m-input[readonly] { color: #8e8e93 !important; }
@@ -674,7 +674,6 @@
         const contentArea = document.getElementById('dynamicContent');
         const isW = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         
-        // --- 修正点：根据 Shift 状态锁定/解锁 Info Modelli 按钮 ---
         const infoBtn = document.getElementById('infoModelliBtn');
         if (infoBtn) {
             if (isW) {
