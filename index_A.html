@@ -59,20 +59,12 @@
             cursor: pointer; text-align-last: center; -webkit-appearance: none;
         }
 
-        .modal-check-area {
-            margin: 10px 0; padding: 12px; background: #fff9c4; border-radius: 15px; 
-            border: 2px solid #fbc02d; text-align: left;
-        }
-        .modal-check-flex { display: flex; align-items: center; gap: 10px; }
-        #checkPezziModal { width: 20px; height: 20px; accent-color: #000; }
-        .modal-check-label { font-weight: 800; color: #000; font-size: 12px; line-height: 1.2; text-transform: uppercase; }
-
         .main-btn {
-            width: 250px; height: 250px; border-radius: 55px; 
+            width: 260px; height: 260px; border-radius: 55px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: none;
             box-shadow: 0 12px 25px rgba(0,0,0,0.06); cursor: pointer;
-            margin-top: 5px;
+            margin-top: 10px;
         }
 
         .status-none { background: #fff; border: 4px solid var(--gray); color: #000; }
@@ -101,6 +93,7 @@
 
         .copy-text { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; margin-bottom: 10px; }
 
+        /* 模态框通用样式 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
         .modal-content { background: #fff; width: 90%; max-width: 340px; border-radius: 30px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
         .modal-h2 { font-size: 18px; font-weight: 900; text-align: center; margin: 0; }
@@ -134,7 +127,17 @@
                 <option value="Cambio">Cambio</option>
             </select>
         </div>
-
+        <div style="
+            text-align: center; 
+            margin: 10px 0; 
+            padding: 0 15px; 
+            font-size: 11px; 
+            font-weight: 700; 
+            color: var(--orange); 
+            line-height: 1.3;
+            text-transform: uppercase;">
+            ⚠️ Avviso: Chiamare l'attrezzista 15 min prima del cambio modello per verifica attrezzatura.
+        </div>
         <button id="mainBtn" class="main-btn status-none" onclick="initiateCall()">
             <div id="btnIcon" class="btn-icon">⚡️</div>
             <div id="statusText" class="btn-text">Chiamare Attrezzista</div>
@@ -151,19 +154,8 @@
             <h2 class="modal-h2">Cambio Modello</h2>
             <div class="f-label">Inserisci Modello</div>
             <input type="text" id="modelloInput" class="f-input" placeholder="" autocomplete="off">
-            
-            <div class="modal-check-area" id="modalCheckWrapper">
-                <div class="modal-check-flex">
-                    <input type="checkbox" id="checkPezziModal">
-                    <label for="checkPezziModal" class="modal-check-label">
-                        HO CONTROLLATO TUTTI I PEZZI<br>
-                        <span style="font-size: 9px; color: #666; font-weight: 700;">(POSAGGI, MORSE, PUNZONI)</span>
-                    </label>
-                </div>
-            </div>
-
             <button class="f-submit" onclick="confirmModello()">CONFERMA E CHIAMA</button>
-            <div class="f-close" onclick="cancelFromModal()">ANNULLA</div>
+            <div class="f-close" onclick="document.getElementById('modelloModal').style.display='none'">ANNULLA</div>
         </div>
     </div>
 
@@ -223,16 +215,28 @@
         const note = document.getElementById('fNote').value;
         if(!nameSelect.value) { alert("Per favore, seleziona un attrezzista!"); return; }
         if(!score || score < 1 || score > 5) { alert("Inserisci un punteggio tra 1 e 5!"); return; }
+        
         const btn = document.getElementById('fSubmitBtn');
-        btn.disabled = true; btn.innerText = "Invio...";
+        btn.disabled = true; 
+        btn.innerText = "Invio...";
+
         db.ref('feedbacks').push({
-            attrezzista: nameSelect.value, punteggio: score, messaggio: note,
-            timestamp: Date.now(), linea: lineaInput.value || "N/A", 
-            data: new Date().toLocaleDateString('it-IT'), turno: getActiveTurno() 
+            attrezzista: nameSelect.value, 
+            punteggio: score, 
+            messaggio: note,
+            timestamp: Date.now(), 
+            linea: lineaInput.value || "N/A", 
+            data: new Date().toLocaleDateString('it-IT'),
+            turno: getActiveTurno() 
         }).then(() => {
             alert("Feedback inviato!");
             document.getElementById('fModal').style.display = 'none';
-            nameSelect.selectedIndex = 0; document.getElementById('fScore').value = ""; document.getElementById('fNote').value = "";
+            nameSelect.selectedIndex = 0; 
+            document.getElementById('fScore').value = ""; 
+            document.getElementById('fNote').value = "";
+            btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
+        }).catch(err => {
+            alert("ERRORE: " + err.message);
             btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
         });
     }
@@ -266,10 +270,9 @@
                 resetUI();
             } else if (id === savedLinea) {
                 lineaInput.disabled = true; causaleSelect.disabled = true;
-                if (data.status === 'orange' || data.status === 'purple') {
+                if (data.status === 'orange') {
                     mainBtn.className = "main-btn status-orange locked";
-                    statusText.innerText = (data.status === 'purple') ? "SET-UP IN CORSO..." : "IN ATTESA..."; 
-                    btnIcon.innerText = (data.status === 'purple') ? "🟣" : "⏳";
+                    statusText.innerText = "IN ATTESA..."; btnIcon.innerText = "⏳";
                     cancelBtn.style.display = "block";
                 } else if (data.status === 'red' || data.status === 'finishing') {
                     mainBtn.className = "main-btn status-red locked";
@@ -285,7 +288,6 @@
         mainBtn.classList.remove('locked'); cancelBtn.style.display = "none";
         lineaInput.disabled = false; causaleSelect.disabled = false;
         causaleSelect.selectedIndex = 0; 
-        document.getElementById('checkPezziModal').checked = false;
     }
 
     function initiateCall() {
@@ -304,39 +306,13 @@
         }
     }
 
-    // 核心修改逻辑：由于没零件点取消，在C端显示成 annullato da linea
-    function cancelFromModal() {
-        const id = lineaInput.value.trim().toLowerCase();
-        const now = Date.now();
-        const dateKey = new Date().toISOString().split('T')[0];
-        
-        // 归档记录
-        db.ref(`history/${dateKey}/${id}_${now}`).set({
-            linea: id.toUpperCase(),
-            causale: "ANNULLATO DA LINEA", // 统一显示
-            status: "completed",
-            endT: now,
-            info: "Mancanza pezzi al cambio modello"
-        });
-
-        document.getElementById('modelloModal').style.display = 'none';
-        document.getElementById('modelloInput').value = "";
-        resetUI();
-    }
-
     function confirmModello() {
         const modello = document.getElementById('modelloInput').value.trim();
-        const isChecked = document.getElementById('checkPezziModal').checked;
         if (!modello) { alert("INSERIRE MODELLO!"); return; }
-        if (!isChecked) {
-            alert("ERRORE: Devi confermare di aver controllato tutti i pezzi!");
-            document.getElementById('modalCheckWrapper').style.borderColor = "#ff3b30";
-            setTimeout(() => { document.getElementById('modalCheckWrapper').style.borderColor = "#fbc02d"; }, 500);
-            return;
-        }
-        sendCall("Cambio " + modello.toUpperCase());
+        const fullCausale = "Cambio " + modello.toUpperCase();
         document.getElementById('modelloModal').style.display = 'none';
         document.getElementById('modelloInput').value = "";
+        sendCall(fullCausale);
     }
 
     function sendCall(finalCausale) {
@@ -363,7 +339,6 @@
         });
     }
 
-    // 核心修改逻辑：手动点 Annulla，在C端显示成 annullato da linea
     function cancelCall() {
         const id = localStorage.getItem('myActiveCall');
         if (!id || !confirm("Annullare la chiamata per linea " + id.toUpperCase() + "?")) return;
@@ -373,10 +348,7 @@
             const data = snap.val();
             if (data) {
                 db.ref(`history/${dateKey}/${id}_${now}`).set({
-                    ...data, 
-                    status: 'completed', 
-                    endT: now, 
-                    causale: "ANNULLATO DA LINEA" // 统一显示
+                    ...data, status: 'completed', endT: now, causale: "ANNULLATO DA OPERATORE"
                 });
             }
             db.ref('active_calls/' + id).remove().then(() => { 
