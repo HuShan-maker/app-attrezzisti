@@ -259,7 +259,7 @@
         if (turnoLabel.innerText !== current) { turnoLabel.innerText = current; }
     }
     updateShift(); setInterval(updateShift, 10000);
-
+    
     function startListening() {
         let id = lineaInput.value.trim().toLowerCase();
         const savedLinea = localStorage.getItem('myActiveCall');
@@ -276,29 +276,33 @@
         db.ref('active_calls/' + id).on('value', (snapshot) => {
             const data = snapshot.val();
             
-            // 核心修复：如果云端没数据，或者任务已完成，或者【不是我发起的任务】
-            // 只要不是我的任务，按钮就立刻执行 resetUI() 彻底复原
+            // 只要不是我发起的任务，或者任务结束，按钮彻底复原（白色）
             if (!data || data.status === 'completed' || data.senderId !== myId) {
                 if (id === localStorage.getItem('myActiveCall') && (!data || data.status === 'completed')) { 
                     localStorage.removeItem('myActiveCall'); 
                 }
                 resetUI(); 
             } 
-            // 情况 B：是我发起的活跃任务
             else {
+                const isCambio = data.causale && data.causale.includes("Cambio");
                 causaleSelect.disabled = true;
-                lineaInput.disabled = true; 
 
-                if (data.status === 'orange' || data.status === 'purple') {
+                // 如果是 Cambio，显示紫色/橙色等待逻辑
+                if (isCambio && (data.status === 'orange' || data.status === 'purple')) {
                     mainBtn.className = "main-btn status-orange locked";
                     statusText.innerText = "IN ATTESA...";
                     btnIcon.innerText = "⏳";
                     cancelBtn.style.display = "block";
-                } else if (data.status === 'red' || data.status === 'finishing') {
-                    mainBtn.className = "main-btn status-red locked";
-                    statusText.innerText = "INTERVENTO IN CORSO..."; 
-                    btnIcon.innerText = "⚙️";
-                    cancelBtn.style.display = "none";
+                    lineaInput.disabled = true;
+                } 
+                // 如果是普通维修，或者是已经变红的工作
+                else if (data.status === 'red' || data.status === 'finishing' || (!isCambio && data.status === 'orange')) {
+                    const isRed = (data.status === 'red' || data.status === 'finishing');
+                    mainBtn.className = isRed ? "main-btn status-red locked" : "main-btn status-orange locked";
+                    statusText.innerText = isRed ? "INTERVENTO IN CORSO..." : "IN ATTESA..."; 
+                    btnIcon.innerText = isRed ? "⚙️" : "⏳";
+                    cancelBtn.style.display = isRed ? "none" : "block";
+                    lineaInput.disabled = true;
                 }
             }
         });
