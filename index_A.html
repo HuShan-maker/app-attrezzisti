@@ -59,6 +59,16 @@
             cursor: pointer; text-align-last: center; -webkit-appearance: none;
         }
 
+        /* 模态框内部检查框样式 */
+        .check-area-modal {
+            margin: 10px 0; padding: 12px; background: #fff9c4; border-radius: 20px; 
+            width: 100%; border: 3px solid #fbc02d; transition: border-color 0.3s;
+            text-align: left;
+        }
+        .check-flex-modal { display: flex; align-items: center; gap: 12px; }
+        #checkPezziModal { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--black); }
+        .check-label-modal { font-weight: 800; color: #000; font-size: 12px; line-height: 1.2; text-transform: uppercase; }
+
         .main-btn {
             width: 260px; height: 260px; border-radius: 55px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -93,14 +103,13 @@
 
         .copy-text { font-size: 10px; font-weight: 800; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; margin-bottom: 10px; }
 
-        /* 模态框通用样式 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
         .modal-content { background: #fff; width: 90%; max-width: 340px; border-radius: 30px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
         .modal-h2 { font-size: 18px; font-weight: 900; text-align: center; margin: 0; }
         .f-label { font-size: 11px; font-weight: 800; color: #8e8e93; margin-bottom: -10px; margin-left: 5px; text-transform: uppercase; }
         .f-select, .f-textarea, .f-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--gray); font-size: 15px; font-weight: 700; outline: none; -webkit-user-select: text; user-select: text; }
         .f-submit { background: var(--black); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 14px; margin-top: 10px; }
-        .f-close { color: #8e8e93; font-size: 12px; font-weight: 700; text-align: center; margin-top: 5px; }
+        .f-close { color: #8e8e93; font-size: 12px; font-weight: 700; text-align: center; margin-top: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -154,8 +163,19 @@
             <h2 class="modal-h2">Cambio Modello</h2>
             <div class="f-label">Inserisci Modello</div>
             <input type="text" id="modelloInput" class="f-input" placeholder="" autocomplete="off">
+            
+            <div class="check-area-modal" id="checkWrapperModal">
+                <div class="check-flex-modal">
+                    <input type="checkbox" id="checkPezziModal">
+                    <label for="checkPezziModal" class="check-label-modal">
+                        Ho controllato tutti i pezzi<br>
+                        <span style="font-size: 9px; color: #666; font-weight: 700;">(Posaggi, morse, punzoni)</span>
+                    </label>
+                </div>
+            </div>
+
             <button class="f-submit" onclick="confirmModello()">CONFERMA E CHIAMA</button>
-            <div class="f-close" onclick="document.getElementById('modelloModal').style.display='none'">ANNULLA</div>
+            <div class="f-close" onclick="cancelModelloModal()">ANNULLA</div>
         </div>
     </div>
 
@@ -217,8 +237,7 @@
         if(!score || score < 1 || score > 5) { alert("Inserisci un punteggio tra 1 e 5!"); return; }
         
         const btn = document.getElementById('fSubmitBtn');
-        btn.disabled = true; 
-        btn.innerText = "Invio...";
+        btn.disabled = true; btn.innerText = "Invio...";
 
         db.ref('feedbacks').push({
             attrezzista: nameSelect.value, 
@@ -288,6 +307,7 @@
         mainBtn.classList.remove('locked'); cancelBtn.style.display = "none";
         lineaInput.disabled = false; causaleSelect.disabled = false;
         causaleSelect.selectedIndex = 0; 
+        document.getElementById('checkPezziModal').checked = false;
     }
 
     function initiateCall() {
@@ -308,11 +328,39 @@
 
     function confirmModello() {
         const modello = document.getElementById('modelloInput').value.trim();
+        const isChecked = document.getElementById('checkPezziModal').checked;
+        
         if (!modello) { alert("INSERIRE MODELLO!"); return; }
+        if (!isChecked) {
+            alert("DEVI CONFERMARE DI AVER CONTROLLATO TUTTI I PEZZI!");
+            document.getElementById('checkWrapperModal').style.borderColor = var(--red);
+            setTimeout(() => { document.getElementById('checkWrapperModal').style.borderColor = "#fbc02d"; }, 500);
+            return;
+        }
+
         const fullCausale = "Cambio " + modello.toUpperCase();
         document.getElementById('modelloModal').style.display = 'none';
         document.getElementById('modelloInput').value = "";
         sendCall(fullCausale);
+    }
+
+    // 弹窗取消逻辑
+    function cancelModelloModal() {
+        const id = lineaInput.value.trim().toLowerCase();
+        if(id) {
+            const now = Date.now();
+            const dateKey = new Date().toISOString().split('T')[0];
+            // 归档为 annullato da linea
+            db.ref(`history/${dateKey}/${id}_${now}`).set({
+                linea: id.toUpperCase(),
+                causale: "ANNULLATO DA LINEA",
+                status: 'completed',
+                timestamp: now,
+                turno: getActiveTurno()
+            });
+        }
+        document.getElementById('modelloModal').style.display = 'none';
+        resetUI();
     }
 
     function sendCall(finalCausale) {
@@ -346,11 +394,13 @@
         const dateKey = new Date().toISOString().split('T')[0];
         db.ref('active_calls/' + id).once('value').then(snap => {
             const data = snap.val();
-            if (data) {
-                db.ref(`history/${dateKey}/${id}_${now}`).set({
-                    ...data, status: 'completed', endT: now, causale: "ANNULLATO DA OPERATORE"
-                });
-            }
+            // 归档统一修改为 ANNULLATO DA LINEA
+            db.ref(`history/${dateKey}/${id}_${now}`).set({
+                ...(data || {}), 
+                status: 'completed', 
+                endT: now, 
+                causale: "ANNULLATO DA LINEA"
+            });
             db.ref('active_calls/' + id).remove().then(() => { 
                 localStorage.removeItem('myActiveCall'); resetUI(); 
             });
