@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>C - Tabellone v8.9.8</title>
+    <title>C - Tabellone v8.9.9</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -37,16 +37,19 @@
             background: var(--white); border-radius: 20px; padding: 15px 18px;
             display: flex; align-items: center; 
             width: 100%; max-width: 650px; min-height: 95px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 2px solid transparent;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 2.5px solid transparent;
             position: relative; transition: 0.3s;
         }
-        .card.st-waiting { border-color: var(--orange); }
-        .card.st-working { border-color: var(--red); }
-        /* 新增紫色卡片样式 */
+
+        /* --- 边框闪烁特效全覆盖 --- */
+        .card.st-waiting { border-color: var(--orange); animation: orangePulse 2s infinite; }
+        .card.st-working { border-color: var(--red); animation: redPulse 2s infinite; }
         .card.st-prep { border-color: var(--purple); animation: purplePulse 2s infinite; }
         .card.st-completed { border-color: var(--black); }
         
-        @keyframes purplePulse { 0% { box-shadow: 0 0 5px var(--purple); } 50% { box-shadow: 0 0 15px var(--purple); } 100% { box-shadow: 0 0 5px var(--purple); } }
+        @keyframes orangePulse { 0% { box-shadow: 0 0 2px var(--orange); } 50% { box-shadow: 0 0 12px var(--orange); } 100% { box-shadow: 0 0 2px var(--orange); } }
+        @keyframes redPulse { 0% { box-shadow: 0 0 2px var(--red); } 50% { box-shadow: 0 0 12px var(--red); } 100% { box-shadow: 0 0 2px var(--red); } }
+        @keyframes purplePulse { 0% { box-shadow: 0 0 2px var(--purple); } 50% { box-shadow: 0 0 15px var(--purple); } 100% { box-shadow: 0 0 2px var(--purple); } }
 
         .card.st-annullato { 
             min-height: 55px !important; 
@@ -57,8 +60,10 @@
             box-shadow: none !important;
         }
 
-        .card-left { display: flex; flex-direction: column; gap: 6px; flex: 0.7; min-width: 80px; justify-content: center; align-items: flex-start; }
-        .card-badge { font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; color: #fff; letter-spacing: 0.3px; white-space: nowrap; }
+        /* 调整左侧宽度，防止长文字压住中间内容 */
+        .card-left { display: flex; flex-direction: column; gap: 6px; flex: 1.1; min-width: 120px; justify-content: center; align-items: flex-start; }
+        .card-badge { font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; color: #fff; letter-spacing: 0.3px; white-space: normal; line-height: 1.1; text-align: center; }
+        
         .bg-orange { background-color: var(--orange); }
         .bg-red { background-color: var(--red); }
         .bg-purple { background-color: var(--purple); }
@@ -74,7 +79,6 @@
         .total-label { font-size: 8px; font-weight: 700; color: var(--text-sec); text-transform: uppercase; margin-bottom: 2px; }
         .total-val { font-size: 18px; font-weight: 700; color: var(--black); line-height: 1; }
 
-        /* --- 重点：强化警报效果 --- */
         .timeout-critical { 
             background: #ff9500 !important; 
             border: 4px solid #ff3b30 !important; 
@@ -213,7 +217,6 @@
     let processedStarts = new Set(logs.map(l => l.st));
     let cloudData = {};
     
-    // --- 1. 双向排序配置管理 ---
     let daySortConfig = {}; 
 
     function showHistory() { document.getElementById('historyPage').style.display = 'flex'; renderLogs(); }
@@ -284,7 +287,8 @@
         const date = new Date(ts);
         const hour = date.getHours() + (date.getMinutes() / 60);
         const baseDate = new Date(2025, 11, 29); 
-        const totalWeeks = Math.floor((date.getTime() - baseDate.getTime()) / (7*24*60*60*1000)) + 1;
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        const totalWeeks = Math.floor((date.getTime() - baseDate.getTime()) / msPerWeek) + 1;
         const isSingleWeek = totalWeeks % 2 !== 0; 
         const isAfternoon = (hour >= 14.25); 
         return isSingleWeek ? (isAfternoon ? "Turno A" : "Turno B") : (isAfternoon ? "Turno B" : "Turno A");
@@ -419,7 +423,6 @@
         });
     }
 
-    // --- 1. 双向排序逻辑函数 ---
     function setDaySort(day, field) {
         if (!daySortConfig[day]) {
             daySortConfig[day] = { field: 'time', order: 'desc' };
