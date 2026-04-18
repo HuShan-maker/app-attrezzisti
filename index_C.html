@@ -227,14 +227,41 @@
     function showFeedback() { document.getElementById('feedbackPage').style.display = 'flex'; renderFeedback(); }
     function closeFeedback() { document.getElementById('feedbackPage').style.display = 'none'; }
 
-    function cleanCloudHistory() {
+   function cleanCloudHistory() {
         const todayStr = new Date().toISOString().split('T')[0];
         const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        const keepDays = [todayStr, yesterdayStr];
-        db.ref('maintenance/lastCleanDate').transaction((curr) => { if (curr === todayStr) return; return todayStr; }, (err, comm) => {
+        
+        // 1. History 依然只留今天和昨天 (2天)
+        const keepDaysHistory = [todayStr, yesterdayStr];
+
+        // 2. Feedbacks 专门生成一个 30 天的保留列表
+        const keepDaysFeedbacks = [];
+        for (let i = 0; i < 30; i++) {
+            const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+            keepDaysFeedbacks.push(d);
+        }
+
+        db.ref('maintenance/lastCleanDate').transaction((curr) => { 
+            if (curr === todayStr) return; 
+            return todayStr; 
+        }, (err, comm) => {
             if (comm) {
-                db.ref('history').once('value').then(snap => { const all = snap.val(); if(all) Object.keys(all).forEach(d => { if(!keepDays.includes(d)) db.ref(`history/${d}`).remove(); }); });
-                db.ref('feedbacks').once('value').then(snap => { const all = snap.val(); if(all) Object.keys(all).forEach(k => { if(!keepDays.includes(all[k].data)) db.ref(`feedbacks/${k}`).remove(); }); });
+                // 清理 history 节点：照旧只留 2 天
+                db.ref('history').once('value').then(snap => { 
+                    const all = snap.val(); 
+                    if(all) Object.keys(all).forEach(d => { 
+                        if(!keepDaysHistory.includes(d)) db.ref(`history/${d}`).remove(); 
+                    }); 
+                });
+                
+                // 清理 feedbacks 节点：现在保留 30 天
+                db.ref('feedbacks').once('value').then(snap => { 
+                    const all = snap.val(); 
+                    if(all) Object.keys(all).forEach(k => { 
+                        // 核心：使用 30 天的白名单进行比对
+                        if(!keepDaysFeedbacks.includes(all[k].data)) db.ref(`feedbacks/${k}`).remove(); 
+                    }); 
+                });
             }
         });
     }
