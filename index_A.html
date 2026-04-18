@@ -59,7 +59,6 @@
             cursor: pointer; text-align-last: center; -webkit-appearance: none;
         }
 
-        /* 弹窗内的校验区域 */
         .modal-check-area {
             margin: 10px 0; padding: 12px; background: #fff9c4; border-radius: 15px; 
             border: 2px solid #fbc02d; text-align: left;
@@ -164,7 +163,7 @@
             </div>
 
             <button class="f-submit" onclick="confirmModello()">CONFERMA E CHIAMA</button>
-            <div class="f-close" onclick="document.getElementById('modelloModal').style.display='none'">ANNULLA</div>
+            <div class="f-close" onclick="cancelFromModal()">ANNULLA</div>
         </div>
     </div>
 
@@ -225,25 +224,15 @@
         if(!nameSelect.value) { alert("Per favore, seleziona un attrezzista!"); return; }
         if(!score || score < 1 || score > 5) { alert("Inserisci un punteggio tra 1 e 5!"); return; }
         const btn = document.getElementById('fSubmitBtn');
-        btn.disabled = true; 
-        btn.innerText = "Invio...";
+        btn.disabled = true; btn.innerText = "Invio...";
         db.ref('feedbacks').push({
-            attrezzista: nameSelect.value, 
-            punteggio: score, 
-            messaggio: note,
-            timestamp: Date.now(), 
-            linea: lineaInput.value || "N/A", 
-            data: new Date().toLocaleDateString('it-IT'),
-            turno: getActiveTurno() 
+            attrezzista: nameSelect.value, punteggio: score, messaggio: note,
+            timestamp: Date.now(), linea: lineaInput.value || "N/A", 
+            data: new Date().toLocaleDateString('it-IT'), turno: getActiveTurno() 
         }).then(() => {
             alert("Feedback inviato!");
             document.getElementById('fModal').style.display = 'none';
-            nameSelect.selectedIndex = 0; 
-            document.getElementById('fScore').value = ""; 
-            document.getElementById('fNote').value = "";
-            btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
-        }).catch(err => {
-            alert("ERRORE: " + err.message);
+            nameSelect.selectedIndex = 0; document.getElementById('fScore').value = ""; document.getElementById('fNote').value = "";
             btn.disabled = false; btn.innerText = "INVIA FEEDBACK";
         });
     }
@@ -296,7 +285,6 @@
         mainBtn.classList.remove('locked'); cancelBtn.style.display = "none";
         lineaInput.disabled = false; causaleSelect.disabled = false;
         causaleSelect.selectedIndex = 0; 
-        // 重置弹窗里的勾选框
         document.getElementById('checkPezziModal').checked = false;
     }
 
@@ -316,25 +304,39 @@
         }
     }
 
-    // 核心修改逻辑：只有勾选了才能确认发送
+    // 核心修改逻辑：由于没零件点取消，在C端显示成 annullato da linea
+    function cancelFromModal() {
+        const id = lineaInput.value.trim().toLowerCase();
+        const now = Date.now();
+        const dateKey = new Date().toISOString().split('T')[0];
+        
+        // 归档记录
+        db.ref(`history/${dateKey}/${id}_${now}`).set({
+            linea: id.toUpperCase(),
+            causale: "ANNULLATO DA LINEA", // 统一显示
+            status: "completed",
+            endT: now,
+            info: "Mancanza pezzi al cambio modello"
+        });
+
+        document.getElementById('modelloModal').style.display = 'none';
+        document.getElementById('modelloInput').value = "";
+        resetUI();
+    }
+
     function confirmModello() {
         const modello = document.getElementById('modelloInput').value.trim();
         const isChecked = document.getElementById('checkPezziModal').checked;
-
         if (!modello) { alert("INSERIRE MODELLO!"); return; }
-        
-        // 强制校验勾选框
         if (!isChecked) {
             alert("ERRORE: Devi confermare di aver controllato tutti i pezzi!");
             document.getElementById('modalCheckWrapper').style.borderColor = "#ff3b30";
             setTimeout(() => { document.getElementById('modalCheckWrapper').style.borderColor = "#fbc02d"; }, 500);
             return;
         }
-
-        const fullCausale = "Cambio " + modello.toUpperCase();
+        sendCall("Cambio " + modello.toUpperCase());
         document.getElementById('modelloModal').style.display = 'none';
         document.getElementById('modelloInput').value = "";
-        sendCall(fullCausale);
     }
 
     function sendCall(finalCausale) {
@@ -361,6 +363,7 @@
         });
     }
 
+    // 核心修改逻辑：手动点 Annulla，在C端显示成 annullato da linea
     function cancelCall() {
         const id = localStorage.getItem('myActiveCall');
         if (!id || !confirm("Annullare la chiamata per linea " + id.toUpperCase() + "?")) return;
@@ -370,7 +373,10 @@
             const data = snap.val();
             if (data) {
                 db.ref(`history/${dateKey}/${id}_${now}`).set({
-                    ...data, status: 'completed', endT: now, causale: "ANNULLATO DA OPERATORE"
+                    ...data, 
+                    status: 'completed', 
+                    endT: now, 
+                    causale: "ANNULLATO DA LINEA" // 统一显示
                 });
             }
             db.ref('active_calls/' + id).remove().then(() => { 
