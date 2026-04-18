@@ -726,7 +726,7 @@
         
         // 1. 橙色变紫色 (准备阶段：确认取走工具)
         if (item.status === 'orange') {
-            if (confirm(`Hai preso tutto? (Faro CNC / Dispenser / Cassettiera blu)`)) {
+            if (confirm(`Prendere in carico la linea ${id.toUpperCase()}?`)) {
                 db.ref('active_calls/' + id).update({ 
                     status: 'purple', 
                     takenBy: myDeviceId, 
@@ -736,7 +736,7 @@
         } 
         // 2. 紫色变红色 (到达阶段：确认道具齐全，开始工作)
         else if (item.status === 'purple' && item.takenBy === myDeviceId) {
-            if (confirm(`Sei in linea? Tutti i pezzi sono corretti? (Clicca OK per iniziare, Annulla per cancellare chiamata)`)) {
+            if (confirm(`Sei in linea? Ci sono tutte le attrezzature? (Clicca OK per iniziare, Annulla per cancellare chiamata)`)) {
                 db.ref('active_calls/' + id).update({ 
                     status: 'red', 
                     startB: sTime 
