@@ -314,7 +314,7 @@
         const isChecked = document.getElementById('checkPezziModal').checked;
         if (!modello) { alert("INSERIRE MODELLO!"); return; }
         if (!isChecked) {
-            alert("DEVI CONFERMARE DI AVER CONTROLLATO TUTTI I PEZZI!");
+            alert("DEVI CONFERMARE DI AVER CONTROLLATO TUTTI I COMPONENTI!");
             document.getElementById('checkWrapperModal').style.borderColor = "#ff3b30";
             setTimeout(() => { document.getElementById('checkWrapperModal').style.borderColor = "#fbc02d"; }, 500);
             return;
