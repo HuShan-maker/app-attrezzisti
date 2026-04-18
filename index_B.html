@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>B - Attrezzisti v8.1.0</title>
+    <title>B - Attrezzisti v8.2.0</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -20,6 +20,7 @@
             --locked-gray-red: #bb8888; 
             --green: #34c759;
             --blue: #007aff;
+            --purple: #af52de; /* 紫色变量 */
         }
         * { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         
@@ -70,11 +71,16 @@
         .badge { position: absolute; top: -4px; right: -4px; width: 22px; height: 22px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
         .or { background: var(--red) !important; color: #fff !important; animation: pulseRed 1.5s infinite; box-shadow: 0 0 15px rgba(255,59,48,0.4) !important; }
+        
+        /* 紫色呼吸灯 - 准备中状态 */
+        .prep-purple { background: var(--purple) !important; color: #fff !important; animation: pulsePurple 1.5s infinite; box-shadow: 0 0 15px rgba(175, 82, 222, 0.4) !important; }
+
         .locked-btn { background: var(--locked-gray-red) !important; color: rgba(255, 255, 255, 0.8) !important; opacity: 0.8; pointer-events: none; }
         .waiting { background: var(--orange) !important; color: #fff !important; animation: pulseOrange 1.5s infinite; box-shadow: 0 0 15px rgba(255,149,0,0.3) !important; }
 
         @keyframes pulseRed { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); opacity: 0.8; } }
         @keyframes pulseOrange { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.96); opacity: 0.7; } }
+        @keyframes pulsePurple { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.97); opacity: 0.8; } }
 
         .bottom-area { display: flex; flex-direction: column; align-items: center; margin-top: 20px; padding-bottom: 30px; gap: 15px; }
         .fuori-btn { background: var(--btn-gray); border: none; border-radius: 18px; font-size: 14px; font-weight: 800; height: 65px; width: calc(50% + 6px); text-transform: uppercase; transition: 0.3s; position: relative; }
@@ -114,7 +120,6 @@
         .info-row:last-child { border-bottom: none; }
         .clickable-modello { color: var(--blue); text-decoration: underline; cursor: pointer; }
 
-        /* --- 款式数据库 UI 修订 --- */
         #modelli_v1 { background: #fff; display: none; flex-direction: column; z-index: 350; position: fixed; top: 0; left: 0; width: 100%; height: 100%; padding: calc(15px + env(safe-area-inset-top)) 20px 20px 20px; overflow-y: auto; }
         .m-search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid var(--btn-gray); font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 20px; outline: none; text-transform: uppercase; -webkit-user-select: text; user-select: text; }
         .m-form { display: flex; flex-direction: column; gap: 10px; }
@@ -124,7 +129,7 @@
             align-items: center; 
             background: var(--btn-gray); 
             border-radius: 15px;
-            height: 52px; /* 固定高度 */
+            height: 52px; 
             overflow: hidden; 
             position: relative;
         }
@@ -145,7 +150,7 @@
             flex-shrink: 0;
             text-align: center;
             line-height: 1.1;
-            white-space: normal; /* 允许换行显示 2 行 */
+            white-space: normal; 
             word-wrap: break-word;
             box-shadow: 4px 0 8px rgba(0,0,0,0.05); 
             border-right: 1px solid rgba(0,0,0,0.05);
@@ -155,7 +160,7 @@
             flex: 1;
             width: 68%;
             height: 100%;
-            overflow: hidden; /* 禁止左右滑动 */
+            overflow: hidden; 
             display: flex;
             align-items: center;
             justify-content: flex-start; 
@@ -164,16 +169,16 @@
         }
 
         .m-text-view {
-            font-size: 14px; /* 初始字体 */
+            font-size: 14px; 
             font-weight: 800;
             color: #000;
             text-align: left;
             line-height: 1.1;
             width: 100%;
-            white-space: normal; /* 允许换行显示 2-3 行 */
+            white-space: normal; 
             word-break: break-all;
             display: -webkit-box;
-            -webkit-line-clamp: 3; /* 最多显示3行 */
+            -webkit-line-clamp: 3; 
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -242,7 +247,6 @@
         
         #logContainer { flex: 1; overflow-y: auto; padding: 3px 15px 15px 15px; -webkit-overflow-scrolling: touch; }
         
-        /* 核心修复：Registro 日期头部样式，确保删除键 X 始终可用且不被遮挡 */
         .day-header { 
             background: var(--btn-gray); 
             padding: 14px 15px; 
@@ -272,7 +276,7 @@
             line-height: 1; 
             cursor: pointer; 
             position: relative;
-            z-index: 160; /* 确保层级在 header 之上 */
+            z-index: 160; 
         }
         .day-header-left { display: flex; align-items: center; flex: 1; }
         .day-header::after { content: '▼'; font-size: 10px; color: #8e8e93; margin-left: auto; }
@@ -499,16 +503,15 @@
         const isW = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         if (isW) {
             let targetP = null;
-            // 优先找自己领取的红色任务
+            // 优先找自己领取的任务 (红色或紫色)
             for (let p = 1; p <= 5; p++) {
-                if (pianoData[p].some(id => act[id] && act[id].status === 'red' && act[id].takenBy === myDeviceId)) { targetP = p; break; }
+                if (pianoData[p].some(id => act[id] && (act[id].status === 'red' || act[id].status === 'purple') && act[id].takenBy === myDeviceId)) { targetP = p; break; }
             }
             // 其次找排队的橙色任务
             if (!targetP) {
                 const oranges = Object.keys(act).filter(k => k !== 'FUORI' && act[k].status === 'orange').sort((a,b) => act[a].startA - act[b].startA);
                 if (oranges.length > 0) { for (let p = 1; p <= 5; p++) { if (pianoData[p].includes(oranges[0])) { targetP = p; break; } } }
             }
-            // 只有初始加载或确实有新呼叫Piano变更时才跳，不干扰手动操作
             if (targetP && (isInitialLoad || targetP !== curPiano)) { 
                 curPiano = targetP; 
             }
@@ -526,7 +529,6 @@
         mEditMode = null;
     }
 
-    // --- 核心逻辑同步：加入 'not' 字段 ---
     function syncDisplayValues() {
         ['mac','pos','lam','pan','sca','quo', 'not'].forEach(k => {
             const input = document.getElementById('m_'+k);
@@ -535,7 +537,7 @@
             const val = input.value || "-";
             view.innerText = val;
             
-            if(k === 'not') return; // Note 框不需要字体缩放逻辑
+            if(k === 'not') return; 
 
             view.style.fontSize = "14px"; 
             let fontSize = 14;
@@ -586,7 +588,7 @@
             document.getElementById('m_pan').value = d.panto || "";
             document.getElementById('m_sca').value = d.scarico || "";
             document.getElementById('m_quo').value = d.quota || "";
-            document.getElementById('m_not').value = d.note || ""; // 获取笔记
+            document.getElementById('m_not').value = d.note || ""; 
 
             syncDisplayValues(); 
 
@@ -620,38 +622,34 @@
     }
     
     function handleModAction(mode) {
-    const idInput = document.getElementById('mSearchInput');
-    const id = idInput.value.replace(/\s+/g, '').toUpperCase();
-    if(!id) { alert("Inserire ID Modello!"); return; }
+        const idInput = document.getElementById('mSearchInput');
+        const id = idInput.value.replace(/\s+/g, '').toUpperCase();
+        if(!id) { alert("Inserire ID Modello!"); return; }
 
-    const cBtn = document.getElementById('mCreaBtn');
-    const aBtn = document.getElementById('mAggiornaBtn');
+        const cBtn = document.getElementById('mCreaBtn');
+        const aBtn = document.getElementById('mAggiornaBtn');
 
-    if(mEditMode === mode) {
-        saveModello(id, mode);
-    } else {
-        mEditMode = mode;
-        setModInputsReadOnly(false);
-        
-        if(mode === 'crea') {
-            resetModForm(false);
-            cBtn.innerText = "SALVA";
-            
-            // 彻底禁用 Aggiorna 按钮
-            aBtn.classList.add('btn-disabled'); 
-            aBtn.style.opacity = "0.3";
-            aBtn.style.pointerEvents = "none"; // 核心：使其无法点击
+        if(mEditMode === mode) {
+            saveModello(id, mode);
         } else {
-            // mode === 'aggiorna'
-            aBtn.innerText = "SALVA";
+            mEditMode = mode;
+            setModInputsReadOnly(false);
             
-            // 彻底禁用 Crea 按钮
-            cBtn.classList.add('btn-disabled');
-            cBtn.style.opacity = "0.3";
-            cBtn.style.pointerEvents = "none"; // 核心：使其无法点击
+            if(mode === 'crea') {
+                resetModForm(false);
+                cBtn.innerText = "SALVA";
+                aBtn.classList.add('btn-disabled'); 
+                aBtn.style.opacity = "0.3";
+                aBtn.style.pointerEvents = "none"; 
+            } else {
+                aBtn.innerText = "SALVA";
+                cBtn.classList.add('btn-disabled');
+                cBtn.style.opacity = "0.3";
+                cBtn.style.pointerEvents = "none"; 
+            }
         }
     }
-}
+
     async function saveModello(id, type) {
         const message = (type === 'crea') ? "Vuoi creare questo nuovo modello?" : "Confermi l'aggiornamento dei dati?";
             if (!confirm(message)) return;
@@ -663,11 +661,11 @@
             panto: document.getElementById('m_pan').value.trim(),
             scarico: document.getElementById('m_sca').value.trim(),
             quota: document.getElementById('m_quo').value.trim(),
-            note: document.getElementById('m_not').value.trim(), // 保存笔记
+            note: document.getElementById('m_not').value.trim(), 
             at: Date.now(), by: currentUserName
         };
 
-        const nSum = `${newData.macchina} / ${newData.posaggio} / ${newData.lama} / ${newData.panto}° / ${newData.scarico}° / ${newData.quota}`;
+        const nSum = `${newData.macchina} / ${newData.posaggio}`;
         const historyRef = db.ref(`modelli_db/${id}/history`);
         
         let diffObj = null;
@@ -713,26 +711,46 @@
             if(el) el.value = "";
         });
         syncDisplayValues(); 
-        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare il cartiglio。";
+        document.getElementById('mHistoryBox').innerText = "Cerca un modello per visualizzare i dettagli。";
         currentModData = null;
     }
 
     function quickJump(modId) { showModelli(); document.getElementById('mSearchInput').value = modId; handleModelloSearch(modId); }
 
+    // --- 核心逻辑修改：加入紫色准备流程 ---
     function handleMachineClick(id) {
         if (isPermanentlyLocked) return; 
         const sTime = firebase.database.ServerValue.TIMESTAMP;
-        if (!act[id]) return; 
+        const item = act[id];
+        if (!item) return; 
         
-        if (act[id].status === 'orange') {
-            if (confirm(`Prendere in carico la linea ${id}?`)) {
+        // 1. 橙色变紫色 (准备阶段：确认取走工具)
+        if (item.status === 'orange') {
+            if (confirm(`Hai preso tutto? (Faro CNC / Dispenser / Cassettiera blu)`)) {
                 db.ref('active_calls/' + id).update({ 
-                    status: 'red', startB: sTime, takenBy: myDeviceId, techName: currentUserName 
+                    status: 'purple', 
+                    takenBy: myDeviceId, 
+                    techName: currentUserName 
                 });
             }
         } 
-        else if (act[id].status === 'red' && act[id].takenBy === myDeviceId) {
-            const item = act[id];
+        // 2. 紫色变红色 (到达阶段：确认道具齐全，开始工作)
+        else if (item.status === 'purple' && item.takenBy === myDeviceId) {
+            if (confirm(`Sei in linea? Tutti i pezzi sono corretti? (Clicca OK per iniziare, Annulla per cancellare chiamata)`)) {
+                db.ref('active_calls/' + id).update({ 
+                    status: 'red', 
+                    startB: sTime 
+                });
+            } else {
+                // 点击取消的情况：认为道具不齐全，自动取消
+                const now = Date.now() + serverTimeOffset;
+                // 归档一条取消记录，方便C端看板查看原因
+                archiveIntervention(id, "MANCANO ATTREZZATURE (ANNULLATO)", item.startA, now, now, currentUserName);
+                db.ref('active_calls/' + id).remove();
+            }
+        }
+        // 3. 红色变完成 (归档)
+        else if (item.status === 'red' && item.takenBy === myDeviceId) {
             const now = Date.now() + serverTimeOffset;
             archiveIntervention(id, item.causale || "-", item.startA, item.startB || item.startA, now, currentUserName);
             if (id === 'FUORI') { db.ref('active_calls/FUORI').remove(); }
@@ -824,10 +842,19 @@
             const b = document.createElement('button'); 
             const s = isW ? act[i] : null; 
             b.className = 'btn-machine'; b.innerText = i;
-            if (s && (s.status === 'orange' || s.status === 'red')) {
-                if (s.status === 'orange') { b.classList.add('waiting'); b.style.color = "#ffffff"; } 
-                else { if (s.takenBy === myDeviceId) { b.classList.add('or'); b.style.color = "#ffffff"; } else { b.classList.add('locked-btn'); } }
+            
+            if (s && (s.status === 'orange' || s.status === 'red' || s.status === 'purple')) {
+                if (s.status === 'orange') { 
+                    b.classList.add('waiting'); b.style.color = "#ffffff"; 
+                } else if (s.status === 'purple') {
+                    if (s.takenBy === myDeviceId) { b.classList.add('prep-purple'); b.style.color = "#ffffff"; } 
+                    else { b.classList.add('locked-btn'); }
+                } else if (s.status === 'red') {
+                    if (s.takenBy === myDeviceId) { b.classList.add('or'); b.style.color = "#ffffff"; } 
+                    else { b.classList.add('locked-btn'); }
+                }
             } else { b.style.color = c; b.style.backgroundColor = 'var(--btn-gray)'; }
+            
             b.onclick = () => isW && handleMachineClick(i); 
             wrap.appendChild(b);
             if (isW && s && s.status === 'orange') {
@@ -842,10 +869,9 @@
         if (!(fs && fs.status === 'red')) f.style.color = c;
 
         const infoList = document.getElementById('pianoInfoList');
-        infoList.innerHTML = ''; // 核心修复：清空提示框内容
+        infoList.innerHTML = ''; 
         if (isW) {
-            // 核心修复点：任务重复显示逻辑修复
-            const activeTasksOnPiano = pianoData[curPiano].filter(id => act[id] && act[id].status === 'orange');
+            const activeTasksOnPiano = pianoData[curPiano].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'purple'));
             if (activeTasksOnPiano.length > 0) {
                 activeTasksOnPiano.forEach(id => {
                     const item = act[id];
@@ -853,14 +879,6 @@
                     const modMatch = finalC.match(/Cambio\s+([A-Z0-9\s]+)/i);
                     if(modMatch){
                         const rawModId = modMatch[1];
-                        const cleanModId = rawModId.replace(/\s+/g, '').toUpperCase();
-                        db.ref(`modelli_db/${cleanModId}`).once('value').then(checkSnap => {
-                            if(checkSnap.exists()){
-                                // 异步处理完成后再渲染，但由于渲染频率高，此处简单替换即可
-                                // 为防止闪烁，基础架构保持同步，仅在确认存在时给UI反馈
-                            }
-                        });
-                        // 逻辑改进：为了防止前10秒重复，我们在这里只针对当前Piano的ID进行唯一遍历
                         finalC = finalC.replace(rawModId, `<span class="clickable-modello" onclick="quickJump('${rawModId.replace(/\s+/g, '').toUpperCase()}')">${rawModId}</span>`);
                     }
                     infoList.innerHTML += `<div class="info-row" style="color:${c}"><span>Linea ${id}</span><span>${finalC}</span></div>`;
@@ -877,7 +895,7 @@
         const isW = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         for (let p = 1; p <= 5; p++) {
             const btn = document.getElementById(`p-btn-${p}`);
-            const count = isW ? pianoData[p].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'red')).length : 0;
+            const count = isW ? pianoData[p].filter(id => act[id] && (act[id].status === 'orange' || act[id].status === 'red' || act[id].status === 'purple')).length : 0;
             const oldBadge = btn.querySelector('.p-badge');
             if (oldBadge) oldBadge.remove();
             if (count > 0) { const b = document.createElement('div'); b.className = 'p-badge'; btn.appendChild(b); }
