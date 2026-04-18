@@ -687,47 +687,44 @@
 
     function quickJump(modId) { showModelli(); document.getElementById('mSearchInput').value = modId; handleModelloSearch(modId); }
 
-    function handleMachineClick(id) {
+        function handleMachineClick(id) {
         if (isPermanentlyLocked) return; 
         const sTime = firebase.database.ServerValue.TIMESTAMP;
         if (!act[id]) return; 
         
-        // --- 核心逻辑判断：是否为换款任务 ---
+        // 判断是否为换款
         const isCambio = act[id].causale && act[id].causale.includes("Cambio");
 
-        // 1. 橙色阶段处理
         if (act[id].status === 'orange') {
             if (isCambio) {
-                // 如果是换款：走紫色流程 + 询问弹窗
+                // Cambio：走紫色流程
                 if (confirm(`Prendere in carico la linea ${id.toUpperCase()}?\nCONTROLLA GLI ATTREZZI PRIMA DI ANDARE!`)) {
                     db.ref('active_calls/' + id).update({ 
                         status: 'purple', takenBy: myDeviceId, techName: currentUserName 
                     });
                 }
             } else {
-                // 如果是普通维修：直接变红，不弹窗，不废话
+                // 其他原因：直接变红，不弹窗
                 db.ref('active_calls/' + id).update({ 
                     status: 'red', 
                     takenBy: myDeviceId, 
                     techName: currentUserName,
-                    startB: sTime // 直接记录开始干活的时间
+                    startB: sTime 
                 });
             }
         } 
-        // 2. 紫色阶段处理 (仅 Cambio 会进入这里)
         else if (act[id].status === 'purple' && act[id].takenBy === myDeviceId) {
             if (confirm(`Sei in linea ${id.toUpperCase()}?\nTutte le attrezzature sono OK?`)) {
                 db.ref('active_calls/' + id).update({ 
                     status: 'red', startB: sTime 
                 });
             } else {
+                // --- 重点：B 端取消，保留 currentUserName ---
                 const now = Date.now() + serverTimeOffset;
-                // --- 按照要求：取消时 Nome 记录为 "-" ---
-                archiveIntervention(id, "ANNULLATO DA ATTREZZISTA", act[id].startA, now, now, "-");
+                archiveIntervention(id, "ANNULLATO DA ATTREZZISTA", act[id].startA, now, now, currentUserName);
                 db.ref('active_calls/' + id).remove();
             }
         }
-        // 3. 红色阶段处理 (完工归档)
         else if (act[id].status === 'red' && act[id].takenBy === myDeviceId) {
             const item = act[id];
             const now = Date.now() + serverTimeOffset;
