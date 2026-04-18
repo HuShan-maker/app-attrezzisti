@@ -687,7 +687,7 @@
 
     function quickJump(modId) { showModelli(); document.getElementById('mSearchInput').value = modId; handleModelloSearch(modId); }
 
-        function handleMachineClick(id) {
+    function handleMachineClick(id) {
         if (isPermanentlyLocked) return; 
         const sTime = firebase.database.ServerValue.TIMESTAMP;
         if (!act[id]) return; 
@@ -696,31 +696,37 @@
         const isCambio = act[id].causale && act[id].causale.includes("Cambio");
 
         if (act[id].status === 'orange') {
-            if (isCambio) {
-                // Cambio：走紫色流程
-                if (confirm(`Prendere in carico la linea ${id.toUpperCase()}?\nCONTROLLA GLI ATTREZZI PRIMA DI ANDARE!`)) {
+            // --- 根据原因显示不同的询问句 ---
+            const promptMsg = isCambio 
+                ? `Prendere in carico la linea ${id.toUpperCase()}?\nCONTROLLA GLI ATTREZZI PRIMA DI ANDARE!` 
+                : `Prendere in carico la linea ${id.toUpperCase()}?`;
+
+            if (confirm(promptMsg)) {
+                if (isCambio) {
+                    // 如果是 Cambio：变紫色
                     db.ref('active_calls/' + id).update({ 
                         status: 'purple', takenBy: myDeviceId, techName: currentUserName 
                     });
+                } else {
+                    // 如果是普通原因：直接变红色，记录开始时间 startB
+                    db.ref('active_calls/' + id).update({ 
+                        status: 'red', 
+                        takenBy: myDeviceId, 
+                        techName: currentUserName,
+                        startB: sTime 
+                    });
                 }
-            } else {
-                // 其他原因：直接变红，不弹窗
-                db.ref('active_calls/' + id).update({ 
-                    status: 'red', 
-                    takenBy: myDeviceId, 
-                    techName: currentUserName,
-                    startB: sTime 
-                });
             }
         } 
         else if (act[id].status === 'purple' && act[id].takenBy === myDeviceId) {
-            if (confirm(`Sei in linea ${id.toUpperCase()}?\nTutte le attrezzature sono OK?`)) {
+            // 这里只有 Cambio 才会进来
+            if (confirm(`Tutte le attrezzature sono OK? Altrimenti annullare la chiamata.`)) {
                 db.ref('active_calls/' + id).update({ 
                     status: 'red', startB: sTime 
                 });
             } else {
-                // --- 重点：B 端取消，保留 currentUserName ---
                 const now = Date.now() + serverTimeOffset;
+                // B端取消，保留名字
                 archiveIntervention(id, "ANNULLATO DA ATTREZZISTA", act[id].startA, now, now, currentUserName);
                 db.ref('active_calls/' + id).remove();
             }
