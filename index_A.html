@@ -260,10 +260,10 @@
     }
     updateShift(); setInterval(updateShift, 10000);
 
-        function startListening() {
+    function startListening() {
         let id = lineaInput.value.trim().toLowerCase();
         const savedLinea = localStorage.getItem('myActiveCall');
-        const myId = localStorage.getItem('myUniqueDeviceId'); // 获取自己的指纹
+        const myId = localStorage.getItem('myUniqueDeviceId'); 
         
         if (!id && savedLinea) {
             id = savedLinea.toLowerCase();
@@ -276,37 +276,29 @@
         db.ref('active_calls/' + id).on('value', (snapshot) => {
             const data = snapshot.val();
             
-            // 核心修复：如果是别人的任务 (senderId 不符)，我这里不进入橙色/红色锁定状态
-            if (data && data.status !== 'completed' && data.senderId !== myId) {
-                resetUI();
-                statusText.innerText = "LINEA " + id.toUpperCase() + " GIÀ ATTIVA"; 
-                return;
-            }
-
-            if (!data || data.status === 'completed') {
-                if (id === localStorage.getItem('myActiveCall')) { 
+            // 核心修复：如果云端没数据，或者任务已完成，或者【不是我发起的任务】
+            // 只要不是我的任务，按钮就立刻执行 resetUI() 彻底复原
+            if (!data || data.status === 'completed' || data.senderId !== myId) {
+                if (id === localStorage.getItem('myActiveCall') && (!data || data.status === 'completed')) { 
                     localStorage.removeItem('myActiveCall'); 
-                    resetUI();
-                } else {
-                    resetUI(); 
                 }
-            } else {
-                const isMyTask = (id === localStorage.getItem('myActiveCall'));
+                resetUI(); 
+            } 
+            // 情况 B：是我发起的活跃任务
+            else {
                 causaleSelect.disabled = true;
+                lineaInput.disabled = true; 
 
                 if (data.status === 'orange' || data.status === 'purple') {
                     mainBtn.className = "main-btn status-orange locked";
-                    statusText.innerText = isMyTask ? "IN ATTESA..." : "LINEA " + id.toUpperCase() + " GIÀ ATTIVA";
+                    statusText.innerText = "IN ATTESA...";
                     btnIcon.innerText = "⏳";
-                    cancelBtn.style.display = isMyTask ? "block" : "none";
-                    lineaInput.disabled = isMyTask; 
-
+                    cancelBtn.style.display = "block";
                 } else if (data.status === 'red' || data.status === 'finishing') {
                     mainBtn.className = "main-btn status-red locked";
                     statusText.innerText = "INTERVENTO IN CORSO..."; 
                     btnIcon.innerText = "⚙️";
                     cancelBtn.style.display = "none";
-                    lineaInput.disabled = isMyTask;
                 }
             }
         });
