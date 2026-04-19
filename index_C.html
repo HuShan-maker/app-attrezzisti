@@ -549,7 +549,7 @@
             // 使用 HTML5 原生的 details/summary 实现折叠
             const summary = document.createElement('summary');
             summary.className = 'week-header';
-            summary.innerHTML = `<span>${isCurrent ? '📅 PROSSIMI / ATTUALI' : '📂 ' + key}</span> <span style="font-size:11px; opacity:0.6;">${groups[key].length} Feedback</span>`;
+            summary.innerHTML = `<span>${isCurrent ? '📅 Feedback di questa settimana' : '📂 Archivio - ' + key}</span> <span style="font-size:11px; opacity:0.6;">${groups[key].length} Feedback</span>`;
 
             const content = document.createElement('div');
             content.className = 'week-content';
