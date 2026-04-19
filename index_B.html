@@ -734,11 +734,16 @@
         else if (act[id].status === 'red' && act[id].takenBy === myDeviceId) {
             const item = act[id];
             const now = Date.now() + serverTimeOffset;
-            archiveIntervention(id, item.causale || "-", item.startA, item.startB || item.startA, now, currentUserName);
-            if (id === 'FUORI') { 
-                db.ref('active_calls/FUORI').remove(); 
-            } else { 
-                db.ref('active_calls/' + id).update({ status: 'completed', endT: sTime }); 
+             if (id !== 'FUORI') {
+                // 只有普通线路才执行归档和上传数据库
+                archiveIntervention(id, item.causale || "-", item.startA, item.startB || item.startA, now, currentUserName);
+                db.ref('active_calls/' + id).update({ status: 'completed', endT: sTime });
+            } else {
+                // FUORI 逻辑：只改本地状态，不发给 Firebase，不进 C 端记录
+                act['FUORI'].status = 'completed';
+                // 这里的 renderMachines 是你图片里第 680 行定义的刷新函数
+                renderMachines(); 
+            }
             }
         }
     }
