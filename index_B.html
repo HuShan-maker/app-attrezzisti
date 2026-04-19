@@ -782,14 +782,33 @@
     }
 
     function saveFuoriCausale() {
-        const val = document.getElementById('fuoriCausaleInput').value.trim() || "Attività Extra";
-        const fs = act['FUORI']; 
-        const now = Date.now() + serverTimeOffset;
-        act['FUORI'].status = 'completed';
-        document.getElementById('fuoriCausaleInput').value = "";
-        document.getElementById('fuoriModal').style.display = 'none';
-        renderGrid();
-    }
+    const val = document.getElementById('fuoriCausaleInput').value.trim() || "Attività Extra";
+    const fs = act['FUORI']; 
+    const now = Date.now() + serverTimeOffset;
+
+    // --- 核心改动：只在本地 Registro 归档，不发送到 Firebase 历史库 ---
+    const newLog = { 
+        i: 'FUORI', 
+        day: new Date(now).toLocaleDateString('it-IT'), 
+        s: new Date(fs.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
+        tA: 0, 
+        tD: Math.round((now - fs.startA) / 60000), 
+        st: fs.startA, 
+        c: val, 
+        tech: currentUserName
+    };
+    logs.push(newLog); // 保存到你本地的 registro 数组
+    if(!dayHistory.includes(newLog.day)) dayHistory.push(newLog.day);
+    saveState(); // 保存到手机本地存储
+
+    // 彻底切断与 Firebase 的联系，C端绝对看不到
+    // db.ref('active_calls/FUORI').remove(); <--- 这一行不要了，因为云端压根没数据
+    
+    act['FUORI'].status = 'completed'; // 变回白色
+    document.getElementById('fuoriCausaleInput').value = "";
+    document.getElementById('fuoriModal').style.display = 'none';
+    renderGrid();
+}
 
     async function renderGrid() {
         const gd = document.getElementById('g'); gd.innerHTML = '';
