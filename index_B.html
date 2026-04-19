@@ -497,6 +497,10 @@
 
     db.ref('active_calls').on('value', (snapshot) => {
         act = snapshot.val() || {};
+        const savedFuori = localStorage.getItem('local_fuori_status');
+        if (savedFuori) {
+            act['FUORI'] = JSON.parse(savedFuori);
+        }
         const isW = (myShift === getRealTimeTurno()) && !isPermanentlyLocked;
         if (isW) {
             let targetP = null;
@@ -810,7 +814,7 @@ function saveFuoriCausale() {
     logs.push(newLog);
     if(!dayHistory.includes(newLog.day)) dayHistory.push(newLog.day);
     saveState();
-
+    localStorage.removeItem('local_fuori_status');
     act['FUORI'].status = 'completed';
     document.getElementById('fuoriCausaleInput').value = "";
     document.getElementById('fuoriModal').style.display = 'none';
