@@ -800,7 +800,7 @@ function saveFuoriCausale() {
     const startTime = (fs && fs.startA) ? fs.startA : now;
 
     const newLog = { 
-        i: 'FUORI', 
+        i: 'FUORI LINEA', 
         day: new Date(now).toLocaleDateString('it-IT'), 
         // 修正这里：手动格式化开始时间
         s: new Date(startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
