@@ -303,7 +303,6 @@
         <div class="title-group">
             <h2>ATTREZZISTA <span id="turnoDisp" class="turno-badge">--</span></h2>
             <div id="userNameDisp" class="user-subtitle" onclick="handleNameClick()">Hu_Shan</div>
-            <div id="userEmailDisp" style="font-size: 11px; color: #8e8e93; font-weight: 600; margin-top: -2px; cursor: pointer; min-height: 15px;" ondblclick="handleEmailEdit()">EMAIL</div>
         </div>
         <div class="btn-stack">
             <button id="infoModelliBtn" class="reg-btn" onclick="showModelli()">info modelli</button>
@@ -363,7 +362,6 @@
     <div class="color-picker-wrap" id="pickerContainer"><input type="color" id="floorColor" onchange="updateThemeColor(this.value)"></div>
 
     <div id="nameModal"><div class="modal-content"><h3>Cambia Nome</h3><input type="text" id="nameInput" class="modal-input" autocomplete="off"><button class="modal-btn" onclick="saveName()">SALVA</button></div></div>
-    <div id="emailModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(4px);"><div class="modal-content"><h3>Configura Email</h3><input type="text" id="emailInput" class="modal-input" placeholder="example@gmail.com" style="text-transform:none;"><button class="modal-btn" onclick="saveEmail()">SALVA</button><button class="modal-btn" style="background:#e5e5ea;color:#000;margin-top:8px;" onclick="document.getElementById('emailModal').style.display='none'">ANNULLA</button></div></div>
     <div id="fuoriModal"><div class="modal-content"><h3>Causale Fuori Linea</h3><input type="text" id="fuoriCausaleInput" class="modal-input" placeholder="Attività svolta..."><button class="modal-btn" onclick="saveFuoriCausale()">SALVA</button></div></div>
     <div id="editModal"><div class="modal-content"><h3>Modifica Causale</h3><input type="text" id="editCausaleInput" class="modal-input" autocomplete="off"><button class="modal-btn" onclick="confirmEdit()">AGGIORNA</button></div></div>
     <div id="confirmModal"><div class="modal-content"><h3>Svuota tutto il registro?</h3><div style="display:flex;gap:15px;margin-top:10px;"><button style="background:#e5e5ea;flex:1;padding:15px;border-radius:15px;border:none;" onclick="document.getElementById('confirmModal').style.display='none'">NO</button><button style="background:var(--red);color:#fff;flex:1;padding:15px;border-radius:15px;border:none;" onclick="doClear()">SI</button></div></div></div>
@@ -455,7 +453,6 @@
     };
     
     let currentUserName = localStorage.getItem('userName') || 'Hu_Shan';
-    let currentUserEmail = localStorage.getItem('userEmail') || 'EMAIL';
     let themeConfig = JSON.parse(localStorage.getItem('pianoThemes') || '{"1":"#000000","2":"#0077b6","3":"#1b5e20","4":"#311b92","5":"#c2185b"}');
 
     let act = {}; 
@@ -652,7 +649,6 @@
             quota: document.getElementById('m_quo').value.trim(),
             note: document.getElementById('m_not').value.trim(),
             at: Date.now(), by: currentUserName
-            updatedByEmail: currentUserEmail
         };
         const nSum = `${newData.macchina} / ${newData.posaggio} / ${newData.lama} / ${newData.panto}° / ${newData.scarico}° / ${newData.quota}`;
         const historyRef = db.ref(`modelli_db/${id}/history`);
@@ -672,7 +668,7 @@
             });
             if (Object.keys(diffObj).length === 0) diffObj = null;
         }
-        await historyRef.push({ type: type, newSummary: nSum, diff: diffObj, by: currentUserName, email: currentUserEmail, at: Date.now() });
+        await historyRef.push({ type: type, newSummary: nSum, diff: diffObj, by: currentUserName, at: Date.now() });
         if(type === 'crea') newData.creator = currentUserName;
         await db.ref(`modelli_db/${id}/current`).set(newData);
         alert("Salvato correttamente!");
@@ -995,19 +991,7 @@ function saveFuoriCausale() {
         } 
         document.getElementById('nameModal').style.display='none'; 
     }
-    function handleEmailEdit() {
-    document.getElementById('emailInput').value = (currentUserEmail === 'EMAIL') ? "" : currentUserEmail;
-    document.getElementById('emailModal').style.display = 'flex';
-}
-    function saveEmail() {
-        let e = document.getElementById('emailInput').value.trim();
-        if(e) {
-            currentUserEmail = e;
-            localStorage.setItem('userEmail', e);
-            document.getElementById('userEmailDisp').innerText = e;
-        }
-        document.getElementById('emailModal').style.display = 'none';
-    }
+
     function showMemoria() { renderLogs(); document.getElementById('v').style.display='flex'; }
     function closeMemoria() { document.getElementById('v').style.display='none'; }
     function openConfirm() { document.getElementById('confirmModal').style.display='flex'; }
@@ -1028,7 +1012,6 @@ function saveFuoriCausale() {
     }, { passive: true });
 
     document.getElementById('userNameDisp').innerText = document.getElementById('regNameDisp').innerText = currentUserName;
-    document.getElementById('userEmailDisp').innerText = currentUserEmail;
     document.getElementById('curYear').innerText = new Date().getFullYear();
     applyTheme();
     
