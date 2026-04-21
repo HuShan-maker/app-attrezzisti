@@ -673,47 +673,46 @@
     await db.ref(`modelli_db/${id}/current`).set(newData);
     alert("Salvato correttamente!");
 
-    // 2. 计算对比差异
-    let changesText = "";
+    // --- WhatsApp 动态内容逻辑 ---
+    let waBody = "";
     if (type === 'aggiorna') {
-        if (typeof currentModData !== 'undefined' && currentModData) {
-            const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota", "note"];
-            let hasChanged = false;
-            keys.forEach(k => {
-                const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "-";
-                const newVal = newData[k] ? String(newData[k]).trim() : "-";
-                if (newVal !== oldVal) {
-                    hasChanged = true;
-                    changesText += `\n• ${k.toUpperCase()}: _${oldVal}_ ➔ *${newVal}*`;
-                }
-            });
-            if (hasChanged) {
-                changesText = `\n🔄 *MODIFICHE:*${changesText}`;
-            } else {
-                changesText = `\n✅ *Nessuna modifica ai parametri.*`;
+        waBody = `🔄 *MODIFICHE:*`;
+        let hasChanged = false;
+        const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota"];
+        keys.forEach(k => {
+            const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "-";
+            const newVal = newData[k] ? String(newData[k]).trim() : "-";
+            if (newVal !== oldVal) {
+                hasChanged = true;
+                waBody += `\n• ${k.toUpperCase()}: _${oldVal}_ ➔ *${newVal}*`;
             }
-        }
+        });
+        if (!hasChanged) waBody = `\n✅ *Nessuna modifica ai parametri.*`;
     } else {
-        changesText = `\n✨ *Nuovo Modello Creato nel DB*`;
+        // --- 如果是新建 (Crea)，显示所有填写的最新信息 ---
+        waBody = `✨ *NUOVO MODELLO CREATO* ✨\n` +
+                 `• MAC: *${newData.macchina}*\n` +
+                 `• POS: *${newData.posaggio}*\n` +
+                 `• LAM: *${newData.lama}*\n` +
+                 `• PAN: *${newData.panto}°*\n` +
+                 `• SCA: *${newData.scarico}°*\n` +
+                 `• QUO: *${newData.quota}*`;
     }
 
-    // 3. 准备 WhatsApp 最终信息 (修复了这里的拼接错误)
     const myPhone = "393662613686"; 
     const waMessage = 
         `💻 *DB-MODELLI UPDATE* ⚙️\n` + 
         `--------------------------\n` +
         `📍 *Modello:* ${id}\n` +
         `👤 *User:* ${currentUserName}\n` +
-        `--------------------------` +
-        `${changesText}\n` + 
-        `--------------------------\n` + // 这里修复了反斜杠和引号
+        `--------------------------\n` +
+        `${waBody}\n` + 
+        `--------------------------\n` +
         `📝 *Note:* ${newData.note || '-'}`;
 
-    // 直接拼接 URL 并跳转
     const waUrl = `https://wa.me/${myPhone}?text=${encodeURIComponent(waMessage)}`;
     window.location.href = waUrl;
 
-    // 收尾逻辑
     mEditMode = null;
     setModInputsReadOnly(true);
     resetModButtons();
