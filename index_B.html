@@ -638,41 +638,42 @@
     }
 
     async function saveModello(id, type) {
-        const message = (type === 'crea') ? "Vuoi creare questo nuovo modello?" : "Confermi l'aggiornamento dei dati?";
-        if (!confirm(message)) return;
-        const newData = {
-            macchina: document.getElementById('m_mac').value.trim(),
-            posaggio: document.getElementById('m_pos').value.trim(),
-            lama: document.getElementById('m_lam').value.trim(),
-            panto: document.getElementById('m_pan').value.trim(),
-            scarico: document.getElementById('m_sca').value.trim(),
-            quota: document.getElementById('m_quo').value.trim(),
-            note: document.getElementById('m_not').value.trim(),
-            at: Date.now(), by: currentUserName
-        };
-        const nSum = `${newData.macchina} / ${newData.posaggio} / ${newData.lama} / ${newData.panto}° / ${newData.scarico}° / ${newData.quota}`;
-        const historyRef = db.ref(`modelli_db/${id}/history`);
-        let diffObj = null;
-        if(type === 'aggiorna' && currentModData) {
-            diffObj = {};
-            const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota", "note"];
-            keys.forEach(k => {
-                const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "";
-                const newVal = newData[k] ? String(newData[k]).trim() : "";
-                if(newVal !== oldVal) {
-                    diffObj[k] = { 
-                        old: (oldVal === "" || oldVal === "-") ? "-" : oldVal, 
-                        new: (newVal === "") ? "-" : newVal 
-                    };
-                }
-            });
-            if (Object.keys(diffObj).length === 0) diffObj = null;
-        }
-        await historyRef.push({ type: type, newSummary: nSum, diff: diffObj, by: currentUserName, at: Date.now() });
-        if(type === 'crea') newData.creator = currentUserName;
-        await db.ref(`modelli_db/${id}/current`).set(newData);
-        alert("Salvato correttamente!");
-            // 2. 计算对比差异
+    const message = (type === 'crea') ? "Vuoi creare questo nuovo modello?" : "Confermi l'aggiornamento dei dati?";
+    if (!confirm(message)) return;
+    const newData = {
+        macchina: document.getElementById('m_mac').value.trim(),
+        posaggio: document.getElementById('m_pos').value.trim(),
+        lama: document.getElementById('m_lam').value.trim(),
+        panto: document.getElementById('m_pan').value.trim(),
+        scarico: document.getElementById('m_sca').value.trim(),
+        quota: document.getElementById('m_quo').value.trim(),
+        note: document.getElementById('m_not').value.trim(),
+        at: Date.now(), by: currentUserName
+    };
+    const nSum = `${newData.macchina} / ${newData.posaggio} / ${newData.lama} / ${newData.panto}° / ${newData.scarico}° / ${newData.quota}`;
+    const historyRef = db.ref(`modelli_db/${id}/history`);
+    let diffObj = null;
+    if(type === 'aggiorna' && currentModData) {
+        diffObj = {};
+        const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota", "note"];
+        keys.forEach(k => {
+            const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "";
+            const newVal = newData[k] ? String(newData[k]).trim() : "";
+            if(newVal !== oldVal) {
+                diffObj[k] = { 
+                    old: (oldVal === "" || oldVal === "-") ? "-" : oldVal, 
+                    new: (newVal === "") ? "-" : newVal 
+                };
+            }
+        });
+        if (Object.keys(diffObj).length === 0) diffObj = null;
+    }
+    await historyRef.push({ type: type, newSummary: nSum, diff: diffObj, by: currentUserName, at: Date.now() });
+    if(type === 'crea') newData.creator = currentUserName;
+    await db.ref(`modelli_db/${id}/current`).set(newData);
+    alert("Salvato correttamente!");
+
+    // 2. 计算对比差异
     let changesText = "";
     if (type === 'aggiorna') {
         if (typeof currentModData !== 'undefined' && currentModData) {
@@ -693,11 +694,10 @@
             }
         }
     } else {
-        // --- 如果是新建 (Crea)，只显示这一行简洁的提示 ---
         changesText = `\n✨ *Nuovo Modello Creato nel DB*`;
     }
 
-    // 3. 准备 WhatsApp 最终信息
+    // 3. 准备 WhatsApp 最终信息 (修复了这里的拼接错误)
     const myPhone = "393662613686"; 
     const waMessage = 
         `💻 *DB-MODELLI UPDATE* ⚙️\n` + 
@@ -705,11 +705,11 @@
         `📍 *Modello:* ${id}\n` +
         `👤 *User:* ${currentUserName}\n` +
         `--------------------------` +
-        `${changesText}\n` + // 这里现在只会包含修改项或新建提示
-        `--------------------------\
+        `${changesText}\n` + 
+        `--------------------------\n` + // 这里修复了反斜杠和引号
         `📝 *Note:* ${newData.note || '-'}`;
 
-    // 注意这里：直接拼接 URL 并跳转，不要有多余的 );
+    // 直接拼接 URL 并跳转
     const waUrl = `https://wa.me/${myPhone}?text=${encodeURIComponent(waMessage)}`;
     window.location.href = waUrl;
 
