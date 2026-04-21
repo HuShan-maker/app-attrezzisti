@@ -672,6 +672,23 @@
         if(type === 'crea') newData.creator = currentUserName;
         await db.ref(`modelli_db/${id}/current`).set(newData);
         alert("Salvato correttamente!");
+        let changesText = "";
+        if (typeof diffObj !== 'undefined' && diffObj) {
+            changesText = "\n🔄 *MODIFICHE:*";
+            for (let key in diffObj) {
+                changesText += `\n- ${key.toUpperCase()}: _${diffObj[key].old}_ ➔ *${diffObj[key].new}*`;
+            }
+        }
+        
+        const myPhone = "393662613686";
+        const waText = encodeURIComponent(
+            `🚀 *B-SIDE UPDATE* 🚀\n` +
+            `📍 *Modello:* ${id}\n` +
+            `👤 *User:* ${currentUserName}` + 
+            `${changesText}\n` +
+            `📝 *Note:* ${newData.note || '-'}`
+        );
+        window.location.href = `https://wa.me/${myPhone}?text=${waText}`;
         mEditMode = null;
         setModInputsReadOnly(true);
         resetModButtons();
