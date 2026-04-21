@@ -558,7 +558,7 @@
         });
     }
 
-    function clearOldRecords() { if(!confirm("Svuotare record?")) return; const now = new Date(); const tStr = now.toLocaleDateString('it-IT'); const yStr = new Date(now.getTime()-86400000).toLocaleDateString('it-IT'); logs = logs.filter(l => l.day === tStr || l.day === yStr); dayHistory = dayHistory.filter(d => d === tStr || d === yStr); processedStarts = new Set(logs.map(l => l.st)); saveState(); renderLogs(); renderCombinedCards(); }
+    function clearOldRecords() { if(!confirm("Svuotare record > 2 gg?")) return; const now = new Date(); const tStr = now.toLocaleDateString('it-IT'); const yStr = new Date(now.getTime()-86400000).toLocaleDateString('it-IT'); logs = logs.filter(l => l.day === tStr || l.day === yStr); dayHistory = dayHistory.filter(d => d === tStr || d === yStr); processedStarts = new Set(logs.map(l => l.st)); saveState(); renderLogs(); renderCombinedCards(); }
     function toggleDay(header) { const content = header.nextElementSibling; const arrow = header.querySelector('.arrow-icon'); const isHidden = content.style.display === 'none'; content.style.display = isHidden ? 'block' : 'none'; if(arrow) arrow.innerText = isHidden ? '▼' : '▶'; }
     function deleteDay(e, day) { e.stopPropagation(); if(!confirm("Eliminare?")) return; logs = logs.filter(l => l.day !== day); dayHistory = dayHistory.filter(d => d !== day); processedStarts = new Set(logs.map(l => l.st)); saveState(); renderLogs(); renderCombinedCards(); }
     function clearFeedback() { if(confirm("Cancellare?")) { feedbackLogs=[]; saveState(); renderFeedback(); } }
