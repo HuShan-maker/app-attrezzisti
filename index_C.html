@@ -255,7 +255,52 @@
             }
         });
     }
-    
+        // --- 新增：启动时自动下载云端记录并同步到本地 ---
+    function syncCloudHistory() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const daysToSync = [todayStr, yesterdayStr]; // 下载今天和昨天的
+
+        daysToSync.forEach(dayKey => {
+            db.ref('history/' + dayKey).once('value').then(snapshot => {
+                const dayData = snapshot.val();
+                if (!dayData) return;
+
+                let hasNewSync = false;
+                Object.keys(dayData).forEach(key => {
+                    const item = dayData[key];
+                    // 如果是完成状态，且本地没有这条记录（通过 startA 判断）
+                    if (item && item.status === 'completed' && !processedStarts.has(item.startA)) {
+                        const sd = item.startB || item.startD || item.startA;
+                        const et = item.endT || Date.now();
+                        const entry = {
+                            i: item.id || key.split('_')[0],
+                            day: new Date(item.startA).toLocaleDateString('it-IT'),
+                            s: new Date(item.startA).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                            tA: Math.round((sd - item.startA) / 60000),
+                            tD: Math.round((et - sd) / 60000),
+                            st: item.startA, 
+                            et: et,
+                            c: item.causale || "-",
+                            tech: item.techName || "-",
+                            t: item.turno || calculateTurnoByTimestamp(item.startA)
+                        };
+                        logs.push(entry);
+                        processedStarts.add(item.startA);
+                        if (!dayHistory.includes(entry.day)) dayHistory.push(entry.day);
+                        hasNewSync = true;
+                    }
+                });
+
+                if (hasNewSync) {
+                    saveState();
+                    renderCombinedCards();
+                    if(document.getElementById('historyPage').style.display === 'flex') renderLogs();
+                }
+            });
+        });
+    }
+
     db.ref('history/' + new Date().toISOString().split('T')[0]).on('child_added', (snapshot) => {
         const item = snapshot.val();
         if (item && item.status === 'completed' && !processedStarts.has(item.startA)) {
@@ -567,7 +612,7 @@
         });
     }
 
-    window.onload = () => { document.getElementById('curYear').innerText = new Date().getFullYear(); updateHeaderTurno(); cleanCloudHistory(); renderCombinedCards(); };
+    window.onload = () => { document.getElementById('curYear').innerText = new Date().getFullYear(); updateHeaderTurno(); cleanCloudHistory(); syncCloudHistory(); renderCombinedCards(); };
     setInterval(() => { renderCombinedCards(); }, 30000); 
 </script>
 </body>
