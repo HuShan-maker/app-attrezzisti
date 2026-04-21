@@ -701,14 +701,14 @@
 
     const myPhone = "393662613686"; 
     const waMessage = 
-        `💻 *DB-MODELLI UPDATE* ⚙️\n` + 
+        ` *DB-MODELLI UPDATE* \n` + 
         `--------------------------\n` +
-        `📍 *Modello:* ${id}\n` +
-        `👤 *User:* ${currentUserName}\n` +
+        ` *Modello:* ${id}\n` +
+        ` *User:* ${currentUserName}\n` +
         `--------------------------\n` +
         `${waBody}\n` + 
         `--------------------------\n` +
-        `📝 *Note:* ${newData.note || '-'}`;
+        ` *Note:* ${newData.note || '-'}`;
 
     const waUrl = `https://wa.me/${myPhone}?text=${encodeURIComponent(waMessage)}`;
     window.location.href = waUrl;
