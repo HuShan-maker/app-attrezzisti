@@ -23,46 +23,32 @@
             font-family: -apple-system, sans-serif; background: var(--bg); color: #000;
             margin: 0; padding: calc(20px + env(safe-area-inset-top)) 20px 100px 20px;
         }
-
-        /* Header Area */
         .header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
         h1 { font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
         .subtitle { color: var(--gray); font-size: 13px; font-weight: 600; text-transform: uppercase; }
-
-        /* Tabs */
         .tabs { display: flex; background: #e3e3e8; padding: 2px; border-radius: 10px; margin-bottom: 20px; }
         .tab-btn { flex: 1; border: none; padding: 8px; border-radius: 8px; font-weight: 700; font-size: 13px; background: none; color: var(--gray); transition: 0.2s; }
         .tab-btn.active { background: #fff; color: #000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-
-        /* Card Style */
         .approval-card {
             background: var(--card); border-radius: 22px; padding: 20px; margin-bottom: 15px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.05); position: relative;
             animation: slideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .id-badge { background: var(--orange); color: #fff; padding: 5px 12px; border-radius: 10px; font-weight: 900; font-size: 16px; }
         .type-tag { font-size: 10px; font-weight: 800; color: var(--gray); border: 1.5px solid var(--gray); padding: 2px 6px; border-radius: 6px; }
-
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
         .label { font-size: 10px; color: var(--gray); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
-        .value { font-size: 15px; font-weight: 700; color: #000; }
-
+        .value { font-size: 14px; font-weight: 700; color: #000; }
         .note-area { background: #f9f9fb; padding: 12px; border-radius: 12px; font-size: 13px; color: #444; border: 1px solid #eee; }
-
-        /* Action Buttons */
         .actions { display: flex; gap: 12px; margin-top: 20px; }
         .btn { flex: 1; border: none; padding: 16px; border-radius: 16px; font-weight: 800; font-size: 14px; transition: 0.2s; }
         .btn:active { transform: scale(0.95); opacity: 0.8; }
         .btn-approve { background: var(--green); color: #fff; }
         .btn-reject { background: #fff; color: var(--red); border: 2px solid var(--red); }
-
-        /* History List */
         .history-item { background: #fff; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid var(--blue); }
         .history-info { font-size: 12px; color: var(--gray); font-weight: 600; }
-        
         #empty-state { text-align: center; margin-top: 80px; }
         .loader { font-size: 40px; margin-bottom: 10px; }
     </style>
@@ -96,7 +82,6 @@
     </div>
 
 <script>
-    // --- 1. CONFIGURAZIONE FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyAUBXn_liUqQJtp1hucwsuERhZ4oxCdBPg",
         authDomain: "luxottica-app.firebaseapp.com",
@@ -109,7 +94,6 @@
 
     let currentTab = 'pending';
 
-    // --- 2. LOGICA TAB ---
     function switchTab(tab) {
         currentTab = tab;
         document.getElementById('tabPending').classList.toggle('active', tab === 'pending');
@@ -119,55 +103,63 @@
         if(tab === 'history') loadHistory();
     }
 
-// --- 3. MONITORAGGIO RICHIESTE PENDENTI ---
-// 原来的 db.ref('pending_approvals').on(...) 删掉，换成下面这个
-db.ref('modelli_db').on('value', (snapshot) => {
-    if (currentTab !== 'pending') return;
-    const allModelli = snapshot.val();
-    const container = document.getElementById('approvalList');
-    const empty = document.getElementById('empty-state');
-    container.innerHTML = '';
+    // --- 3. MONITORAGGIO RICHIESTE (修正花括号并增加新旧对比) ---
+    db.ref('modelli_db').on('value', (snapshot) => {
+        if (currentTab !== 'pending') return;
+        const allModelli = snapshot.val();
+        const container = document.getElementById('approvalList');
+        const empty = document.getElementById('empty-state');
+        container.innerHTML = '';
+        let hasPending = false;
 
-    let hasPending = false;
+        if (allModelli) {
+            for (let modId in allModelli) {
+                if (allModelli[modId].pending) {
+                    hasPending = true;
+                    const p = allModelli[modId].pending; // 待审核数据
+                    const c = allModelli[modId].current || {}; // 当前正式数据
+                    const card = document.createElement('div');
+                    card.className = 'approval-card';
+                    
+                    // 对比逻辑函数
+                    const getVal = (key, label) => {
+                        const oldV = c[key] || "-";
+                        const newV = p[key] || "-";
+                        if (p.type === 'aggiorna' && oldV !== newV) {
+                            return `<div><div class="label">${label}</div><div class="value"><span style="text-decoration:line-through;color:var(--gray);font-size:11px;">${oldV}</span> ➔ <span style="color:var(--green)">${newV}</span></div></div>`;
+                        }
+                        return `<div><div class="label">${label}</div><div class="value">${newV}</div></div>`;
+                    };
 
-    if (allModelli) {
-        for (let modId in allModelli) {
-            // 核心：只找那些带有 pending 节点的型号
-            if (allModelli[modId].pending) {
-                hasPending = true;
-                const item = allModelli[modId].pending;
-                const card = document.createElement('div');
-                card.className = 'approval-card';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <span class="id-badge">${modId}</span>
-                        <span class="type-tag">${item.type === 'crea' ? 'NUOVO' : 'UPDATE'}</span>
-                    </div>
-                    <div class="info-grid">
-                        <div><div class="label">Macchina</div><div class="value">${item.macchina}</div></div>
-                        <div><div class="label">Posaggio</div><div class="value">${item.posaggio}</div></div>
-                        <div><div class="label">Lama/Fresa</div><div class="value">${item.lama}</div></div>
-                        <div><div class="label">Panto/Scarico</div><div class="value">${item.panto}° / ${item.scarico}°</div></div>
-                        <div><div class="label">Quota</div><div class="value">${item.quota}</div></div>
-                    </div>
-                    <div class="note-area"><b>NOTE:</b> ${item.note || '-'}</div>
-                    <div style="margin-top:10px; font-size:10px; color:#8e8e93; font-weight:700;">PROPOSTO DA: ${item.by.toUpperCase()}</div>
-                    <div class="actions">
-                        <button class="btn btn-reject" onclick="processAction('${modId}', 'REJECT')">RIFIUTA</button>
-                        <button class="btn btn-approve" onclick="processAction('${modId}', 'APPROVE')">CONFERMA</button>
-                    </div>
-                `;
-                container.appendChild(card);
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <span class="id-badge">${modId}</span>
+                            <span class="type-tag" style="border-color:${p.type==='crea'?'var(--green)':'var(--orange)'}">${p.type === 'crea' ? 'NUOVO' : 'UPDATE'}</span>
+                        </div>
+                        <div class="info-grid">
+                            ${getVal('macchina', 'Macchina')}
+                            ${getVal('posaggio', 'Posaggio')}
+                            ${getVal('lama', 'Lama/Fresa')}
+                            ${getVal('panto', 'Panto')}
+                            ${getVal('scarico', 'Scarico')}
+                            ${getVal('quota', 'Quota')}
+                        </div>
+                        <div class="note-area"><b>NOTE:</b> ${p.note || '-'}</div>
+                        <div style="margin-top:10px; font-size:10px; color:#8e8e93; font-weight:700;">PROPOSTO DA: ${p.by.toUpperCase()}</div>
+                        <div class="actions">
+                            <button class="btn btn-reject" onclick="processAction('${modId}', 'REJECT')">RIFIUTA</button>
+                            <button class="btn btn-approve" onclick="processAction('${modId}', 'APPROVE')">CONFERMA</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                }
             }
         }
-    }
+        empty.style.display = hasPending ? 'none' : 'block';
+    });
 
-    empty.style.display = hasPending ? 'none' : 'block';
-});
-    
- // --- 4. AZIONE: APPROVA O RIFIUTA (Versione Sincronizzata con B-v8.1.0) ---
+    // --- 4. AZIONE: APPROVA O RIFIUTA ---
     async function processAction(id, action) {
-        // 1. 从新路径读取 B 端提交的待审核数据
         const snap = await db.ref(`modelli_db/${id}/pending`).once('value');
         const data = snap.val();
         if(!data) {
@@ -178,7 +170,6 @@ db.ref('modelli_db').on('value', (snapshot) => {
         const auditRef = db.ref('audit_log').push();
 
         if (action === 'APPROVE') {
-            // 2. 确认通过：把数据覆盖到 current 节点（正式生效）
             await db.ref(`modelli_db/${id}/current`).set({
                 macchina: data.macchina,
                 posaggio: data.posaggio,
@@ -193,30 +184,23 @@ db.ref('modelli_db').on('value', (snapshot) => {
                 verified_at: Date.now()
             });
 
-            // 3. 同时更新该型号的历史记录，这样 B 端查看历史时能看到 Alex 确认过
             await db.ref(`modelli_db/${id}/history`).push({
-                type: data.type, // 'crea' 或 'aggiorna'
+                type: data.type,
                 by: data.by,
                 at: Date.now(),
                 confirmedBy: 'Alex',
                 newSummary: `${data.macchina} / ${data.posaggio} / ${data.lama} / ${data.panto}° / ${data.scarico}° / ${data.quota}`
             });
 
-            // 记录全局审计日志
             await auditRef.set({ id, action: 'OK', by: 'Alex', at: Date.now(), user: data.by });
-            alert("✅ Modello " + id + " approvato e aggiornato!");
+            alert("✅ Modello " + id + " approvato!");
         } else {
-            // 4. 拒绝：只记录审计日志，不改动正式数据
             await auditRef.set({ id, action: 'NO', by: 'Alex', at: Date.now(), user: data.by });
-            alert("❌ Richiesta per " + id + " rifiutata.");
+            alert("❌ Richiesta rifiutata.");
         }
-
-        // 5. 核心：删除 pending 节点
-        // 这一删，D端的卡片会消失，B端的“灰色斜杠”也会立刻变成正常的黑色实线
         await db.ref(`modelli_db/${id}/pending`).remove();
     }
 
-    // --- 5. CARICAMENTO CRONOLOGIA ---
     function loadHistory() {
         db.ref('audit_log').limitToLast(20).once('value', (snapshot) => {
             const container = document.getElementById('historyList');
@@ -233,7 +217,7 @@ db.ref('modelli_db').on('value', (snapshot) => {
                         ${log.action === 'OK' ? '✅' : '❌'} Modello: ${log.id}
                     </div>
                     <div class="history-info">
-                        Azione eseguita il ${new Date(log.at).toLocaleDateString()} alle ${new Date(log.at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}<br>
+                        ${new Date(log.at).toLocaleDateString()} ${new Date(log.at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}<br>
                         Richiesta di: ${log.user}
                     </div>
                 `;
