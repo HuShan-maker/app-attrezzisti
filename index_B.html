@@ -193,22 +193,6 @@
             display: none; 
         }
 
-        /* 待审核状态：亮黄色背景 + 呼吸灯效果 */
-.pending-highlight {
-    background-color: #fff9c4 !important; 
-    color: #000 !important;
-    border-radius: 8px;
-    padding: 0 5px;
-    font-weight: 900;
-    animation: breathing 2.5s infinite;
-}
-
-@keyframes breathing {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
-}
-        
         .editing .m-text-view { display: none; }
         .editing .m-input { display: block; background: rgba(0,122,255,0.05); }
 
@@ -582,93 +566,51 @@
     }
 
     async function handleModelloSearch(val) {
-    if(mEditMode) return;
-    const id = val.replace(/\s+/g, '').toUpperCase();
-    const cBtn = document.getElementById('mCreaBtn');
-    if(!id) { resetModForm(); return; }
+        if(mEditMode) return;
+        const id = val.replace(/\s+/g, '').toUpperCase();
+        const cBtn = document.getElementById('mCreaBtn');
+        if(!id) { resetModForm(); return; }
 
-    // 同时读取：正式版数据 (current) 和 待审批数据 (pending)
-    const [snap, snapPending, historySnap] = await Promise.all([
-        db.ref(`modelli_db/${id}/current`).once('value'),
-        db.ref(`modelli_db/${id}/pending`).once('value'),
-        db.ref(`modelli_db/${id}/history`).once('value')
-    ]);
+        const snap = await db.ref(`modelli_db/${id}/current`).once('value');
+        const historySnap = await db.ref(`modelli_db/${id}/history`).once('value');
 
-    const d = snap.val() || {}; 
-    const p = snapPending.val(); // 拿到待审批的新数据
-    currentModData = d;
-
-    // 定义需要处理的字段映射
-    const mapping = {
-        'mac': 'macchina', 'pos': 'posaggio', 'lam': 'lama', 
-        'pan': 'panto', 'sca': 'scarico', 'quo': 'quota', 'not': 'note'
-    };
-
-    // 逻辑：如果 pending 存在，显示 pending 的值并加黄色高亮；否则显示正式版
-    Object.keys(mapping).forEach(k => {
-        const inputEl = document.getElementById('m_' + k);
-        const viewEl = document.getElementById('v_' + k);
-        const dbKey = mapping[k];
-
-        const currentVal = d[dbKey] || "";
-        const pendingVal = p ? p[dbKey] : null;
-
-        if (p && pendingVal !== currentVal) {
-            // 如果有待审批数据且不等于正式版：显示新值 + 黄色呼吸灯
-            if (inputEl) inputEl.value = pendingVal;
-            if (viewEl) {
-                viewEl.innerText = pendingVal || "-";
-                viewEl.classList.add('pending-highlight'); 
-            }
-        } else {
-            // 显示正式版数据
-            if (inputEl) inputEl.value = currentVal;
-            if (viewEl) {
-                viewEl.innerText = currentVal || "-";
-                viewEl.classList.remove('pending-highlight');
-            }
-        }
-    });
-
-    syncDisplayValues(); 
-
-    // 处理底部按钮和历史记录显示
-    let html = "";
-    if (p) {
-        // 如果有待审批，在历史记录最上方加一个黄色条提醒
-        html += `<div style="background:#fff9c4; padding:10px; border-radius:12px; border:2px solid #fbc02d; margin-bottom:10px; color:#000; font-size:11px; font-weight:800;">
-                    ⚠️ DATI IN ATTESA DI CONFERMA (Alex)
-                 </div>`;
-    }
-
-    if(snap.exists()) {
-        cBtn.innerText = "GIA' CREATO";
-        cBtn.classList.add('btn-disabled');
-        
-        if(historySnap.exists()){
-            const historyList = Object.values(historySnap.val()).reverse(); 
-            historyList.forEach(h => {
-                const dateStr = new Date(h.at).toLocaleDateString();
-                if(h.type === 'crea'){
-                    html += `<div class="history-item"><span style="color:var(--green)">[CREATO]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
-                } else {
-                    const diffArr = [];
-                    if(h.diff) {
-                        for(let key in h.diff) diffArr.push(`${key}: ${h.diff[key].old} → ${h.diff[key].new}`);
+        if(snap.exists()) {
+            const d = snap.val(); currentModData = d;
+            document.getElementById('m_mac').value = d.macchina || "";
+            document.getElementById('m_pos').value = d.posaggio || "";
+            document.getElementById('m_lam').value = d.lama || "";
+            document.getElementById('m_pan').value = d.panto || "";
+            document.getElementById('m_sca').value = d.scarico || "";
+            document.getElementById('m_quo').value = d.quota || "";
+            document.getElementById('m_not').value = d.note || "";
+            syncDisplayValues(); 
+            cBtn.innerText = "GIA' CREATO";
+            cBtn.classList.add('btn-disabled');
+            let html = "";
+            if(historySnap.exists()){
+                const historyList = Object.values(historySnap.val()).reverse(); 
+                historyList.forEach(h => {
+                    const dateStr = new Date(h.at).toLocaleDateString();
+                    if(h.type === 'crea'){
+                        html += `<div class="history-item"><span style="color:var(--green)">[CREATO]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
+                    } else {
+                        const diffArr = [];
+                        if(h.diff) {
+                            for(let key in h.diff) diffArr.push(`${key}: ${h.diff[key].old} → ${h.diff[key].new}`);
+                        }
+                        const diffText = diffArr.length > 0 ? diffArr.join(' | ') : "Nessuna modifica rilevata";
+                        html += `<div class="history-item"><span style="color:var(--orange)">[AGG]</span> da <b>${h.by}</b> il ${dateStr}<br>Modificato: ${diffText}</div>`;
                     }
-                    const diffText = diffArr.length > 0 ? diffArr.join(' | ') : "Nessuna modifica rilevata";
-                    html += `<div class="history-item"><span style="color:var(--orange)">[AGG]</span> da <b>${h.by}</b> il ${dateStr}<br>Modificato: ${diffText}</div>`;
-                }
-            });
+                });
+            }
+            document.getElementById('mHistoryBox').innerHTML = html;
+        } else {
+            resetModForm(false);
+            cBtn.innerText = "Crea Cartiglio";
+            cBtn.classList.remove('btn-disabled');
+            document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
         }
-        document.getElementById('mHistoryBox').innerHTML = html;
-    } else {
-        resetModForm(false);
-        cBtn.innerText = p ? "IN ATTESA..." : "Crea Cartiglio";
-        p ? cBtn.classList.add('btn-disabled') : cBtn.classList.remove('btn-disabled');
-        document.getElementById('mHistoryBox').innerHTML = html + `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
     }
-}
     
     function handleModAction(mode) {
         const idInput = document.getElementById('mSearchInput');
@@ -696,10 +638,8 @@
     }
 
     async function saveModello(id, type) {
-    // 修改提示词，体现“发送请求”
-    const message = (type === 'crea') ? "Inviare richiesta per NUOVO modello ad Alex?" : "Inviare richiesta di MODIFICA ad Alex?";
+    const message = (type === 'crea') ? "Vuoi creare questo nuovo modello?" : "Confermi l'aggiornamento dei dati?";
     if (!confirm(message)) return;
-
     const newData = {
         macchina: document.getElementById('m_mac').value.trim(),
         posaggio: document.getElementById('m_pos').value.trim(),
@@ -708,13 +648,10 @@
         scarico: document.getElementById('m_sca').value.trim(),
         quota: document.getElementById('m_quo').value.trim(),
         note: document.getElementById('m_not').value.trim(),
-        at: Date.now(), 
-        by: currentUserName,
-        type: type // 必须传这个字段，D端才能判断是CREA还是AGG
+        at: Date.now(), by: currentUserName
     };
-
-    // --- 逻辑保留：计算差异 Diff (用于 WhatsApp 和后续历史) ---
     const nSum = `${newData.macchina} / ${newData.posaggio} / ${newData.lama} / ${newData.panto}° / ${newData.scarico}° / ${newData.quota}`;
+    const historyRef = db.ref(`modelli_db/${id}/history`);
     let diffObj = null;
     if(type === 'aggiorna' && currentModData) {
         diffObj = {};
@@ -731,20 +668,15 @@
         });
         if (Object.keys(diffObj).length === 0) diffObj = null;
     }
+    await historyRef.push({ type: type, newSummary: nSum, diff: diffObj, by: currentUserName, at: Date.now() });
+    if(type === 'crea') newData.creator = currentUserName;
+    await db.ref(`modelli_db/${id}/current`).set(newData);
+    alert("Salvato correttamente!");
 
-    // --- 核心修改：不直接存入 current，而是存入 pending ---
-    // 我们把计算好的 diff 也存进去，这样 Alex 确认时可以直接用
-    newData.diff = diffObj;
-    newData.newSummary = nSum;
-    
-    await db.ref(`modelli_db/${id}/pending`).set(newData);
-    
-    alert("Richiesta inviata correttamente ad Alex!");
-
-    // --- 逻辑保留：WhatsApp 内容构建 ---
+    // --- WhatsApp 动态内容逻辑 ---
     let waBody = "";
     if (type === 'aggiorna') {
-        waBody = `- *RICHIESTA MODIFICA:*`;
+        waBody = `- *MODIFICHE:*`;
         let hasChanged = false;
         const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota"];
         keys.forEach(k => {
@@ -755,9 +687,10 @@
                 waBody += `\n• ${k.toUpperCase()}: _${oldVal}_ ➔ *${newVal}*`;
             }
         });
-        if (!hasChanged) waBody = `\n✅ *Parametri invariati (solo note).*`;
+        if (!hasChanged) waBody = `\n✅ *Nessuna modifica ai parametri.*`;
     } else {
-        waBody = `- *RICHIESTA NUOVO MODELLO* -\n` +
+        // --- 如果是新建 (Crea)，显示所有填写的最新信息 ---
+        waBody = `- *NUOVO MODELLO CREATO* -\n` +
                  `• MAC: *${newData.macchina}*\n` +
                  `• POS: *${newData.posaggio}*\n` +
                  `• LAM: *${newData.lama}*\n` +
@@ -768,24 +701,22 @@
 
     const myPhone = "393662613686"; 
     const waMessage = 
-        `--- *ATTESA APPROVAZIONE* ---\n` + 
+        `--- *DB-MODELLI UPDATE* ---\n` + 
         `--------------------------\n` +
         `- *Modello:* ${id}\n` +
         `- *User:* ${currentUserName}\n` +
         `--------------------------\n` +
         `${waBody}\n` + 
         `--------------------------\n` +
-        `- *Note:* ${newData.note || '-'}\n` +
-        `_Controlla App Alex per confermare_`;
+        `- *Note:* ${newData.note || '-'}`;
 
     const waUrl = `https://wa.me/${myPhone}?text=${encodeURIComponent(waMessage)}`;
     window.location.href = waUrl;
 
-    // --- 逻辑保留：界面复位 ---
     mEditMode = null;
     setModInputsReadOnly(true);
     resetModButtons();
-    handleModelloSearch(id); // 刷新后，由于有pending数据，配合之前的handleSearch逻辑，会变黄
+    handleModelloSearch(id);
 }
 
     function resetModForm(full = true) {
