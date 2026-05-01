@@ -119,70 +119,101 @@
         if(tab === 'history') loadHistory();
     }
 
-    // --- 3. MONITORAGGIO RICHIESTE PENDENTI ---
-    db.ref('pending_approvals').on('value', (snapshot) => {
-        if (currentTab !== 'pending') return;
-        const list = snapshot.val();
-        const container = document.getElementById('approvalList');
-        const empty = document.getElementById('empty-state');
-        container.innerHTML = '';
+// --- 3. MONITORAGGIO RICHIESTE PENDENTI ---
+// 原来的 db.ref('pending_approvals').on(...) 删掉，换成下面这个
+db.ref('modelli_db').on('value', (snapshot) => {
+    if (currentTab !== 'pending') return;
+    const allModelli = snapshot.val();
+    const container = document.getElementById('approvalList');
+    const empty = document.getElementById('empty-state');
+    container.innerHTML = '';
 
-        if (!list) {
-            empty.style.display = 'block';
+    let hasPending = false;
+
+    if (allModelli) {
+        for (let modId in allModelli) {
+            // 核心：只找那些带有 pending 节点的型号
+            if (allModelli[modId].pending) {
+                hasPending = true;
+                const item = allModelli[modId].pending;
+                const card = document.createElement('div');
+                card.className = 'approval-card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="id-badge">${modId}</span>
+                        <span class="type-tag">${item.type === 'crea' ? 'NUOVO' : 'UPDATE'}</span>
+                    </div>
+                    <div class="info-grid">
+                        <div><div class="label">Macchina</div><div class="value">${item.macchina}</div></div>
+                        <div><div class="label">Posaggio</div><div class="value">${item.posaggio}</div></div>
+                        <div><div class="label">Lama/Fresa</div><div class="value">${item.lama}</div></div>
+                        <div><div class="label">Panto/Scarico</div><div class="value">${item.panto}° / ${item.scarico}°</div></div>
+                        <div><div class="label">Quota</div><div class="value">${item.quota}</div></div>
+                    </div>
+                    <div class="note-area"><b>NOTE:</b> ${item.note || '-'}</div>
+                    <div style="margin-top:10px; font-size:10px; color:#8e8e93; font-weight:700;">PROPOSTO DA: ${item.by.toUpperCase()}</div>
+                    <div class="actions">
+                        <button class="btn btn-reject" onclick="processAction('${modId}', 'REJECT')">RIFIUTA</button>
+                        <button class="btn btn-approve" onclick="processAction('${modId}', 'APPROVE')">CONFERMA</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+        }
+    }
+
+    empty.style.display = hasPending ? 'none' : 'block';
+});
+    
+ // --- 4. AZIONE: APPROVA O RIFIUTA (Versione Sincronizzata con B-v8.1.0) ---
+    async function processAction(id, action) {
+        // 1. 从新路径读取 B 端提交的待审核数据
+        const snap = await db.ref(`modelli_db/${id}/pending`).once('value');
+        const data = snap.val();
+        if(!data) {
+            alert("Errore: Dati non trovati o già elaborati.");
             return;
         }
-        empty.style.display = 'none';
-
-        for (let id in list) {
-            const item = list[id];
-            const card = document.createElement('div');
-            card.className = 'approval-card';
-            card.innerHTML = `
-                <div class="card-header">
-                    <span class="id-badge">${id}</span>
-                    <span class="type-tag">${item.status || 'EDIT'}</span>
-                </div>
-                <div class="info-grid">
-                    <div><div class="label">Macchina</div><div class="value">${item.macchina}</div></div>
-                    <div><div class="label">Posaggio</div><div class="value">${item.posaggio}</div></div>
-                    <div><div class="label">Lama/Fresa</div><div class="value">${item.lama}</div></div>
-                    <div><div class="label">Panto/Scarico</div><div class="value">${item.panto}° / ${item.scarico}°</div></div>
-                </div>
-                <div class="note-area"><b>NOTE:</b> ${item.note || '-'}</div>
-                <div style="margin-top:10px; font-size:10px; color:#8e8e93; font-weight:700;">PROPOSTO DA: ${item.by.toUpperCase()}</div>
-                <div class="actions">
-                    <button class="btn btn-reject" onclick="processAction('${id}', 'REJECT')">RIFIUTA</button>
-                    <button class="btn btn-approve" onclick="processAction('${id}', 'APPROVE')">CONFERMA</button>
-                </div>
-            `;
-            container.appendChild(card);
-        }
-    });
-
-    // --- 4. AZIONE: APPROVA O RIFIUTA ---
-    async function processAction(id, action) {
-        const snap = await db.ref(`pending_approvals/${id}`).once('value');
-        const data = snap.val();
-        if(!data) return;
 
         const auditRef = db.ref('audit_log').push();
 
         if (action === 'APPROVE') {
-            // SPOSTA IN UFFICIALE
+            // 2. 确认通过：把数据覆盖到 current 节点（正式生效）
             await db.ref(`modelli_db/${id}/current`).set({
-                ...data,
-                status: 'OFFICIAL',
+                macchina: data.macchina,
+                posaggio: data.posaggio,
+                lama: data.lama,
+                panto: data.panto,
+                scarico: data.scarico,
+                quota: data.quota,
+                note: data.note || "",
+                at: data.at,
+                by: data.by,
                 verified_by: 'Alex',
                 verified_at: Date.now()
             });
+
+            // 3. 同时更新该型号的历史记录，这样 B 端查看历史时能看到 Alex 确认过
+            await db.ref(`modelli_db/${id}/history`).push({
+                type: data.type, // 'crea' 或 'aggiorna'
+                by: data.by,
+                at: Date.now(),
+                confirmedBy: 'Alex',
+                newSummary: `${data.macchina} / ${data.posaggio} / ${data.lama} / ${data.panto}° / ${data.scarico}° / ${data.quota}`
+            });
+
+            // 记录全局审计日志
             await auditRef.set({ id, action: 'OK', by: 'Alex', at: Date.now(), user: data.by });
+            alert("✅ Modello " + id + " approvato e aggiornato!");
         } else {
-            // SOLO LOG DI RIFIUTO
+            // 4. 拒绝：只记录审计日志，不改动正式数据
             await auditRef.set({ id, action: 'NO', by: 'Alex', at: Date.now(), user: data.by });
+            alert("❌ Richiesta per " + id + " rifiutata.");
         }
 
-        // RIMUOVI DA PENDENTI (La card sparisce automaticamente)
-        await db.ref(`pending_approvals/${id}`).remove();
+        // 5. 核心：删除 pending 节点
+        // 这一删，D端的卡片会消失，B端的“灰色斜杠”也会立刻变成正常的黑色实线
+        await db.ref(`modelli_db/${id}/pending`).remove();
     }
 
     // --- 5. CARICAMENTO CRONOLOGIA ---
