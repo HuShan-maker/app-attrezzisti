@@ -193,6 +193,20 @@
             display: none; 
         }
 
+        /* 待审核状态：灰色、斜杠、半透明 */
+.pending-val { 
+    color: #8e8e93 !important; 
+    text-decoration: line-through; 
+    font-style: italic;
+    opacity: 0.6;
+}
+
+/* 强制让文字在斜杠下也能看清 */
+.m-text-view.pending-val {
+    display: inline-block;
+    position: relative;
+}
+        
         .editing .m-text-view { display: none; }
         .editing .m-input { display: block; background: rgba(0,122,255,0.05); }
 
@@ -565,52 +579,98 @@
         aBtn.style.pointerEvents = "auto";
     }
 
-    async function handleModelloSearch(val) {
-        if(mEditMode) return;
-        const id = val.replace(/\s+/g, '').toUpperCase();
-        const cBtn = document.getElementById('mCreaBtn');
-        if(!id) { resetModForm(); return; }
+async function handleModelloSearch(val) {
+    if(mEditMode) return;
+    const id = val.replace(/\s+/g, '').toUpperCase();
+    const cBtn = document.getElementById('mCreaBtn');
+    if(!id) { resetModForm(); return; }
 
-        const snap = await db.ref(`modelli_db/${id}/current`).once('value');
-        const historySnap = await db.ref(`modelli_db/${id}/history`).once('value');
+    // 1. 同时读取：正式数据、待审核数据、历史记录
+    const [snap, snapPending, historySnap] = await Promise.all([
+        db.ref(`modelli_db/${id}/current`).once('value'),
+        db.ref(`modelli_db/${id}/pending`).once('value'),
+        db.ref(`modelli_db/${id}/history`).once('value')
+    ]);
 
-        if(snap.exists()) {
-            const d = snap.val(); currentModData = d;
-            document.getElementById('m_mac').value = d.macchina || "";
-            document.getElementById('m_pos').value = d.posaggio || "";
-            document.getElementById('m_lam').value = d.lama || "";
-            document.getElementById('m_pan').value = d.panto || "";
-            document.getElementById('m_sca').value = d.scarico || "";
-            document.getElementById('m_quo').value = d.quota || "";
-            document.getElementById('m_not').value = d.note || "";
-            syncDisplayValues(); 
-            cBtn.innerText = "GIA' CREATO";
-            cBtn.classList.add('btn-disabled');
-            let html = "";
-            if(historySnap.exists()){
-                const historyList = Object.values(historySnap.val()).reverse(); 
-                historyList.forEach(h => {
-                    const dateStr = new Date(h.at).toLocaleDateString();
-                    if(h.type === 'crea'){
-                        html += `<div class="history-item"><span style="color:var(--green)">[CREATO]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
-                    } else {
-                        const diffArr = [];
-                        if(h.diff) {
-                            for(let key in h.diff) diffArr.push(`${key}: ${h.diff[key].old} → ${h.diff[key].new}`);
-                        }
-                        const diffText = diffArr.length > 0 ? diffArr.join(' | ') : "Nessuna modifica rilevata";
-                        html += `<div class="history-item"><span style="color:var(--orange)">[AGG]</span> da <b>${h.by}</b> il ${dateStr}<br>Modificato: ${diffText}</div>`;
-                    }
-                });
-            }
-            document.getElementById('mHistoryBox').innerHTML = html;
+    const d = snap.val() || {}; // 正式数据
+    const p = snapPending.val(); // 待审核数据
+    currentModData = d;
+
+    // 2. 核心对比逻辑：决定显示哪个值，是否加斜杠
+    const fields = [
+        { id: 'm_mac', viewId: 'v_mac', key: 'macchina' },
+        { id: 'm_pos', viewId: 'v_pos', key: 'posaggio' },
+        { id: 'm_lam', viewId: 'v_lam', key: 'lama' },
+        { id: 'm_pan', viewId: 'v_pan', key: 'panto' },
+        { id: 'm_sca', viewId: 'v_sca', key: 'scarico' },
+        { id: 'm_quo', viewId: 'v_quo', key: 'quota' },
+        { id: 'm_not', viewId: 'v_not', key: 'note' }
+    ];
+
+    fields.forEach(f => {
+        const inputEl = document.getElementById(f.id);
+        const viewEl = document.getElementById(f.viewId);
+        
+        const currentVal = d[f.key] || "";
+        const pendingVal = p ? p[f.key] : null;
+
+        // 如果 Alex 还没确认（有 pending 数据），且该项内容与正式版不同
+        if (p && pendingVal !== currentVal) {
+            inputEl.value = pendingVal;
+            viewEl.innerText = pendingVal || "-";
+            viewEl.classList.add('pending-val'); // 变灰加斜杠
         } else {
-            resetModForm(false);
-            cBtn.innerText = "Crea Cartiglio";
-            cBtn.classList.remove('btn-disabled');
-            document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
+            inputEl.value = currentVal;
+            viewEl.innerText = currentVal || "-";
+            viewEl.classList.remove('pending-val'); // 正常显示
         }
+    });
+
+    syncDisplayValues();
+
+    // 3. 按钮状态处理
+    if(snap.exists()) {
+        cBtn.innerText = "GIA' CREATO";
+        cBtn.classList.add('btn-disabled');
+    } else {
+        cBtn.innerText = p ? "IN ATTESA" : "Crea Cartiglio";
+        p ? cBtn.classList.add('btn-disabled') : cBtn.classList.remove('btn-disabled');
     }
+
+    // 4. 历史记录渲染
+    let html = "";
+    // 如果有待审核任务，在历史记录最上方加一个明显的黄色提醒
+    if (p) {
+        html += `<div style="background:#fff9c4; padding:12px; border-radius:12px; border:2px solid #fbc02d; margin-bottom:15px; font-size:11px; font-weight:800;">
+                    <span style="color:#f57f17">⚠️ IN ATTESA DI CONFERMA (Alex)</span><br>
+                    Richiesto da: ${p.by}<br>
+                    Tipo: ${p.type === 'crea' ? 'NUOVO MODELLO' : 'AGGIORNAMENTO'}
+                 </div>`;
+    }
+
+    if(historySnap.exists()){
+        const historyList = Object.values(historySnap.val()).reverse(); 
+        historyList.forEach(h => {
+            const dateStr = new Date(h.at).toLocaleDateString();
+            if(h.type === 'crea'){
+                html += `<div class="history-item"><span style="color:var(--green)">[CREATO]</span> da <b>${h.by}</b> il ${dateStr}<br>Dati: ${h.newSummary}</div>`;
+            } else {
+                const diffArr = [];
+                if(h.diff) {
+                    for(let key in h.diff) diffArr.push(`${key}: ${h.diff[key].old} → ${h.diff[key].new}`);
+                }
+                const diffText = diffArr.length > 0 ? diffArr.join(' | ') : "Nessuna modifica rilevata";
+                html += `<div class="history-item"><span style="color:var(--orange)">[AGG]</span> da <b>${h.by}</b> il ${dateStr}<br>Modificato: ${diffText}</div>`;
+            }
+        });
+    }
+    
+    if (!snap.exists() && !p) {
+        document.getElementById('mHistoryBox').innerHTML = `<span style="color:var(--orange)">Nuovo Modello: ${id}</span>. Clicca Crea per iniziare.`;
+    } else {
+        document.getElementById('mHistoryBox').innerHTML = html;
+    }
+} 
     
     function handleModAction(mode) {
         const idInput = document.getElementById('mSearchInput');
@@ -637,9 +697,10 @@
         }
     }
 
-    async function saveModello(id, type) {
-    const message = (type === 'crea') ? "Vuoi creare questo nuovo modello?" : "Confermi l'aggiornamento dei dati?";
+async function saveModello(id, type) {
+    const message = (type === 'crea') ? "Inviare richiesta per NUOVO modello?" : "Inviare richiesta di modifica dati?";
     if (!confirm(message)) return;
+
     const newData = {
         macchina: document.getElementById('m_mac').value.trim(),
         posaggio: document.getElementById('m_pos').value.trim(),
@@ -648,71 +709,26 @@
         scarico: document.getElementById('m_sca').value.trim(),
         quota: document.getElementById('m_quo').value.trim(),
         note: document.getElementById('m_not').value.trim(),
-        at: Date.now(), by: currentUserName
+        at: Date.now(), 
+        by: currentUserName,
+        status: "pending", // 核心标记
+        type: type 
     };
-    const nSum = `${newData.macchina} / ${newData.posaggio} / ${newData.lama} / ${newData.panto}° / ${newData.scarico}° / ${newData.quota}`;
-    const historyRef = db.ref(`modelli_db/${id}/history`);
-    let diffObj = null;
-    if(type === 'aggiorna' && currentModData) {
-        diffObj = {};
-        const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota", "note"];
-        keys.forEach(k => {
-            const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "";
-            const newVal = newData[k] ? String(newData[k]).trim() : "";
-            if(newVal !== oldVal) {
-                diffObj[k] = { 
-                    old: (oldVal === "" || oldVal === "-") ? "-" : oldVal, 
-                    new: (newVal === "") ? "-" : newVal 
-                };
-            }
-        });
-        if (Object.keys(diffObj).length === 0) diffObj = null;
-    }
-    await historyRef.push({ type: type, newSummary: nSum, diff: diffObj, by: currentUserName, at: Date.now() });
-    if(type === 'crea') newData.creator = currentUserName;
-    await db.ref(`modelli_db/${id}/current`).set(newData);
-    alert("Salvato correttamente!");
 
-    // --- WhatsApp 动态内容逻辑 ---
-    let waBody = "";
-    if (type === 'aggiorna') {
-        waBody = `- *MODIFICHE:*`;
-        let hasChanged = false;
-        const keys = ["macchina", "posaggio", "lama", "panto", "scarico", "quota"];
-        keys.forEach(k => {
-            const oldVal = currentModData[k] ? String(currentModData[k]).trim() : "-";
-            const newVal = newData[k] ? String(newData[k]).trim() : "-";
-            if (newVal !== oldVal) {
-                hasChanged = true;
-                waBody += `\n• ${k.toUpperCase()}: _${oldVal}_ ➔ *${newVal}*`;
-            }
-        });
-        if (!hasChanged) waBody = `\n✅ *Nessuna modifica ai parametri.*`;
-    } else {
-        // --- 如果是新建 (Crea)，显示所有填写的最新信息 ---
-        waBody = `- *NUOVO MODELLO CREATO* -\n` +
-                 `• MAC: *${newData.macchina}*\n` +
-                 `• POS: *${newData.posaggio}*\n` +
-                 `• LAM: *${newData.lama}*\n` +
-                 `• PAN: *${newData.panto}°*\n` +
-                 `• SCA: *${newData.scarico}°*\n` +
-                 `• QUO: *${newData.quota}*`;
-    }
+    // 存入 pending 节点，等待 Alex 审核
+    await db.ref(`modelli_db/${id}/pending`).set(newData);
+    
+    // 发送 WhatsApp 告知 Alex
+    const waMessage = `--- *RICHIESTA APPROVAZIONE* ---\n` +
+                      `- *Modello:* ${id}\n` +
+                      `- *Azione:* ${type.toUpperCase()}\n` +
+                      `- *Da:* ${currentUserName}\n` +
+                      `_Attendo tua conferma su App D_`;
 
-    const myPhone = "393662613686"; 
-    const waMessage = 
-        `--- *DB-MODELLI UPDATE* ---\n` + 
-        `--------------------------\n` +
-        `- *Modello:* ${id}\n` +
-        `- *User:* ${currentUserName}\n` +
-        `--------------------------\n` +
-        `${waBody}\n` + 
-        `--------------------------\n` +
-        `- *Note:* ${newData.note || '-'}`;
-
-    const waUrl = `https://wa.me/${myPhone}?text=${encodeURIComponent(waMessage)}`;
+    const waUrl = `https://wa.me/393662613686?text=${encodeURIComponent(waMessage)}`;
     window.location.href = waUrl;
 
+    alert("Richiesta inviata ad Alex!");
     mEditMode = null;
     setModInputsReadOnly(true);
     resetModButtons();
